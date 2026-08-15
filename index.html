@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Tasty Day — Dienstplan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1E2019;
+    --bg-elevated:#262920;
+    --bg-elevated-2:#2E3226;
+    --paper:#F1EEE4;
+    --paper-dim:#E4E0D2;
+    --ink:#2B2620;
+    --text:#F1EEE4;
+    --text-muted:#9A9686;
+    --line:#3A3D31;
+    --mango:#E8A23D;
+    --mango-ink:#3A2A0F;
+    --avocado:#7C9A5D;
+    --avocado-ink:#1E2A16;
+    --chili:#D1543A;
+    --chili-ink:#3A160F;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Space Grotesk',sans-serif;
+    letter-spacing:-0.01em;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  a{color:inherit;}
+
+  /* ---------- layout shells ---------- */
+  #app{min-height:100vh;display:flex;flex-direction:column;}
+  .center-screen{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:24px;
+  }
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 20px;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:var(--bg);z-index:20;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand .mark{
+    width:34px;height:34px;border-radius:9px;
+    background:linear-gradient(135deg,var(--mango),var(--chili));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk';font-weight:700;color:var(--mango-ink);font-size:16px;
+  }
+  .brand-name{font-family:'Space Grotesk';font-weight:600;font-size:16px;}
+  .brand-sub{font-size:11px;color:var(--text-muted);margin-top:-2px;}
+  .user-chip{
+    display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);
+  }
+  .logout-btn{
+    background:none;border:1px solid var(--line);color:var(--text-muted);
+    padding:6px 12px;border-radius:20px;font-size:12px;
+  }
+  .logout-btn:hover{border-color:var(--chili);color:var(--chili);}
+
+  .tabs{
+    display:flex;gap:4px;padding:10px 20px;border-bottom:1px solid var(--line);
+    overflow-x:auto;position:sticky;top:65px;background:var(--bg);z-index:19;
+  }
+  .tab{
+    background:none;border:none;color:var(--text-muted);
+    padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;
+    white-space:nowrap;transition:.15s;
+  }
+  .tab.active{background:var(--bg-elevated-2);color:var(--mango);}
+  .tab:hover:not(.active){color:var(--text);}
+
+  main{flex:1;padding:20px;max-width:920px;margin:0 auto;width:100%;}
+
+  /* ---------- ticket card (signature element) ---------- */
+  .ticket{
+    background:var(--paper);color:var(--ink);
+    border-radius:10px;
+    position:relative;
+    padding:16px 16px 14px;
+    box-shadow:0 1px 0 rgba(0,0,0,.2);
+  }
+  .ticket::before{
+    content:"";
+    position:absolute;top:-1px;left:0;right:0;height:8px;
+    background:
+      radial-gradient(circle at 8px 0, transparent 6px, var(--bg) 6.5px) top left/16px 100% repeat-x;
+  }
+  .ticket-row{
+    display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  }
+  .ticket-name{font-weight:600;font-size:14px;}
+  .ticket-time{font-family:'IBM Plex Mono';font-size:13px;color:var(--ink);opacity:.75;}
+  .ticket-dash{border-top:1px dashed rgba(43,38,32,.3);margin:8px 0;}
+
+  /* ---------- login ---------- */
+  .auth-card{
+    width:100%;max-width:380px;background:var(--bg-elevated);
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:28px;
+  }
+  .auth-title{font-size:22px;font-weight:700;margin:0 0 4px;}
+  .auth-sub{color:var(--text-muted);font-size:13px;margin:0 0 22px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600;}
+  .field input, .field select{
+    width:100%;padding:11px 13px;border-radius:9px;
+    border:1px solid var(--line);background:var(--bg);color:var(--text);
+    font-size:14px;
+  }
+  .field input:focus, .field select:focus{outline:none;border-color:var(--mango);}
+  .btn{
+    width:100%;padding:12px;border-radius:9px;border:none;
+    font-weight:700;font-size:14px;transition:.15s;
+  }
+  .btn-primary{background:var(--mango);color:var(--mango-ink);}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-ghost{background:none;border:1px solid var(--line);color:var(--text);}
+  .btn-ghost:hover{border-color:var(--text-muted);}
+  .auth-switch{
+    text-align:center;margin-top:16px;font-size:13px;color:var(--text-muted);
+  }
+  .auth-switch button{background:none;border:none;color:var(--mango);font-weight:600;font-size:13px;padding:0;}
+  .error-msg{
+    background:rgba(209,84,58,.15);border:1px solid var(--chili);color:#F4B8A8;
+    padding:9px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;
+  }
+
+  /* ---------- sections ---------- */
+  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .section-title{font-size:19px;font-weight:700;margin:0;}
+  .section-sub{color:var(--text-muted);font-size:13px;margin:2px 0 0;}
+  .week-nav{display:flex;align-items:center;gap:10px;}
+  .week-nav button{
+    background:var(--bg-elevated-2);border:1px solid var(--line);color:var(--text);
+    width:32px;height:32px;border-radius:8px;font-size:15px;
+  }
+  .week-nav button:hover{border-color:var(--mango);}
+  .week-label{font-family:'IBM Plex Mono';font-size:12px;color:var(--text-muted);min-width:130px;text-align:center;}
+
+  .card{
+    background:var(--bg-elevated);border:1px solid var(--line);
+    border-radius:var(--radius);padding:18px;margin-bottom:14px;
+  }
+
+  /* availability grid */
+  .avail-grid{display:grid;grid-template-columns:1fr;gap:10px;}
+  .avail-day{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--bg-elevated-2);border-radius:10px;padding:12px 14px;
+    gap:12px;flex-wrap:wrap;
+  }
+  .avail-day-label{font-weight:600;font-size:14px;min-width:110px;}
+  .avail-day-date{font-size:11px;color:var(--text-muted);font-family:'IBM Plex Mono';display:block;margin-top:2px;}
+  .avail-toggle{display:flex;gap:6px;}
+  .avail-btn{
+    padding:7px 14px;border-radius:20px;border:1px solid var(--line);
+    background:transparent;color:var(--text-muted);font-size:12px;font-weight:700;
+  }
+  .avail-btn.yes.selected{background:var(--avocado);border-color:var(--avocado);color:var(--avocado-ink);}
+  .avail-btn.no.selected{background:var(--chili);border-color:var(--chili);color:#fff;}
+  .avail-note{
+    flex:1;min-width:140px;background:var(--bg);border:1px solid var(--line);
+    border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text);
+  }
+
+  /* schedule board */
+  .board{display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:10px;overflow-x:auto;}
+  @media(max-width:800px){.board{grid-template-columns:1fr;}}
+  .board-col{min-width:150px;}
+  .board-col-head{
+    font-size:12px;font-weight:700;color:var(--text-muted);
+    text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;
+    display:flex;justify-content:space-between;
+  }
+  .board-col-head .d{font-family:'IBM Plex Mono';color:var(--mango);}
+  .board-tickets{display:flex;flex-direction:column;gap:8px;min-height:40px;}
+  .empty-slot{
+    border:1px dashed var(--line);border-radius:10px;padding:14px 10px;
+    text-align:center;font-size:11px;color:var(--text-muted);
+  }
+  .add-shift-btn{
+    width:100%;background:none;border:1px dashed var(--line);color:var(--text-muted);
+    border-radius:10px;padding:9px;font-size:12px;margin-top:4px;
+  }
+  .add-shift-btn:hover{border-color:var(--mango);color:var(--mango);}
+  .shift-remove{
+    background:none;border:none;color:var(--ink);opacity:.4;font-size:14px;
+    padding:0 0 0 6px;line-height:1;
+  }
+  .shift-remove:hover{opacity:1;color:var(--chili);}
+
+  /* time entry */
+  .time-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;}
+  @media(max-width:640px){.time-form{grid-template-columns:1fr 1fr;}}
+  .time-list{margin-top:16px;display:flex;flex-direction:column;gap:8px;}
+  .time-row{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--bg-elevated-2);border-radius:10px;padding:10px 14px;font-size:13px;
+  }
+  .time-row .hrs{font-family:'IBM Plex Mono';color:var(--mango);font-weight:600;}
+  .del-btn{background:none;border:none;color:var(--text-muted);font-size:16px;}
+  .del-btn:hover{color:var(--chili);}
+  .total-bar{
+    display:flex;justify-content:space-between;align-items:center;
+    background:var(--bg-elevated-2);border-radius:10px;padding:12px 16px;margin-top:12px;
+    font-weight:700;
+  }
+  .total-bar .val{font-family:'IBM Plex Mono';color:var(--avocado);font-size:16px;}
+
+  .badge{
+    display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.04em;
+  }
+  .badge-chef{background:var(--mango);color:var(--mango-ink);}
+  .badge-emp{background:var(--bg);border:1px solid var(--line);color:var(--text-muted);}
+
+  .select-emp{
+    padding:9px 12px;border-radius:8px;border:1px solid var(--line);
+    background:var(--bg);color:var(--text);font-size:13px;
+  }
+
+  .empty-state{
+    text-align:center;padding:40px 20px;color:var(--text-muted);
+  }
+  .empty-state .big{font-size:32px;margin-bottom:8px;}
+
+  ::-webkit-scrollbar{height:8px;width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="center-screen"><span class="mono" style="color:var(--text-muted);font-size:13px;">Lädt…</span></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import {
+  getDatabase, ref, set, get, push, remove, onValue, update
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCFCE8648owmbS0wMBh7uhBWL900RKr8qQ",
+  authDomain: "tasty-day-e789b.firebaseapp.com",
+  databaseURL: "https://tasty-day-e789b-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "tasty-day-e789b",
+  storageBucket: "tasty-day-e789b.firebasestorage.app",
+  messagingSenderId: "374436370317",
+  appId: "1:374436370317:web:c298e6f07a77516c234fc4"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const CHEF_CODE = "TASTYCHEF"; // Code für Chef-Registrierung
+
+const DAYS = [
+  {key:"mon", label:"Montag"},
+  {key:"tue", label:"Dienstag"},
+  {key:"wed", label:"Mittwoch"},
+  {key:"thu", label:"Donnerstag"},
+  {key:"fri", label:"Freitag"},
+  {key:"sat", label:"Samstag"},
+  {key:"sun", label:"Sonntag"},
+];
+
+// ---------- state ----------
+let state = {
+  screen: "login", // login | register | app
+  authError: "",
+  currentUser: null, // {id, name, role}
+  employees: {},
+  tab: "availability", // availability | schedule | mytimes | plan | allavail | alltimes
+  weekOffset: 0,
+  weekData: { availability:{}, schedule:{} },
+  timeEntries: {},
+  weekListenerUnsub: null,
+  timeListenerUnsub: null,
+  empListenerUnsub: null,
+};
+
+function render(){
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+  if(state.screen === "login") root.appendChild(renderAuth("login"));
+  else if(state.screen === "register") root.appendChild(renderAuth("register"));
+  else root.appendChild(renderApp());
+}
+
+// ---------- helpers ----------
+function getMonday(d){
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  date.setDate(diff);
+  date.setHours(0,0,0,0);
+  return date;
+}
+function weekIdFor(offset){
+  const base = getMonday(new Date());
+  base.setDate(base.getDate() + offset*7);
+  const y = base.getFullYear();
+  const onejan = new Date(y,0,1);
+  const week = Math.ceil((((base - onejan)/86400000) + onejan.getDay()+1)/7);
+  return `${y}-W${String(week).padStart(2,"0")}`;
+}
+function datesForWeek(offset){
+  const monday = getMonday(new Date());
+  monday.setDate(monday.getDate() + offset*7);
+  return DAYS.map((d,i)=>{
+    const dt = new Date(monday);
+    dt.setDate(dt.getDate()+i);
+    return dt;
+  });
+}
+function fmtDate(dt){
+  return dt.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"});
+}
+function weekRangeLabel(offset){
+  const dates = datesForWeek(offset);
+  return `${fmtDate(dates[0])} – ${fmtDate(dates[6])}`;
+}
+function quarterHours(start,end){
+  const [sh,sm] = start.split(":").map(Number);
+  const [eh,em] = end.split(":").map(Number);
+  let mins = (eh*60+em) - (sh*60+sm);
+  if(mins < 0) mins += 24*60;
+  const hrs = mins/60;
+  return Math.round(hrs*4)/4;
+}
+function fmtHours(h){
+  return h.toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function simpleHash(str){
+  let hash = 0;
+  for(let i=0;i<str.length;i++){
+    hash = (hash*31 + str.charCodeAt(i)) >>> 0;
+  }
+  return hash.toString(36);
+}
+function el(tag, attrs={}, children=[]){
+  const e = document.createElement(tag);
+  for(const k in attrs){
+    if(k === "class") e.className = attrs[k];
+    else if(k === "html") e.innerHTML = attrs[k];
+    else if(k.startsWith("on")) e.addEventListener(k.slice(2), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  (Array.isArray(children)?children:[children]).forEach(c=>{
+    if(c === null || c === undefined) return;
+    if(typeof c === "string") e.appendChild(document.createTextNode(c));
+    else e.appendChild(c);
+  });
+  return e;
+}
+
+// ---------- auth ----------
+function renderAuth(mode){
+  const wrap = el("div",{class:"center-screen"});
+  const card = el("div",{class:"auth-card"});
+  card.appendChild(el("div",{class:"mark", style:"width:40px;height:40px;margin-bottom:14px;"}));
+  const markDiv = card.firstChild;
+  markDiv.className = "";
+  markDiv.style = "width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--mango),var(--chili));display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk';font-weight:700;color:var(--mango-ink);font-size:19px;margin-bottom:16px;";
+  markDiv.textContent = "TD";
+
+  card.appendChild(el("h1",{class:"auth-title"}, mode==="login" ? "Willkommen zurück" : "Konto erstellen"));
+  card.appendChild(el("p",{class:"auth-sub"}, mode==="login" ? "Melde dich mit deinem Namen an." : "Leg dein Konto für den Dienstplan an."));
+
+  if(state.authError){
+    card.appendChild(el("div",{class:"error-msg"}, state.authError));
+  }
+
+  const nameField = el("input",{type:"text", placeholder:"z. B. Max Mustermann"});
+  const passField = el("input",{type:"password", placeholder:"Passwort"});
+
+  card.appendChild(el("div",{class:"field"},[el("label",{},"Name"), nameField]));
+  card.appendChild(el("div",{class:"field"},[el("label",{},"Passwort"), passField]));
+
+  let chefCodeField = null;
+  if(mode === "register"){
+    chefCodeField = el("input",{type:"text", placeholder:"Nur für Chefs — sonst leer lassen"});
+    card.appendChild(el("div",{class:"field"},[el("label",{}, "Chef-Code (optional)"), chefCodeField]));
+  }
+
+  const submitBtn = el("button",{class:"btn btn-primary"}, mode==="login" ? "Anmelden" : "Konto erstellen");
+  submitBtn.addEventListener("click", async ()=>{
+    const name = nameField.value.trim();
+    const pass = passField.value;
+    if(!name || !pass){
+      state.authError = "Bitte Name und Passwort eingeben.";
+      render();
+      return;
+    }
+    if(mode === "login") await doLogin(name, pass);
+    else await doRegister(name, pass, chefCodeField.value.trim());
+  });
+  card.appendChild(submitBtn);
+
+  const switchWrap = el("div",{class:"auth-switch"});
+  if(mode === "login"){
+    switchWrap.appendChild(document.createTextNode("Noch kein Konto? "));
+    switchWrap.appendChild(el("button",{onclick:()=>{state.screen="register"; state.authError=""; render();}}, "Registrieren"));
+  } else {
+    switchWrap.appendChild(document.createTextNode("Schon ein Konto? "));
+    switchWrap.appendChild(el("button",{onclick:()=>{state.screen="login"; state.authError=""; render();}}, "Anmelden"));
+  }
+  card.appendChild(switchWrap);
+
+  wrap.appendChild(card);
+  return wrap;
+}
+
+async function doLogin(name, pass){
+  const snap = await get(ref(db, "employees"));
+  const data = snap.val() || {};
+  const entry = Object.entries(data).find(([id,e])=> e.name.toLowerCase() === name.toLowerCase());
+  if(!entry){
+    state.authError = "Kein Konto mit diesem Namen gefunden.";
+    render();
+    return;
+  }
+  const [id, e] = entry;
+  if(e.password !== simpleHash(pass)){
+    state.authError = "Falsches Passwort.";
+    render();
+    return;
+  }
+  state.authError = "";
+  state.currentUser = {id, name:e.name, role:e.role};
+  state.tab = e.role === "chef" ? "plan" : "availability";
+  state.screen = "app";
+  startListeners();
+  render();
+}
+
+async function doRegister(name, pass, chefCode){
+  const snap = await get(ref(db, "employees"));
+  const data = snap.val() || {};
+  const exists = Object.values(data).find(e=> e.name.toLowerCase() === name.toLowerCase());
+  if(exists){
+    state.authError = "Dieser Name ist schon vergeben.";
+    render();
+    return;
+  }
+  const role = (chefCode && chefCode === CHEF_CODE) ? "chef" : "employee";
+  const newRef = push(ref(db, "employees"));
+  await set(newRef, {name, password: simpleHash(pass), role});
+  state.authError = "";
+  state.currentUser = {id:newRef.key, name, role};
+  state.tab = role === "chef" ? "plan" : "availability";
+  state.screen = "app";
+  startListeners();
+  render();
+}
+
+function logout(){
+  state.currentUser = null;
+  state.screen = "login";
+  state.weekData = {availability:{}, schedule:{}};
+  state.timeEntries = {};
+  render();
+}
+
+// ---------- listeners ----------
+function startListeners(){
+  onValue(ref(db, "employees"), (snap)=>{
+    state.employees = snap.val() || {};
+    render();
+  });
+  attachWeekListener();
+  attachTimeListener();
+}
+function attachWeekListener(){
+  const wid = weekIdFor(state.weekOffset);
+  onValue(ref(db, `weeks/${wid}`), (snap)=>{
+    state.weekData = snap.val() || {availability:{}, schedule:{}};
+    render();
+  });
+}
+function attachTimeListener(){
+  onValue(ref(db, "timeEntries"), (snap)=>{
+    state.timeEntries = snap.val() || {};
+    render();
+  });
+}
+
+// ---------- app shell ----------
+function renderApp(){
+  const wrap = el("div",{});
+  wrap.appendChild(renderTopbar());
+  wrap.appendChild(renderTabs());
+  const main = el("main",{});
+  main.appendChild(renderTabContent());
+  wrap.appendChild(main);
+  return wrap;
+}
+
+function renderTopbar(){
+  const bar = el("div",{class:"topbar"});
+  const brand = el("div",{class:"brand"},[
+    el("div",{class:"mark"},"TD"),
+    el("div",{},[
+      el("div",{class:"brand-name"},"Tasty Day"),
+      el("div",{class:"brand-sub"},"Dienstplan"),
+    ])
+  ]);
+  const right = el("div",{style:"display:flex;align-items:center;gap:12px;"},[
+    el("div",{class:"user-chip"},[
+      el("span",{class:`badge ${state.currentUser.role==="chef"?"badge-chef":"badge-emp"}`}, state.currentUser.role==="chef"?"Chef":"Team"),
+      el("span",{},state.currentUser.name)
+    ]),
+    el("button",{class:"logout-btn", onclick: logout},"Abmelden")
+  ]);
+  bar.appendChild(brand);
+  bar.appendChild(right);
+  return bar;
+}
+
+function renderTabs(){
+  const tabs = el("div",{class:"tabs"});
+  const isChef = state.currentUser.role === "chef";
+  const items = isChef
+    ? [
+        {key:"plan", label:"Wochenplan erstellen"},
+        {key:"schedule", label:"Plan ansehen"},
+        {key:"allavail", label:"Verfügbarkeiten"},
+        {key:"alltimes", label:"Arbeitszeiten"},
+      ]
+    : [
+        {key:"availability", label:"Verfügbarkeit"},
+        {key:"schedule", label:"Wochenplan"},
+        {key:"mytimes", label:"Meine Zeiten"},
+      ];
+  items.forEach(it=>{
+    tabs.appendChild(el("button",{
+      class:`tab ${state.tab===it.key?"active":""}`,
+      onclick:()=>{state.tab=it.key; render();}
+    }, it.label));
+  });
+  return tabs;
+}
+
+function renderTabContent(){
+  switch(state.tab){
+    case "availability": return renderAvailability(false);
+    case "allavail": return renderAvailability(true);
+    case "schedule": return renderSchedule(false);
+    case "plan": return renderSchedule(true);
+    case "mytimes": return renderTimes(false);
+    case "alltimes": return renderTimes(true);
+    default: return el("div",{},"—");
+  }
+}
+
+// ---------- week nav (shared) ----------
+function renderWeekNav(){
+  return el("div",{class:"week-nav"},[
+    el("button",{onclick:()=>{state.weekOffset--; attachWeekListener(); render();}},"‹"),
+    el("span",{class:"week-label"}, `${weekRangeLabel(state.weekOffset)} · ${weekIdFor(state.weekOffset)}`),
+    el("button",{onclick:()=>{state.weekOffset++; attachWeekListener(); render();}},"›"),
+  ]);
+}
+
+// ---------- availability ----------
+function renderAvailability(chefView){
+  const section = el("div",{});
+  const head = el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, chefView ? "Verfügbarkeiten des Teams" : "Deine Verfügbarkeit"),
+      el("p",{class:"section-sub"}, chefView ? "Grundlage für den Wochenplan." : "Trag ein, an welchen Tagen du kannst — bevor der Plan erstellt wird.")
+    ]),
+    renderWeekNav()
+  ]);
+  section.appendChild(head);
+
+  if(chefView){
+    const empIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+    if(empIds.length === 0){
+      section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},"👥"),"Noch keine Mitarbeiter registriert."]));
+      return section;
+    }
+    const dates = datesForWeek(state.weekOffset);
+    empIds.forEach(id=>{
+      const emp = state.employees[id];
+      const card = el("div",{class:"card"});
+      card.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, emp.name));
+      const grid = el("div",{class:"avail-grid"});
+      DAYS.forEach((d,i)=>{
+        const av = (state.weekData.availability && state.weekData.availability[id] && state.weekData.availability[id][d.key]) || null;
+        const row = el("div",{class:"avail-day"},[
+          el("div",{},[
+            el("span",{class:"avail-day-label"}, d.label),
+            el("span",{class:"avail-day-date"}, fmtDate(dates[i]))
+          ]),
+          el("div",{},[
+            av
+              ? el("span",{class:`avail-btn ${av.available?"yes":"no"} selected`}, av.available ? "Kann" : "Kann nicht")
+              : el("span",{style:"color:var(--text-muted);font-size:12px;"}, "Noch offen"),
+            av && av.note ? el("div",{style:"font-size:11px;color:var(--text-muted);margin-top:4px;"}, av.note) : null
+          ])
+        ]);
+        grid.appendChild(row);
+      });
+      card.appendChild(grid);
+      section.appendChild(card);
+    });
+    return section;
+  }
+
+  // employee self-view
+  const dates = datesForWeek(state.weekOffset);
+  const card = el("div",{class:"card"});
+  const grid = el("div",{class:"avail-grid"});
+  const myAvail = (state.weekData.availability && state.weekData.availability[state.currentUser.id]) || {};
+
+  DAYS.forEach((d,i)=>{
+    const current = myAvail[d.key] || {available:null, note:""};
+    const row = el("div",{class:"avail-day"});
+    row.appendChild(el("div",{},[
+      el("span",{class:"avail-day-label"}, d.label),
+      el("span",{class:"avail-day-date"}, fmtDate(dates[i]))
+    ]));
+    const toggle = el("div",{class:"avail-toggle"});
+    const yesBtn = el("button",{class:`avail-btn yes ${current.available===true?"selected":""}`},"Kann");
+    const noBtn = el("button",{class:`avail-btn no ${current.available===false?"selected":""}`},"Kann nicht");
+    const noteInput = el("input",{class:"avail-note", type:"text", placeholder:"Notiz (optional, z. B. ab 16 Uhr)", value: current.note||""});
+
+    function save(available){
+      const path = `weeks/${weekIdFor(state.weekOffset)}/availability/${state.currentUser.id}/${d.key}`;
+      set(ref(db, path), {available, note: noteInput.value||""});
+    }
+    yesBtn.addEventListener("click", ()=> save(true));
+    noBtn.addEventListener("click", ()=> save(false));
+    noteInput.addEventListener("change", ()=>{
+      if(current.available !== null && current.available !== undefined) save(current.available);
+    });
+
+    toggle.appendChild(yesBtn);
+    toggle.appendChild(noBtn);
+    row.appendChild(toggle);
+    row.appendChild(noteInput);
+    grid.appendChild(row);
+  });
+  card.appendChild(grid);
+  section.appendChild(card);
+  return section;
+}
+
+// ---------- schedule / plan ----------
+function renderSchedule(editable){
+  const section = el("div",{});
+  const head = el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, editable ? "Wochenplan erstellen" : "Wochenplan"),
+      el("p",{class:"section-sub"}, editable ? "Schichten pro Tag zuweisen." : "Wer arbeitet wann — für alle sichtbar.")
+    ]),
+    renderWeekNav()
+  ]);
+  section.appendChild(head);
+
+  const dates = datesForWeek(state.weekOffset);
+  const board = el("div",{class:"board"});
+  const empIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+
+  DAYS.forEach((d,i)=>{
+    const col = el("div",{class:"board-col"});
+    col.appendChild(el("div",{class:"board-col-head"},[
+      el("span",{}, d.label),
+      el("span",{class:"d"}, fmtDate(dates[i]))
+    ]));
+    const ticketsWrap = el("div",{class:"board-tickets"});
+    const shifts = (state.weekData.schedule && state.weekData.schedule[d.key]) || {};
+    const shiftEntries = Object.entries(shifts);
+
+    if(shiftEntries.length === 0){
+      ticketsWrap.appendChild(el("div",{class:"empty-slot"}, "Keine Schicht"));
+    } else {
+      shiftEntries.forEach(([shiftId, s])=>{
+        const empName = state.employees[s.employeeId] ? state.employees[s.employeeId].name : "?";
+        const ticket = el("div",{class:"ticket"});
+        const row = el("div",{class:"ticket-row"},[
+          el("span",{class:"ticket-name"}, empName),
+          editable ? el("button",{class:"shift-remove", onclick:()=>{
+            remove(ref(db, `weeks/${weekIdFor(state.weekOffset)}/schedule/${d.key}/${shiftId}`));
+          }},"✕") : null
+        ]);
+        ticket.appendChild(row);
+        ticket.appendChild(el("div",{class:"ticket-dash"}));
+        ticket.appendChild(el("div",{class:"ticket-time mono"}, `${s.start} – ${s.end}`));
+        ticketsWrap.appendChild(ticket);
+      });
+    }
+    col.appendChild(ticketsWrap);
+
+    if(editable){
+      if(empIds.length === 0){
+        col.appendChild(el("div",{style:"font-size:11px;color:var(--text-muted);margin-top:6px;"},"Keine Mitarbeiter registriert."));
+      } else {
+        const addBtn = el("button",{class:"add-shift-btn"}, "+ Schicht hinzufügen");
+        addBtn.addEventListener("click", ()=> openShiftForm(col, d.key, empIds));
+        col.appendChild(addBtn);
+      }
+    }
+    board.appendChild(col);
+  });
+  section.appendChild(board);
+  return section;
+}
+
+function openShiftForm(col, dayKey, empIds){
+  const existing = col.querySelector(".shift-form");
+  if(existing){ existing.remove(); return; }
+  const form = el("div",{class:"shift-form", style:"margin-top:8px;display:flex;flex-direction:column;gap:6px;"});
+  const empSelect = el("select",{class:"select-emp"});
+  empIds.forEach(id=> empSelect.appendChild(el("option",{value:id}, state.employees[id].name)));
+  const startInput = el("input",{type:"time", value:"12:00", class:"select-emp"});
+  const endInput = el("input",{type:"time", value:"18:00", class:"select-emp"});
+  const saveBtn = el("button",{class:"btn btn-primary", style:"padding:8px;font-size:12px;"}, "Speichern");
+  saveBtn.addEventListener("click", async ()=>{
+    const wid = weekIdFor(state.weekOffset);
+    const newRef = push(ref(db, `weeks/${wid}/schedule/${dayKey}`));
+    await set(newRef, {employeeId: empSelect.value, start: startInput.value, end: endInput.value});
+    form.remove();
+  });
+  form.appendChild(empSelect);
+  form.appendChild(startInput);
+  form.appendChild(endInput);
+  form.appendChild(saveBtn);
+  col.appendChild(form);
+}
+
+// ---------- time entries ----------
+function renderTimes(chefView){
+  const section = el("div",{});
+  section.appendChild(el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, chefView ? "Arbeitszeiten — Team" : "Meine Arbeitszeiten"),
+      el("p",{class:"section-sub"}, chefView ? "Alle erfassten Ist-Zeiten." : "Zeiten eintragen, Stunden werden automatisch im Viertel-Takt berechnet.")
+    ])
+  ]));
+
+  if(!chefView){
+    const card = el("div",{class:"card"});
+    const dateInput = el("input",{type:"date", class:"select-emp", style:"width:100%;"});
+    const startInput = el("input",{type:"time", class:"select-emp", style:"width:100%;", value:"12:00"});
+    const endInput = el("input",{type:"time", class:"select-emp", style:"width:100%;", value:"18:00"});
+    const addBtn = el("button",{class:"btn btn-primary", style:"padding:11px;"},"+ Eintragen");
+    const today = new Date().toISOString().slice(0,10);
+    dateInput.value = today;
+
+    addBtn.addEventListener("click", async ()=>{
+      if(!dateInput.value || !startInput.value || !endInput.value) return;
+      const hours = quarterHours(startInput.value, endInput.value);
+      const newRef = push(ref(db, `timeEntries/${state.currentUser.id}`));
+      await set(newRef, {date: dateInput.value, start: startInput.value, end: endInput.value, hours});
+    });
+
+    const form = el("div",{class:"time-form"},[
+      el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Datum"), dateInput]),
+      el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Von"), startInput]),
+      el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Bis"), endInput]),
+      addBtn
+    ]);
+    card.appendChild(form);
+
+    const myEntries = Object.entries(state.timeEntries[state.currentUser.id] || {})
+      .sort((a,b)=> b[1].date.localeCompare(a[1].date));
+
+    const list = el("div",{class:"time-list"});
+    let total = 0;
+    if(myEntries.length === 0){
+      list.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},"🕐"),"Noch keine Zeiten erfasst."]));
+    } else {
+      myEntries.forEach(([id, entry])=>{
+        total += entry.hours;
+        const dt = new Date(entry.date);
+        list.appendChild(el("div",{class:"time-row"},[
+          el("span",{}, `${dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})} · ${entry.start}–${entry.end}`),
+          el("div",{style:"display:flex;align-items:center;gap:10px;"},[
+            el("span",{class:"hrs"}, `${fmtHours(entry.hours)} Std.`),
+            el("button",{class:"del-btn", onclick:()=> remove(ref(db, `timeEntries/${state.currentUser.id}/${id}`))},"✕")
+          ])
+        ]));
+      });
+    }
+    card.appendChild(list);
+    if(myEntries.length){
+      card.appendChild(el("div",{class:"total-bar"},[
+        el("span",{}, "Gesamt"),
+        el("span",{class:"val"}, `${fmtHours(total)} Std.`)
+      ]));
+    }
+    section.appendChild(card);
+    return section;
+  }
+
+  // chef view: all employees
+  const empIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+  if(empIds.length === 0){
+    section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},"👥"),"Noch keine Mitarbeiter registriert."]));
+    return section;
+  }
+  empIds.forEach(id=>{
+    const emp = state.employees[id];
+    const entries = Object.entries(state.timeEntries[id] || {}).sort((a,b)=> b[1].date.localeCompare(a[1].date));
+    const card = el("div",{class:"card"});
+    card.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, emp.name));
+    let total = 0;
+    if(entries.length === 0){
+      card.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);"},"Keine Einträge."));
+    } else {
+      const list = el("div",{class:"time-list"});
+      entries.forEach(([eid, entry])=>{
+        total += entry.hours;
+        const dt = new Date(entry.date);
+        list.appendChild(el("div",{class:"time-row"},[
+          el("span",{}, `${dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})} · ${entry.start}–${entry.end}`),
+          el("span",{class:"hrs"}, `${fmtHours(entry.hours)} Std.`)
+        ]));
+      });
+      card.appendChild(list);
+      card.appendChild(el("div",{class:"total-bar"},[
+        el("span",{}, "Gesamt"),
+        el("span",{class:"val"}, `${fmtHours(total)} Std.`)
+      ]));
+    }
+    section.appendChild(card);
+  });
+  return section;
+}
+
+render();
+</script>
+</body>
+</html>
