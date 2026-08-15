@@ -282,6 +282,8 @@ let state = {
   timeEntries: {},
   passwordResets: {},
   forgot: { step:"name", name:"", employeeId:null, error:"", info:"" },
+  chefAvailEmpId: null,
+  chefTimesEmpId: null,
 };
 
 function render(){
@@ -475,6 +477,8 @@ function logout(){
   state.screen = "login";
   state.weekData = {availability:{}, schedule:{}, extraShifts:{}};
   state.timeEntries = {};
+  state.chefAvailEmpId = null;
+  state.chefTimesEmpId = null;
   render();
 }
 
@@ -649,30 +653,47 @@ function renderAvailability(chefView){
       section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},"👥"),"Noch keine Mitarbeiter registriert."]));
       return section;
     }
-    empIds.forEach(id=>{
-      const emp = state.employees[id];
+
+    if(!state.chefAvailEmpId){
       const card = el("div",{class:"card"});
-      card.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, emp.name));
-      const grid = el("div",{class:"avail-grid"});
-      DAYS.forEach((d,i)=>{
-        const dayShifts = shiftsForAvailability(d.key);
-        const pills = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"});
-        dayShifts.forEach(shift=>{
-          const available = isAvailableOn(id, d.key, shift.key);
-          pills.appendChild(el("span",{class:`avail-pill ${available?"yes":"no"}`}, `${shift.label}: ${available ? "Kann" : "Kann nicht"}`));
-        });
-        const row = el("div",{class:"avail-day"},[
-          el("div",{},[
-            el("span",{class:"avail-day-label"}, d.label),
-            el("span",{class:"avail-day-date"}, fmtDate(dates[i]))
-          ]),
-          pills
-        ]);
-        grid.appendChild(row);
+      empIds.forEach(id=>{
+        const emp = state.employees[id];
+        const row = el("div",{class:"team-row", style:"cursor:pointer;"});
+        row.appendChild(el("span",{class:"name"}, emp.name));
+        row.appendChild(el("span",{style:"color:var(--text-muted);font-size:16px;"}, "›"));
+        row.addEventListener("click", ()=>{ state.chefAvailEmpId = id; render(); });
+        card.appendChild(row);
       });
-      card.appendChild(grid);
       section.appendChild(card);
+      return section;
+    }
+
+    const emp = state.employees[state.chefAvailEmpId];
+    if(!emp){ state.chefAvailEmpId = null; return renderAvailability(true); }
+    const backBtn = el("button",{class:"link-btn", style:"margin-bottom:14px;", onclick:()=>{ state.chefAvailEmpId=null; render(); }}, "‹ Zurück zur Übersicht");
+    section.appendChild(backBtn);
+
+    const card = el("div",{class:"card"});
+    card.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, emp.name));
+    const grid = el("div",{class:"avail-grid"});
+    DAYS.forEach((d,i)=>{
+      const dayShifts = shiftsForAvailability(d.key);
+      const pills = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"});
+      dayShifts.forEach(shift=>{
+        const available = isAvailableOn(state.chefAvailEmpId, d.key, shift.key);
+        pills.appendChild(el("span",{class:`avail-pill ${available?"yes":"no"}`}, `${shift.label}: ${available ? "Kann" : "Kann nicht"}`));
+      });
+      const row = el("div",{class:"avail-day"},[
+        el("div",{},[
+          el("span",{class:"avail-day-label"}, d.label),
+          el("span",{class:"avail-day-date"}, fmtDate(dates[i]))
+        ]),
+        pills
+      ]);
+      grid.appendChild(row);
     });
+    card.appendChild(grid);
+    section.appendChild(card);
     return section;
   }
 
@@ -939,29 +960,51 @@ function renderTimes(chefView){
     section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},"👥"),"Noch keine Mitarbeiter registriert."]));
     return section;
   }
-  empIds.forEach(id=>{
-    const emp = state.employees[id];
-    const entries = Object.entries(state.timeEntries[id] || {}).sort((a,b)=> b[1].date.localeCompare(a[1].date));
+
+  if(!state.chefTimesEmpId){
     const card = el("div",{class:"card"});
-    card.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, emp.name));
-    let total = 0;
-    if(entries.length === 0){
-      card.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);"},"Keine Einträge."));
-    } else {
-      const list = el("div",{class:"time-list"});
-      entries.forEach(([eid, entry])=>{
-        total += entry.hours;
-        const dt = new Date(entry.date);
-        list.appendChild(el("div",{class:"time-row"},[
-          el("span",{}, `${dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})} · ${entry.start}–${entry.end}`),
-          el("span",{class:"hrs"}, `${fmtHours(entry.hours)} Std.`)
-        ]));
-      });
-      card.appendChild(list);
-      card.appendChild(el("div",{class:"total-bar"},[ el("span",{}, "Gesamt"), el("span",{class:"val"}, `${fmtHours(total)} Std.`) ]));
-    }
+    empIds.forEach(id=>{
+      const emp = state.employees[id];
+      const entries = Object.values(state.timeEntries[id] || {});
+      const totalHrs = entries.reduce((sum,e)=> sum + e.hours, 0);
+      const row = el("div",{class:"team-row", style:"cursor:pointer;"});
+      row.appendChild(el("span",{class:"name"}, emp.name));
+      row.appendChild(el("div",{style:"display:flex;align-items:center;gap:10px;"},[
+        el("span",{class:"mono", style:"font-size:12px;color:var(--text-muted);"}, `${fmtHours(totalHrs)} Std. gesamt`),
+        el("span",{style:"color:var(--text-muted);font-size:16px;"}, "›")
+      ]));
+      row.addEventListener("click", ()=>{ state.chefTimesEmpId = id; render(); });
+      card.appendChild(row);
+    });
     section.appendChild(card);
-  });
+    return section;
+  }
+
+  const emp = state.employees[state.chefTimesEmpId];
+  if(!emp){ state.chefTimesEmpId = null; return renderTimes(true); }
+  const backBtn = el("button",{class:"link-btn", style:"margin-bottom:14px;", onclick:()=>{ state.chefTimesEmpId=null; render(); }}, "‹ Zurück zur Übersicht");
+  section.appendChild(backBtn);
+
+  const entries = Object.entries(state.timeEntries[state.chefTimesEmpId] || {}).sort((a,b)=> b[1].date.localeCompare(a[1].date));
+  const card = el("div",{class:"card"});
+  card.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, emp.name));
+  let total = 0;
+  if(entries.length === 0){
+    card.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);"},"Keine Einträge."));
+  } else {
+    const list = el("div",{class:"time-list"});
+    entries.forEach(([eid, entry])=>{
+      total += entry.hours;
+      const dt = new Date(entry.date);
+      list.appendChild(el("div",{class:"time-row"},[
+        el("span",{}, `${dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})} · ${entry.start}–${entry.end}`),
+        el("span",{class:"hrs"}, `${fmtHours(entry.hours)} Std.`)
+      ]));
+    });
+    card.appendChild(list);
+    card.appendChild(el("div",{class:"total-bar"},[ el("span",{}, "Gesamt"), el("span",{class:"val"}, `${fmtHours(total)} Std.`) ]));
+  }
+  section.appendChild(card);
   return section;
 }
 
