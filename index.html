@@ -325,9 +325,19 @@ function simpleHash(str){
   return hash.toString(36);
 }
 function genCode(){ return String(Math.floor(1000 + Math.random()*9000)); }
-function isAvailableOn(employeeId, dayKey){
-  const av = state.weekData.availability && state.weekData.availability[employeeId] && state.weekData.availability[employeeId][dayKey];
+function isAvailableOn(employeeId, dayKey, shiftKey){
+  const av = state.weekData.availability
+    && state.weekData.availability[employeeId]
+    && state.weekData.availability[employeeId][dayKey]
+    && state.weekData.availability[employeeId][dayKey][shiftKey];
   return !!(av && av.available === true);
+}
+function shiftsForAvailability(dayKey){
+  const extra = (state.weekData.extraShifts && state.weekData.extraShifts[dayKey]) || {};
+  return [
+    ...defaultShiftsForDay(dayKey),
+    ...Object.entries(extra).map(([key,v])=>({key, label:v.label, isExtra:true}))
+  ];
 }
 function el(tag, attrs={}, children=[]){
   const e = document.createElement(tag);
@@ -628,15 +638,18 @@ function renderAvailability(chefView){
       card.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, emp.name));
       const grid = el("div",{class:"avail-grid"});
       DAYS.forEach((d,i)=>{
-        const available = isAvailableOn(id, d.key);
+        const dayShifts = shiftsForAvailability(d.key);
+        const pills = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"});
+        dayShifts.forEach(shift=>{
+          const available = isAvailableOn(id, d.key, shift.key);
+          pills.appendChild(el("span",{class:`avail-pill ${available?"yes":"no"}`}, `${shift.label}: ${available ? "Kann" : "Kann nicht"}`));
+        });
         const row = el("div",{class:"avail-day"},[
           el("div",{},[
             el("span",{class:"avail-day-label"}, d.label),
             el("span",{class:"avail-day-date"}, fmtDate(dates[i]))
           ]),
-          el("div",{},[
-            el("span",{class:`avail-pill ${available?"yes":"no"}`}, available ? "Kann" : "Kann nicht"),
-          ])
+          pills
         ]);
         grid.appendChild(row);
       });
@@ -647,35 +660,43 @@ function renderAvailability(chefView){
   }
 
   const card = el("div",{class:"card"});
-  const grid = el("div",{class:"avail-grid"});
+  const grid = el("div",{class:"avail-grid", style:"gap:14px;"});
   const myAvail = (state.weekData.availability && state.weekData.availability[state.currentUser.id]) || {};
 
   DAYS.forEach((d,i)=>{
-    const current = myAvail[d.key] || {available:false, note:""};
-    const isYes = current.available === true;
-    const row = el("div",{class:"avail-day"});
-    row.appendChild(el("div",{},[
+    const dayShifts = shiftsForAvailability(d.key);
+    const dayBox = el("div",{style:"background:var(--bg-elevated-2);border-radius:10px;padding:12px 14px;"});
+    dayBox.appendChild(el("div",{style:"display:flex;align-items:baseline;gap:8px;margin-bottom:10px;"},[
       el("span",{class:"avail-day-label"}, d.label),
       el("span",{class:"avail-day-date"}, fmtDate(dates[i]))
     ]));
-    const toggle = el("div",{class:"avail-toggle"});
-    const yesBtn = el("button",{class:`avail-btn yes ${isYes?"selected":""}`},"Kann");
-    const noBtn = el("button",{class:`avail-btn no ${!isYes?"selected":""}`},"Kann nicht");
-    const noteInput = el("input",{class:"avail-note", type:"text", placeholder:"Notiz (optional)", value: current.note||""});
 
-    function save(available){
-      const path = `weeks/${weekIdFor(state.weekOffset)}/availability/${state.currentUser.id}/${d.key}`;
-      set(ref(db, path), {available, note: noteInput.value||""});
-    }
-    yesBtn.addEventListener("click", ()=> save(true));
-    noBtn.addEventListener("click", ()=> save(false));
-    noteInput.addEventListener("change", ()=> save(isYes));
+    dayShifts.forEach(shift=>{
+      const current = (myAvail[d.key] && myAvail[d.key][shift.key]) || {available:false, note:""};
+      const isYes = current.available === true;
+      const row = el("div",{style:"display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;"});
+      row.appendChild(el("span",{style:"min-width:70px;font-size:13px;color:var(--text-muted);font-weight:600;"}, shift.label));
+      const toggle = el("div",{class:"avail-toggle"});
+      const yesBtn = el("button",{class:`avail-btn yes ${isYes?"selected":""}`},"Kann");
+      const noBtn = el("button",{class:`avail-btn no ${!isYes?"selected":""}`},"Kann nicht");
+      const noteInput = el("input",{class:"avail-note", type:"text", placeholder:"Notiz (optional)", value: current.note||""});
 
-    toggle.appendChild(yesBtn);
-    toggle.appendChild(noBtn);
-    row.appendChild(toggle);
-    row.appendChild(noteInput);
-    grid.appendChild(row);
+      function save(available){
+        const path = `weeks/${weekIdFor(state.weekOffset)}/availability/${state.currentUser.id}/${d.key}/${shift.key}`;
+        set(ref(db, path), {available, note: noteInput.value||""});
+      }
+      yesBtn.addEventListener("click", ()=> save(true));
+      noBtn.addEventListener("click", ()=> save(false));
+      noteInput.addEventListener("change", ()=> save(isYes));
+
+      toggle.appendChild(yesBtn);
+      toggle.appendChild(noBtn);
+      row.appendChild(toggle);
+      row.appendChild(noteInput);
+      dayBox.appendChild(row);
+    });
+
+    grid.appendChild(dayBox);
   });
   card.appendChild(grid);
   section.appendChild(card);
@@ -765,13 +786,13 @@ function openAssignForm(group, dayKey, shift, empIds, wid){
   const form = el("div",{class:"assign-form", style:"margin-top:6px;display:flex;flex-direction:column;gap:6px;"});
 
   const sorted = [...empIds].sort((a,b)=>{
-    const av = isAvailableOn(a, dayKey) ? 0 : 1;
-    const bv = isAvailableOn(b, dayKey) ? 0 : 1;
+    const av = isAvailableOn(a, dayKey, shift.key) ? 0 : 1;
+    const bv = isAvailableOn(b, dayKey, shift.key) ? 0 : 1;
     return av - bv;
   });
   const empSelect = el("select",{class:"select-emp"});
   sorted.forEach(id=>{
-    const available = isAvailableOn(id, dayKey);
+    const available = isAvailableOn(id, dayKey, shift.key);
     const opt = el("option",{value:id}, `${available ? "✓" : "✕"} ${state.employees[id].name}${available ? " (kann)" : " (kann nicht)"}`);
     empSelect.appendChild(opt);
   });
