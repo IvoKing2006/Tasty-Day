@@ -91,6 +91,12 @@
     border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line);
   }
   .ticket.custom-shift{border-left-color:var(--mango);}
+  .ticket.my-shift{
+    background:rgba(232,162,61,.14);
+    border-left-color:var(--mango);
+    box-shadow:0 0 0 1px var(--mango);
+  }
+  .ticket.my-shift .ticket-name{color:var(--mango);}
   .ticket-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
   .ticket-name{font-weight:700;font-size:16px;line-height:1.35;overflow-wrap:anywhere;color:var(--text);}
   .ticket-time{font-family:'IBM Plex Mono';font-size:14px;color:var(--mango);margin-top:6px;font-weight:500;}
@@ -820,9 +826,10 @@ function renderSchedule(editable){
       } else {
         assignEntries.forEach(([assignId, s])=>{
           const empName = state.employees[s.employeeId] ? state.employees[s.employeeId].name : "?";
-          const ticket = el("div",{class:`ticket ${shift.isExtra?"custom-shift":""}`});
+          const isMe = s.employeeId === state.currentUser.id;
+          const ticket = el("div",{class:`ticket ${shift.isExtra?"custom-shift":""} ${isMe?"my-shift":""}`});
           const row = el("div",{class:"ticket-row"},[
-            el("span",{class:"ticket-name"}, empName),
+            el("span",{class:"ticket-name"}, isMe ? `${empName} · Du` : empName),
             editable ? el("button",{class:"shift-remove", onclick:()=>{
               remove(ref(db, `weeks/${wid}/schedule/${d.key}/${shift.key}/${assignId}`));
             }},"✕") : null
@@ -836,9 +843,15 @@ function renderSchedule(editable){
       group.appendChild(ticketsWrap);
 
       if(editable && empIds.length > 0){
-        const addBtn = el("button",{class:"add-shift-btn"}, "+ Mitarbeiter");
-        addBtn.addEventListener("click", ()=> openAssignForm(group, d.key, shift, empIds, wid));
-        group.appendChild(addBtn);
+        const assignedIds = new Set(Object.values(assignments).map(a=> a.employeeId));
+        const selectable = empIds.filter(id=> !assignedIds.has(id));
+        if(selectable.length > 0){
+          const addBtn = el("button",{class:"add-shift-btn"}, "+ Mitarbeiter");
+          addBtn.addEventListener("click", ()=> openAssignForm(group, d.key, shift, selectable, wid));
+          group.appendChild(addBtn);
+        } else {
+          group.appendChild(el("div",{style:"font-size:11px;color:var(--text-muted);text-align:center;padding:6px;"}, "Alle Mitarbeiter bereits eingeteilt"));
+        }
       }
       col.appendChild(group);
     });
