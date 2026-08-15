@@ -1156,14 +1156,34 @@ function renderTeam(){
   } else {
     empIds.forEach(id=>{
       const emp = state.employees[id];
-      const row = el("div",{class:"team-row"},[
-        el("span",{class:"name"}, emp.name),
+      const wage = employeeWage(id);
+      const row = el("div",{class:"team-row", style:"flex-wrap:wrap;gap:10px;"});
+      row.appendChild(el("span",{class:"name"}, emp.name));
+
+      const wageInput = el("input",{
+        type:"number", step:"0.01", min:"0", placeholder:"Stundenlohn",
+        value: wage>0 ? wage : "",
+        style:"width:110px;padding:7px 10px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px;"
+      });
+      const wageSaveBtn = el("button",{class:"btn-cancel", style:"width:auto;padding:7px 12px;font-size:12px;border-radius:20px;"}, "Speichern");
+      wageSaveBtn.addEventListener("click", ()=>{
+        const val = parseFloat(wageInput.value);
+        update(ref(db, `employees/${id}`), {hourlyWage: isNaN(val) ? 0 : val});
+        wageSaveBtn.textContent = "Gespeichert ✓";
+        setTimeout(()=>{ wageSaveBtn.textContent = "Speichern"; }, 1500);
+      });
+
+      const actions = el("div",{style:"display:flex;align-items:center;gap:8px;flex-wrap:wrap;"},[
+        wageInput,
+        el("span",{style:"font-size:11px;color:var(--text-muted);"},"€/Std."),
+        wageSaveBtn,
         el("button",{class:"btn-danger", style:"width:auto;padding:6px 14px;font-size:12px;border-radius:20px;", onclick:()=>{
           if(confirm(`Konto von ${emp.name} wirklich löschen?`)){
             remove(ref(db, `employees/${id}`));
           }
         }}, "Konto löschen")
       ]);
+      row.appendChild(actions);
       card.appendChild(row);
     });
   }
