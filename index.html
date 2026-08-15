@@ -163,9 +163,9 @@
   .avail-pill.yes{background:var(--avocado);color:var(--avocado-ink);}
   .avail-pill.no{background:var(--chili);color:#fff;}
 
-  .board{display:grid;grid-template-columns:repeat(7,minmax(170px,1fr));gap:10px;overflow-x:auto;}
+  .board{display:grid;grid-template-columns:repeat(7,minmax(210px,1fr));gap:10px;overflow-x:auto;}
   @media(max-width:900px){.board{grid-template-columns:1fr;}}
-  .board-col{min-width:170px;background:var(--bg-elevated);border:1px solid var(--line);border-radius:var(--radius);padding:12px;}
+  .board-col{min-width:210px;background:var(--bg-elevated);border:1px solid var(--line);border-radius:var(--radius);padding:12px;}
   .board-col-head{
     font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;
     margin-bottom:10px;display:flex;justify-content:space-between;
@@ -181,6 +181,23 @@
   .add-extra-btn{width:100%;background:none;border:1px dashed var(--mango);color:var(--mango);border-radius:8px;padding:8px;font-size:11px;margin-top:6px;font-weight:600;}
   .shift-remove{background:none;border:none;color:var(--ink);opacity:.4;font-size:13px;padding:0 0 0 6px;line-height:1;}
   .shift-remove:hover{opacity:1;color:var(--chili);}
+
+  .assign-form{
+    margin-top:8px;background:var(--bg);border:1px solid var(--line);
+    border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;
+  }
+  .assign-form .af-field{display:flex;flex-direction:column;gap:4px;}
+  .assign-form .af-field label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;}
+  .assign-form select, .assign-form input{
+    width:100%;padding:9px 10px;border-radius:7px;border:1px solid var(--line);
+    background:var(--bg-elevated-2);color:var(--text);font-size:12px;
+  }
+  .assign-form .af-time-row{display:flex;gap:8px;}
+  .assign-form .af-time-row .af-field{flex:1;}
+  .assign-form-actions{display:flex;gap:8px;margin-top:2px;}
+  .assign-form-actions button{flex:1;padding:9px;font-size:12px;}
+  .btn-cancel{background:none;border:1px solid var(--line);color:var(--text-muted);border-radius:9px;font-weight:600;}
+  .btn-cancel:hover{border-color:var(--text-muted);color:var(--text);}
 
   .time-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;}
   @media(max-width:640px){.time-form{grid-template-columns:1fr 1fr;}}
@@ -783,31 +800,41 @@ function renderSchedule(editable){
 function openAssignForm(group, dayKey, shift, empIds, wid){
   const existing = group.querySelector(".assign-form");
   if(existing){ existing.remove(); return; }
-  const form = el("div",{class:"assign-form", style:"margin-top:6px;display:flex;flex-direction:column;gap:6px;"});
+  const form = el("div",{class:"assign-form"});
 
   const sorted = [...empIds].sort((a,b)=>{
     const av = isAvailableOn(a, dayKey, shift.key) ? 0 : 1;
     const bv = isAvailableOn(b, dayKey, shift.key) ? 0 : 1;
     return av - bv;
   });
-  const empSelect = el("select",{class:"select-emp"});
+  const empSelect = el("select",{});
   sorted.forEach(id=>{
     const available = isAvailableOn(id, dayKey, shift.key);
-    const opt = el("option",{value:id}, `${available ? "✓" : "✕"} ${state.employees[id].name}${available ? " (kann)" : " (kann nicht)"}`);
+    const opt = el("option",{value:id}, `${available ? "✓ Kann" : "✕ Kann nicht"} — ${state.employees[id].name}`);
     empSelect.appendChild(opt);
   });
-  const startInput = el("input",{type:"time", value:shift.defStart, class:"select-emp"});
-  const endInput = el("input",{type:"time", value:shift.defEnd, class:"select-emp"});
-  const saveBtn = el("button",{class:"btn btn-primary", style:"padding:8px;font-size:12px;"}, "Speichern");
+  const startInput = el("input",{type:"time", value:shift.defStart});
+  const endInput = el("input",{type:"time", value:shift.defEnd});
+
+  form.appendChild(el("div",{class:"af-field"},[el("label",{},"Mitarbeiter"), empSelect]));
+  form.appendChild(el("div",{class:"af-time-row"},[
+    el("div",{class:"af-field"},[el("label",{},"Von"), startInput]),
+    el("div",{class:"af-field"},[el("label",{},"Bis"), endInput]),
+  ]));
+
+  const actions = el("div",{class:"assign-form-actions"});
+  const saveBtn = el("button",{class:"btn btn-primary"}, "Einteilen");
+  const cancelBtn = el("button",{class:"btn-cancel"}, "Abbrechen");
   saveBtn.addEventListener("click", async ()=>{
     const newRef = push(ref(db, `weeks/${wid}/schedule/${dayKey}/${shift.key}`));
     await set(newRef, {employeeId: empSelect.value, start: startInput.value, end: endInput.value});
     form.remove();
   });
-  form.appendChild(empSelect);
-  form.appendChild(startInput);
-  form.appendChild(endInput);
-  form.appendChild(saveBtn);
+  cancelBtn.addEventListener("click", ()=> form.remove());
+  actions.appendChild(saveBtn);
+  actions.appendChild(cancelBtn);
+  form.appendChild(actions);
+
   group.appendChild(form);
 }
 
