@@ -402,11 +402,24 @@ function monthLabel(key){
   return new Date(y, m-1, 1).toLocaleDateString("de-DE",{month:"long", year:"numeric"});
 }
 function isoWeekKeyFromDate(dateStr){
-  const monday = getMonday(new Date(dateStr));
+  const monday = getMonday(localDateFromKey(dateStr));
   const y = monday.getFullYear();
   const onejan = new Date(y,0,1);
   const week = Math.ceil((((monday - onejan)/86400000) + onejan.getDay()+1)/7);
   return `${y}-W${String(week).padStart(2,"0")}`;
+}
+function toDateKey(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+function toMonthKey(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+}
+function localDateFromKey(dateStr){
+  const [y,m,d] = dateStr.split("-").map(Number);
+  return new Date(y, m-1, d);
 }
 function renderGroupedTimeList(entries, wage, onDelete){
   const wrap = el("div",{});
@@ -439,7 +452,7 @@ function renderGroupedTimeList(entries, wage, onDelete){
     groups[key].push([id,e]);
   });
   const sortedKeys = Object.keys(groups).sort((a,b)=> b.localeCompare(a));
-  const currentMonthKey = new Date().toISOString().slice(0,7);
+  const currentMonthKey = toMonthKey(new Date());
 
   sortedKeys.forEach(key=>{
     const monthEntries = groups[key];
@@ -1093,7 +1106,7 @@ function renderTimes(chefView){
     const startInput = el("input",{type:"time", class:"select-emp", style:"width:100%;", value:"12:00"});
     const endInput = el("input",{type:"time", class:"select-emp", style:"width:100%;", value:"18:00"});
     const addBtn = el("button",{class:"btn btn-primary", style:"padding:11px;"},"+ Eintragen");
-    dateInput.value = new Date().toISOString().slice(0,10);
+    dateInput.value = toDateKey(new Date());
 
     addBtn.addEventListener("click", async ()=>{
       if(!dateInput.value || !startInput.value || !endInput.value) return;
@@ -1703,8 +1716,8 @@ function renderStats(){
   }
 
   const dates = state.statsView === "week" ? datesForWeek(state.statsWeekOffset) : null;
-  const rangeStart = dates ? dates[0].toISOString().slice(0,10) : null;
-  const rangeEnd = dates ? dates[6].toISOString().slice(0,10) : null;
+  const rangeStart = dates ? toDateKey(dates[0]) : null;
+  const rangeEnd = dates ? toDateKey(dates[6]) : null;
 
   const totals = empIds.map(id=>{
     let entries = Object.values(state.timeEntries[id] || {});
@@ -1786,14 +1799,14 @@ function renderCosts(){
     const dateInput = el("input",{type:"date", style:"padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;margin-bottom:16px;"});
     const base = new Date();
     base.setDate(base.getDate() + state.costsDayOffset);
-    dateInput.value = base.toISOString().slice(0,10);
+    dateInput.value = toDateKey(base);
     dateInput.addEventListener("change", ()=>{
-      const diffDays = Math.round((new Date(dateInput.value) - new Date(new Date().toISOString().slice(0,10))) / 86400000);
+      const diffDays = Math.round((localDateFromKey(dateInput.value) - localDateFromKey(toDateKey(new Date()))) / 86400000);
       state.costsDayOffset = diffDays;
       render();
     });
     card.appendChild(dateInput);
-    const key = base.toISOString().slice(0,10);
+    const key = toDateKey(base);
     const data = dailyMap[key] || {hours:0, cost:0};
     card.appendChild(costResultBox(base.toLocaleDateString("de-DE",{weekday:"long", day:"2-digit", month:"long", year:"numeric"}), data));
   }
@@ -1814,10 +1827,10 @@ function renderCosts(){
     base.setMonth(base.getMonth() + state.costsMonthOffset, 1);
     card.appendChild(el("div",{class:"week-nav", style:"margin-bottom:16px;"},[
       el("button",{onclick:()=>{state.costsMonthOffset--; render();}},"‹"),
-      el("span",{class:"week-label"}, monthLabel(base.toISOString().slice(0,7))),
+      el("span",{class:"week-label"}, monthLabel(toMonthKey(base))),
       el("button",{onclick:()=>{state.costsMonthOffset++; render();}},"›"),
     ]));
-    const key = base.toISOString().slice(0,7);
+    const key = toMonthKey(base);
     const data = monthlyMap[key] || {hours:0, cost:0};
     card.appendChild(costResultBox(monthLabel(key), data));
   }
