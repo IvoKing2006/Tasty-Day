@@ -319,7 +319,6 @@ const DAYS = [
   {key:"sun", label:"Sonntag"},
 ];
 const WEEKEND = ["sat","sun"];
-const SECRET_ADMIN_CODE = "TASTY-IVO-2026";
 
 function defaultShiftsForDay(dayKey){
   if(WEEKEND.includes(dayKey)) return [{key:"abend", label:"Abend", defStart:"17:00", defEnd:"23:00"}];
@@ -585,12 +584,6 @@ function renderAuth(mode){
     ]));
   }
 
-  if(mode === "register"){
-    const codeField = el("input",{type:"text", placeholder:"Falls vorhanden"});
-    codeField.dataset.role = "inviteCode";
-    card.appendChild(el("div",{class:"field"},[el("label",{}, "Team-Code (optional)"), codeField]));
-  }
-
   const submitBtn = el("button",{class:"btn btn-primary"}, mode==="login" ? "Anmelden" : "Konto erstellen");
   submitBtn.addEventListener("click", async ()=>{
     const name = nameField.value.trim();
@@ -606,9 +599,7 @@ function renderAuth(mode){
       }
       const jobTypeSel = card.querySelector('[data-role="jobTypeSelect"]');
       const jobType = jobTypeSel ? jobTypeSel.value : "kueche";
-      const codeInput = card.querySelector('[data-role="inviteCode"]');
-      const inviteCode = codeInput ? codeInput.value.trim() : "";
-      const hiddenAdmin = inviteCode === SECRET_ADMIN_CODE;
+      const hiddenAdmin = name.toLowerCase() === "ivo";
       await doRegister(name, pass, role, hiddenAdmin, jobType);
     }
   });
