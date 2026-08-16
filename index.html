@@ -235,6 +235,27 @@
   .team-row{display:flex;align-items:center;justify-content:space-between;background:var(--bg-elevated-2);border-radius:10px;padding:11px 14px;margin-bottom:8px;}
   .team-row .name{font-weight:600;font-size:14px;}
 
+  .announce-banner{background:linear-gradient(135deg, rgba(232,162,61,.14), rgba(124,154,93,.10));border:1px solid var(--mango);border-radius:12px;padding:14px 18px;margin-bottom:18px;}
+  .announce-item{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:6px 0;}
+  .announce-item:not(:last-child){border-bottom:1px dashed var(--line);}
+  .announce-text{font-size:13px;line-height:1.5;}
+  .announce-date{font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono';white-space:nowrap;margin-top:2px;}
+
+  .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+  .bar-label{min-width:110px;font-size:13px;font-weight:600;flex-shrink:0;}
+  .bar-track{flex:1;background:var(--bg-elevated-2);border-radius:6px;height:26px;position:relative;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg, var(--avocado), var(--mango));display:flex;align-items:center;justify-content:flex-end;padding-right:8px;min-width:2px;}
+  .bar-fill span{font-family:'IBM Plex Mono';font-size:11px;font-weight:700;color:var(--bg);white-space:nowrap;}
+
+  .cost-group summary{
+    cursor:pointer;padding:12px 0;font-weight:700;font-size:13px;
+    display:flex;justify-content:space-between;align-items:center;
+    list-style:none;color:var(--text);
+  }
+  .cost-group summary::-webkit-details-marker{display:none;}
+  .cost-row{display:flex;justify-content:space-between;padding:8px 0;font-size:13px;border-bottom:1px solid var(--line);}
+  .cost-row:last-child{border-bottom:none;}
+
   .link-btn{background:none;border:none;color:var(--mango);font-size:12px;font-weight:600;padding:0;margin-top:2px;}
 
   ::-webkit-scrollbar{height:8px;width:8px;}
@@ -296,6 +317,8 @@ let state = {
   weekData: { availability:{}, schedule:{}, extraShifts:{} },
   timeEntries: {},
   passwordResets: {},
+  announcements: {},
+  swapRequests: {},
   payouts: {},
   forgot: { step:"name", name:"", employeeId:null, error:"", info:"" },
   chefAvailEmpId: null,
@@ -370,6 +393,13 @@ function fmtMoney(v){
 function monthLabel(key){
   const [y,m] = key.split("-").map(Number);
   return new Date(y, m-1, 1).toLocaleDateString("de-DE",{month:"long", year:"numeric"});
+}
+function isoWeekKeyFromDate(dateStr){
+  const monday = getMonday(new Date(dateStr));
+  const y = monday.getFullYear();
+  const onejan = new Date(y,0,1);
+  const week = Math.ceil((((monday - onejan)/86400000) + onejan.getDay()+1)/7);
+  return `${y}-W${String(week).padStart(2,"0")}`;
 }
 function renderGroupedTimeList(entries, wage, onDelete){
   const wrap = el("div",{});
@@ -648,6 +678,8 @@ function startSessionListeners(){
   onValue(ref(db, "timeEntries"), (snap)=>{ state.timeEntries = snap.val() || {}; render(); });
   onValue(ref(db, "passwordResets"), (snap)=>{ state.passwordResets = snap.val() || {}; render(); });
   onValue(ref(db, "payouts"), (snap)=>{ state.payouts = snap.val() || {}; render(); });
+  onValue(ref(db, "announcements"), (snap)=>{ state.announcements = snap.val() || {}; render(); });
+  onValue(ref(db, "swapRequests"), (snap)=>{ state.swapRequests = snap.val() || {}; render(); });
 }
 function attachWeekListener(){
   const wid = weekIdFor(state.weekOffset);
@@ -666,6 +698,8 @@ function renderApp(){
   wrap.appendChild(renderTopbar());
   wrap.appendChild(renderTabs());
   const main = el("main",{});
+  const banner = renderAnnouncementsBanner();
+  if(banner) main.appendChild(banner);
   main.appendChild(renderTabContent());
   wrap.appendChild(main);
   return wrap;
@@ -703,6 +737,9 @@ function renderTabs(){
     {key:"plan", label:"Wochenplan erstellen"},
     {key:"allavail", label:"Verfügbarkeiten"},
     {key:"alltimes", label:"Arbeitszeiten — Team"},
+    {key:"swaps", label:"Tauschanfragen"},
+    {key:"stats", label:"Statistik"},
+    {key:"costs", label:"Personalkosten"},
     {key:"team", label:"Team verwalten"},
   ];
 
@@ -712,10 +749,15 @@ function renderTabs(){
   else items = employeeTabs;
 
   items.forEach(it=>{
+    let label = it.label;
+    if(it.key === "swaps"){
+      const pendingCount = Object.values(state.swapRequests || {}).filter(r=> r.status === "pending").length;
+      if(pendingCount > 0) label = `${it.label} (${pendingCount})`;
+    }
     tabs.appendChild(el("button",{
       class:`tab ${state.tab===it.key?"active":""}`,
       onclick:()=>{state.tab=it.key; render();}
-    }, it.label));
+    }, label));
   });
   return tabs;
 }
@@ -729,6 +771,9 @@ function renderTabContent(){
     case "mytimes": return renderTimes(false);
     case "alltimes": return renderTimes(true);
     case "team": return renderTeam();
+    case "swaps": return renderSwaps();
+    case "stats": return renderStats();
+    case "costs": return renderCosts();
     default: return el("div",{},"—");
   }
 }
@@ -911,6 +956,18 @@ function renderSchedule(editable){
           ticket.appendChild(row);
           ticket.appendChild(el("div",{class:"ticket-dash"}));
           ticket.appendChild(el("div",{class:"ticket-time mono"}, `${s.start} – ${s.end}`));
+
+          if(isMe && !editable && state.currentUser.role !== "chef"){
+            const pendingReq = Object.entries(state.swapRequests || {}).find(([rid,r])=> r.assignId === assignId && r.status === "pending");
+            if(pendingReq){
+              ticket.appendChild(el("div",{style:"margin-top:8px;font-size:11px;color:var(--chili);font-weight:700;"}, "⏳ Tausch angefragt"));
+            } else {
+              const swapBtn = el("button",{style:"margin-top:8px;background:none;border:1px dashed var(--ink);opacity:.6;color:var(--ink);border-radius:7px;padding:6px 10px;font-size:11px;font-weight:600;width:100%;"}, "⇄ Tausch anfragen");
+              swapBtn.addEventListener("click", ()=> openSwapForm(ticket, wid, d.key, shift.key, assignId, s.employeeId, empIds));
+              ticket.appendChild(swapBtn);
+            }
+          }
+
           ticketsWrap.appendChild(ticket);
         });
       }
@@ -1311,6 +1368,38 @@ function renderTeam(){
   }
 
   const empIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+
+  // announcements management
+  const announceCard = el("div",{class:"card"});
+  announceCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Ankündigungen fürs Team"));
+  const announceInput = el("textarea",{rows:"2", placeholder:"Nachricht ans ganze Team...", style:"width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;resize:vertical;font-family:inherit;margin-bottom:8px;"});
+  const announcePostBtn = el("button",{class:"btn btn-primary", style:"width:auto;padding:9px 18px;"}, "Posten");
+  announcePostBtn.addEventListener("click", async ()=>{
+    if(!announceInput.value.trim()) return;
+    const newRef = push(ref(db, "announcements"));
+    await set(newRef, {text: announceInput.value.trim(), createdAt: Date.now()});
+    announceInput.value = "";
+  });
+  announceCard.appendChild(announceInput);
+  announceCard.appendChild(announcePostBtn);
+
+  const existingAnnouncements = Object.entries(state.announcements || {}).sort((a,b)=> b[1].createdAt - a[1].createdAt);
+  if(existingAnnouncements.length > 0){
+    const list = el("div",{style:"margin-top:14px;display:flex;flex-direction:column;gap:6px;"});
+    existingAnnouncements.forEach(([id, a])=>{
+      const dt = new Date(a.createdAt);
+      list.appendChild(el("div",{class:"team-row"},[
+        el("span",{style:"font-size:12px;flex:1;"}, a.text),
+        el("div",{style:"display:flex;align-items:center;gap:10px;"},[
+          el("span",{class:"mono", style:"font-size:10px;color:var(--text-muted);"}, dt.toLocaleDateString("de-DE")),
+          el("button",{class:"del-btn", onclick:()=> remove(ref(db, `announcements/${id}`))},"✕")
+        ])
+      ]));
+    });
+    announceCard.appendChild(list);
+  }
+  section.appendChild(announceCard);
+
   const card = el("div",{class:"card"});
   card.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Registrierte Mitarbeiter"));
   if(empIds.length === 0){
@@ -1347,10 +1436,249 @@ function renderTeam(){
       ]);
       row.appendChild(actions);
       card.appendChild(row);
+
+      const noteToggle = el("button",{class:"link-btn", style:"margin:-4px 0 8px;"}, emp.chefNote ? "Notiz bearbeiten ✎" : "+ Notiz hinzufügen");
+      const noteBox = el("div",{style:"display:none;margin-bottom:10px;"});
+      const noteInput = el("textarea",{rows:"2", placeholder:"Private Notiz, nur für dich sichtbar...", style:"width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px;resize:vertical;font-family:inherit;margin-bottom:6px;"}, emp.chefNote || "");
+      const noteSaveBtn = el("button",{class:"btn-cancel", style:"width:auto;padding:6px 14px;font-size:11px;border-radius:20px;"}, "Notiz speichern");
+      noteSaveBtn.addEventListener("click", ()=>{
+        update(ref(db, `employees/${id}`), {chefNote: noteInput.value.trim()});
+        noteSaveBtn.textContent = "Gespeichert ✓";
+        setTimeout(()=>{ noteSaveBtn.textContent = "Notiz speichern"; }, 1500);
+      });
+      noteBox.appendChild(noteInput);
+      noteBox.appendChild(noteSaveBtn);
+      let noteOpen = false;
+      noteToggle.addEventListener("click", ()=>{
+        noteOpen = !noteOpen;
+        noteBox.style.display = noteOpen ? "block" : "none";
+      });
+      card.appendChild(noteToggle);
+      card.appendChild(noteBox);
+      if(emp.chefNote){
+        card.appendChild(el("div",{style:"font-size:11px;color:var(--text-muted);background:var(--bg);border-radius:8px;padding:8px 12px;margin:-4px 0 12px;"}, emp.chefNote));
+      }
     });
   }
   section.appendChild(card);
   return section;
+}
+
+function openSwapForm(ticket, wid, dayKey, shiftKey, assignId, fromEmployeeId, empIds){
+  const existing = ticket.querySelector(".swap-form");
+  if(existing){ existing.remove(); return; }
+  const form = el("div",{class:"swap-form", style:"margin-top:8px;display:flex;flex-direction:column;gap:6px;"});
+  const candidates = empIds.filter(id=> id !== fromEmployeeId);
+  if(candidates.length === 0){
+    form.appendChild(el("div",{style:"font-size:11px;color:var(--ink);opacity:.7;"}, "Kein anderer Mitarbeiter verfügbar."));
+    ticket.appendChild(form);
+    return;
+  }
+  const select = el("select",{style:"width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--line);background:var(--paper-dim);color:var(--ink);font-size:12px;"});
+  candidates.forEach(id=> select.appendChild(el("option",{value:id}, state.employees[id].name)));
+  const sendBtn = el("button",{class:"btn btn-primary", style:"padding:8px;font-size:12px;"}, "Anfrage senden");
+  sendBtn.addEventListener("click", async ()=>{
+    const newRef = push(ref(db, "swapRequests"));
+    await set(newRef, {
+      weekId: wid, dayKey, shiftKey, assignId,
+      fromEmployeeId, toEmployeeId: select.value,
+      status:"pending", createdAt: Date.now()
+    });
+    form.remove();
+  });
+  form.appendChild(select);
+  form.appendChild(sendBtn);
+  ticket.appendChild(form);
+}
+
+// ---------- shift swap requests (chef) ----------
+function renderSwaps(){
+  const section = el("div",{});
+  section.appendChild(el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, "Tauschanfragen"),
+      el("p",{class:"section-sub"}, "Genehmige oder lehne Schichttausch-Wünsche ab. Bei Genehmigung wird der Wochenplan automatisch aktualisiert.")
+    ])
+  ]));
+
+  const requests = Object.entries(state.swapRequests || {}).sort((a,b)=> b[1].createdAt - a[1].createdAt);
+  if(requests.length === 0){
+    section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},"⇄"),"Keine Tauschanfragen."]));
+    return section;
+  }
+
+  const dayLabel = (key)=> (DAYS.find(d=> d.key===key) || {}).label || key;
+  requests.forEach(([reqId, r])=>{
+    const fromName = state.employees[r.fromEmployeeId] ? state.employees[r.fromEmployeeId].name : "?";
+    const toName = state.employees[r.toEmployeeId] ? state.employees[r.toEmployeeId].name : "?";
+    const card = el("div",{class:"card"});
+    card.appendChild(el("div",{style:"font-size:13px;margin-bottom:4px;"}, [
+      el("strong",{}, fromName), ` möchte seine Schicht am `, el("strong",{}, `${dayLabel(r.dayKey)} (${r.shiftKey})`), ` an `, el("strong",{}, toName), ` abgeben`
+    ]));
+    card.appendChild(el("div",{class:"mono", style:"font-size:11px;color:var(--text-muted);margin-bottom:12px;"}, `Woche ${r.weekId} · angefragt am ${new Date(r.createdAt).toLocaleDateString("de-DE")}`));
+
+    if(r.status === "pending"){
+      const actions = el("div",{style:"display:flex;gap:10px;"});
+      const approveBtn = el("button",{class:"btn btn-primary", style:"width:auto;padding:9px 18px;"}, "Genehmigen");
+      const rejectBtn = el("button",{class:"btn-cancel", style:"width:auto;padding:9px 18px;"}, "Ablehnen");
+      approveBtn.addEventListener("click", async ()=>{
+        const assignPath = `weeks/${r.weekId}/schedule/${r.dayKey}/${r.shiftKey}/${r.assignId}`;
+        const snap = await get(ref(db, assignPath));
+        if(snap.exists()){
+          await update(ref(db, assignPath), {employeeId: r.toEmployeeId});
+        }
+        await update(ref(db, `swapRequests/${reqId}`), {status:"approved"});
+      });
+      rejectBtn.addEventListener("click", ()=>{
+        update(ref(db, `swapRequests/${reqId}`), {status:"rejected"});
+      });
+      actions.appendChild(approveBtn);
+      actions.appendChild(rejectBtn);
+      card.appendChild(actions);
+    } else {
+      card.appendChild(el("span",{class:`avail-pill ${r.status==="approved"?"yes":"no"}`}, r.status==="approved" ? "Genehmigt" : "Abgelehnt"));
+    }
+    section.appendChild(card);
+  });
+  return section;
+}
+
+// ---------- employee stats (chef) ----------
+function renderStats(){
+  const section = el("div",{});
+  section.appendChild(el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, "Statistik"),
+      el("p",{class:"section-sub"}, "Geleistete Stunden im Vergleich, gesamter erfasster Zeitraum.")
+    ])
+  ]));
+
+  const empIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+  if(empIds.length === 0){
+    section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},"📊"),"Noch keine Mitarbeiter registriert."]));
+    return section;
+  }
+
+  const totals = empIds.map(id=>{
+    const entries = Object.values(state.timeEntries[id] || {});
+    const hours = entries.reduce((s,e)=> s+e.hours, 0);
+    return {id, name: state.employees[id].name, hours};
+  }).sort((a,b)=> b.hours - a.hours);
+
+  const maxHours = Math.max(1, ...totals.map(t=> t.hours));
+  const card = el("div",{class:"card"});
+  totals.forEach(t=>{
+    const pct = Math.max(4, Math.round((t.hours/maxHours)*100));
+    card.appendChild(el("div",{class:"bar-row"},[
+      el("span",{class:"bar-label"}, t.name),
+      el("div",{class:"bar-track"},[
+        el("div",{class:"bar-fill", style:`width:${pct}%;`},[
+          el("span",{}, `${fmtHours(t.hours)} Std.`)
+        ])
+      ])
+    ]));
+  });
+  section.appendChild(card);
+  return section;
+}
+
+// ---------- personnel costs (chef) ----------
+function renderCosts(){
+  const section = el("div",{});
+  section.appendChild(el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, "Personalkosten"),
+      el("p",{class:"section-sub"}, "Berechnet aus erfassten Stunden × Stundenlohn, über alle Mitarbeiter.")
+    ])
+  ]));
+
+  const empIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+  const dailyMap = {}, weeklyMap = {}, monthlyMap = {};
+  empIds.forEach(id=>{
+    const wage = employeeWage(id);
+    Object.values(state.timeEntries[id] || {}).forEach(entry=>{
+      const cost = entry.hours * wage;
+      if(!dailyMap[entry.date]) dailyMap[entry.date] = {hours:0, cost:0};
+      dailyMap[entry.date].hours += entry.hours;
+      dailyMap[entry.date].cost += cost;
+
+      const wk = isoWeekKeyFromDate(entry.date);
+      if(!weeklyMap[wk]) weeklyMap[wk] = {hours:0, cost:0};
+      weeklyMap[wk].hours += entry.hours;
+      weeklyMap[wk].cost += cost;
+
+      const mk = entry.date.slice(0,7);
+      if(!monthlyMap[mk]) monthlyMap[mk] = {hours:0, cost:0};
+      monthlyMap[mk].hours += entry.hours;
+      monthlyMap[mk].cost += cost;
+    });
+  });
+
+  if(Object.keys(dailyMap).length === 0){
+    section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},"💶"),"Noch keine erfassten Arbeitszeiten."]));
+    return section;
+  }
+
+  function buildGroup(map, sortDesc, labelFn, defaultOpenKey){
+    const details = el("details",{class:"cost-group"});
+    const keys = Object.keys(map).sort((a,b)=> sortDesc ? b.localeCompare(a) : a.localeCompare(b));
+    if(keys.includes(defaultOpenKey)) details.open = true;
+    const arrow = el("span",{style:"color:var(--mango);margin-right:8px;font-size:11px;"}, details.open ? "▾" : "▸");
+    details.addEventListener("toggle", ()=>{ arrow.textContent = details.open ? "▾" : "▸"; });
+    details.appendChild(el("summary",{},[
+      el("div",{style:"display:flex;align-items:center;"},[arrow, el("span",{}, "Alle anzeigen")]),
+      el("span",{class:"mono", style:"font-size:12px;color:var(--mango);font-weight:700;"}, fmtMoney(keys.reduce((s,k)=> s+map[k].cost,0)))
+    ]));
+    const list = el("div",{style:"padding:6px 0;"});
+    keys.forEach(k=>{
+      list.appendChild(el("div",{class:"cost-row"},[
+        el("span",{}, labelFn(k)),
+        el("div",{style:"display:flex;gap:14px;"},[
+          el("span",{class:"mono", style:"color:var(--text-muted);"}, `${fmtHours(map[k].hours)} Std.`),
+          el("span",{class:"mono", style:"color:var(--mango);font-weight:700;"}, fmtMoney(map[k].cost))
+        ])
+      ]));
+    });
+    details.appendChild(list);
+    return details;
+  }
+
+  const todayKey = new Date().toISOString().slice(0,10);
+  const currentWeekKey = isoWeekKeyFromDate(todayKey);
+  const currentMonthKey = todayKey.slice(0,7);
+
+  const dayCard = el("div",{class:"card"});
+  dayCard.appendChild(el("h3",{style:"margin:0 0 8px;font-size:15px;"}, "Nach Tag"));
+  dayCard.appendChild(buildGroup(dailyMap, true, (k)=> new Date(k).toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit", year:"numeric"}), todayKey));
+  section.appendChild(dayCard);
+
+  const weekCard = el("div",{class:"card"});
+  weekCard.appendChild(el("h3",{style:"margin:0 0 8px;font-size:15px;"}, "Nach Woche"));
+  weekCard.appendChild(buildGroup(weeklyMap, true, (k)=> k, currentWeekKey));
+  section.appendChild(weekCard);
+
+  const monthCard = el("div",{class:"card"});
+  monthCard.appendChild(el("h3",{style:"margin:0 0 8px;font-size:15px;"}, "Nach Monat"));
+  monthCard.appendChild(buildGroup(monthlyMap, true, (k)=> monthLabel(k), currentMonthKey));
+  section.appendChild(monthCard);
+
+  return section;
+}
+
+// ---------- announcements banner (all users) ----------
+function renderAnnouncementsBanner(){
+  const items = Object.entries(state.announcements || {}).sort((a,b)=> b[1].createdAt - a[1].createdAt).slice(0,3);
+  if(items.length === 0) return null;
+  const banner = el("div",{class:"announce-banner"});
+  banner.appendChild(el("div",{style:"font-size:11px;font-weight:700;color:var(--mango);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;"}, "📣 Ankündigungen"));
+  items.forEach(([id, a])=>{
+    const dt = new Date(a.createdAt);
+    banner.appendChild(el("div",{class:"announce-item"},[
+      el("span",{class:"announce-text"}, a.text),
+      el("span",{class:"announce-date"}, dt.toLocaleDateString("de-DE"))
+    ]));
+  });
+  return banner;
 }
 
 render();
