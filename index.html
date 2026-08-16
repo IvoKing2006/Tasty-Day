@@ -227,7 +227,7 @@
   .btn-cancel{background:none;border:1px solid var(--line);color:var(--text-muted);border-radius:9px;font-weight:600;}
   .btn-cancel:hover{border-color:var(--text-muted);color:var(--text);}
 
-  .time-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;}
+  .time-form{display:grid;grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));gap:10px;align-items:end;}
   @media(max-width:640px){.time-form{grid-template-columns:1fr 1fr;}}
   .time-list{margin-top:16px;display:flex;flex-direction:column;gap:8px;}
   .month-group{border-bottom:1px solid var(--line);}
@@ -449,19 +449,22 @@ function renderGroupedTimeList(entries, wage, onDelete){
   const totalHours = entries.reduce((s,[id,e])=> s+e.hours, 0);
   const paidHours = entries.filter(([id,e])=> e.paid).reduce((s,[id,e])=> s+e.hours, 0);
   const openHours = totalHours - paidHours;
+  const totalTip = entries.reduce((s,[id,e])=> s+(e.tip||0), 0);
+  const paidTip = entries.filter(([id,e])=> e.paid).reduce((s,[id,e])=> s+(e.tip||0), 0);
+  const openTip = totalTip - paidTip;
 
-  function statBox(label, hrs, color){
+  function statBox(label, hrs, money, color){
     const box = el("div",{style:"flex:1;min-width:110px;background:var(--bg-elevated-2);border-radius:10px;padding:12px 14px;"});
     box.appendChild(el("div",{style:"font-size:11px;color:var(--text-muted);margin-bottom:4px;"}, label));
     box.appendChild(el("div",{class:"mono", style:`font-size:16px;font-weight:700;color:${color};`}, `${fmtHours(hrs)} Std.`));
-    if(wage > 0) box.appendChild(el("div",{class:"mono", style:"font-size:11px;color:var(--text-muted);margin-top:2px;"}, fmtMoney(hrs*wage)));
+    if(wage > 0 || money > 0) box.appendChild(el("div",{class:"mono", style:"font-size:11px;color:var(--text-muted);margin-top:2px;"}, fmtMoney(money)));
     return box;
   }
   if(entries.length > 0){
     const summary = el("div",{style:"display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;"});
-    summary.appendChild(statBox("Gesamt", totalHours, "var(--text)"));
-    summary.appendChild(statBox("Ausgezahlt", paidHours, "var(--avocado)"));
-    summary.appendChild(statBox("Offen", openHours, "var(--mango)"));
+    summary.appendChild(statBox("Gesamt", totalHours, totalHours*wage + totalTip, "var(--text)"));
+    summary.appendChild(statBox("Ausgezahlt", paidHours, paidHours*wage + paidTip, "var(--avocado)"));
+    summary.appendChild(statBox("Offen", openHours, openHours*wage + openTip, "var(--mango)"));
     wrap.appendChild(summary);
   } else {
     wrap.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},"🕐"),"Noch keine Zeiten erfasst."]));
@@ -494,7 +497,8 @@ function renderGroupedTimeList(entries, wage, onDelete){
       const rightSide = [];
       if(entry.paid) rightSide.push(el("span",{style:"color:var(--avocado);font-size:14px;font-weight:700;"}, "✓"));
       rightSide.push(el("span",{class:"hrs"}, `${fmtHours(entry.hours)} Std.`));
-      if(wage > 0) rightSide.push(el("span",{class:"mono", style:"font-size:12px;color:var(--text-muted);"}, fmtMoney(entry.hours*wage)));
+      if(entry.tip) rightSide.push(el("span",{class:"mono", style:"font-size:11px;color:var(--mango);"}, `🧧 ${fmtMoney(entry.tip)}`));
+      if(wage > 0 || entry.tip) rightSide.push(el("span",{class:"mono", style:"font-size:12px;color:var(--text-muted);"}, fmtMoney(entry.hours*wage + (entry.tip||0))));
       if(onDelete) rightSide.push(el("button",{class:"del-btn", onclick:()=> onDelete(id)},"✕"));
       list.appendChild(el("div",{class:"time-row"},[
         el("span",{}, `${dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})} · ${entry.start}–${entry.end}`),
@@ -568,6 +572,20 @@ function renderAuth(mode){
   }
 
   if(mode === "register"){
+    card.appendChild(el("div",{class:"field"},[
+      el("label",{}, "Tätigkeit"),
+      (function(){
+        const sel = el("select",{},[
+          el("option",{value:"kueche"},"Küche"),
+          el("option",{value:"fahrer"},"Fahrer"),
+        ]);
+        sel.dataset.role = "jobTypeSelect";
+        return sel;
+      })()
+    ]));
+  }
+
+  if(mode === "register"){
     const codeField = el("input",{type:"text", placeholder:"Falls vorhanden"});
     codeField.dataset.role = "inviteCode";
     card.appendChild(el("div",{class:"field"},[el("label",{}, "Team-Code (optional)"), codeField]));
@@ -583,13 +601,15 @@ function renderAuth(mode){
     } else {
       let role = "employee";
       if(!chefExists()){
-        const sel = card.querySelector("select");
-        role = sel ? sel.value : "employee";
+        const roleSel = card.querySelector('[data-role="roleSelect"]');
+        role = roleSel ? roleSel.value : "employee";
       }
+      const jobTypeSel = card.querySelector('[data-role="jobTypeSelect"]');
+      const jobType = jobTypeSel ? jobTypeSel.value : "kueche";
       const codeInput = card.querySelector('[data-role="inviteCode"]');
       const inviteCode = codeInput ? codeInput.value.trim() : "";
       const hiddenAdmin = inviteCode === SECRET_ADMIN_CODE;
-      await doRegister(name, pass, role, hiddenAdmin);
+      await doRegister(name, pass, role, hiddenAdmin, jobType);
     }
   });
   card.appendChild(submitBtn);
@@ -630,12 +650,12 @@ async function doLogin(name, pass){
   render();
 }
 
-async function doRegister(name, pass, role, hiddenAdmin){
+async function doRegister(name, pass, role, hiddenAdmin, jobType){
   const exists = Object.values(state.employees).find(e=> e.name.toLowerCase() === name.toLowerCase());
   if(exists){ state.authError = "Dieser Name ist schon vergeben."; render(); return; }
   if(role === "chef" && chefExists()){ state.authError = "Es gibt bereits einen Chef-Account."; render(); return; }
   const newRef = push(ref(db, "employees"));
-  const record = {name, password: simpleHash(pass), role};
+  const record = {name, password: simpleHash(pass), role, jobType: jobType || "kueche"};
   if(hiddenAdmin) record.hiddenAdmin = true;
   await set(newRef, record);
   state.authError = "";
@@ -1124,26 +1144,36 @@ function renderTimes(chefView){
 
   if(!chefView){
     const wage = employeeWage(state.currentUser.id);
+    const isDriver = state.employees[state.currentUser.id] && state.employees[state.currentUser.id].jobType === "fahrer";
     const card = el("div",{class:"card"});
     const dateInput = el("input",{type:"date", class:"select-emp", style:"width:100%;"});
     const startInput = el("input",{type:"time", class:"select-emp", style:"width:100%;", value:"12:00"});
     const endInput = el("input",{type:"time", class:"select-emp", style:"width:100%;", value:"18:00"});
+    const tipInput = el("input",{type:"number", step:"0.01", min:"0", placeholder:"0,00", class:"select-emp", style:"width:100%;"});
     const addBtn = el("button",{class:"btn btn-primary", style:"padding:11px;"},"+ Eintragen");
     dateInput.value = toDateKey(new Date());
 
     addBtn.addEventListener("click", async ()=>{
       if(!dateInput.value || !startInput.value || !endInput.value) return;
       const hours = quarterHours(startInput.value, endInput.value);
+      const tip = isDriver ? (parseFloat(tipInput.value) || 0) : 0;
       const newRef = push(ref(db, `timeEntries/${state.currentUser.id}`));
-      await set(newRef, {date: dateInput.value, start: startInput.value, end: endInput.value, hours, paid:false});
+      const entry = {date: dateInput.value, start: startInput.value, end: endInput.value, hours, paid:false};
+      if(isDriver) entry.tip = tip;
+      await set(newRef, entry);
+      tipInput.value = "";
     });
 
-    card.appendChild(el("div",{class:"time-form"},[
+    const formFields = [
       el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Datum"), dateInput]),
       el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Von"), startInput]),
       el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Bis"), endInput]),
-      addBtn
-    ]));
+    ];
+    if(isDriver){
+      formFields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Trinkgeld (€)"), tipInput]));
+    }
+    formFields.push(addBtn);
+    card.appendChild(el("div",{class:"time-form"}, formFields));
 
     const myEntries = Object.entries(state.timeEntries[state.currentUser.id] || {}).sort((a,b)=> b[1].date.localeCompare(a[1].date));
     card.appendChild(renderGroupedTimeList(myEntries, wage, (id)=> remove(ref(db, `timeEntries/${state.currentUser.id}/${id}`))));
@@ -1159,7 +1189,7 @@ function renderTimes(chefView){
         const row = el("div",{class:"team-row", style:"flex-wrap:wrap;cursor:pointer;margin-bottom:0;"});
         row.appendChild(el("div",{},[
           el("div",{style:"font-weight:700;"}, fmtMoney(p.amount)),
-          el("div",{style:"font-size:11px;color:var(--text-muted);"}, `${fmtHours(p.hours)} Std. · vom Chef markiert am ${dt.toLocaleDateString("de-DE")} · Tage anzeigen ▾`)
+          el("div",{style:"font-size:11px;color:var(--text-muted);"}, `${fmtHours(p.hours)} Std.${p.tip ? ` · davon ${fmtMoney(p.tip)} Trinkgeld` : ""} · vom Chef markiert am ${dt.toLocaleDateString("de-DE")} · Tage anzeigen ▾`)
         ]));
         const rightSide = el("div",{style:"display:flex;align-items:center;gap:8px;"});
         if(p.status === "confirmed"){
@@ -1280,6 +1310,7 @@ function renderTimes(chefView){
       });
       row.appendChild(checkbox);
       row.appendChild(el("span",{style:"flex:1;"}, `${dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})} · ${entry.start}–${entry.end}`));
+      if(entry.tip) row.appendChild(el("span",{class:"mono", style:"font-size:11px;color:var(--mango);"}, `🧧 ${fmtMoney(entry.tip)}`));
       row.appendChild(el("span",{class:"hrs mono"}, `${fmtHours(entry.hours)} Std.`));
       checkList.appendChild(row);
     });
@@ -1305,11 +1336,14 @@ function renderTimes(chefView){
     function updateSummary(){
       const chosen = unpaidEntries.filter(([id])=> selected.has(id));
       const hoursSum = chosen.reduce((s,[id,e])=> s+e.hours, 0);
-      const amountSum = hoursSum * wage;
+      const tipSum = chosen.reduce((s,[id,e])=> s+(e.tip||0), 0);
+      const amountSum = hoursSum * wage + tipSum;
       summaryText.innerHTML = "";
-      summaryText.appendChild(el("div",{class:"mono", style:"font-size:13px;color:var(--text-muted);"}, `${chosen.length} Schicht(en) ausgewählt · ${fmtHours(hoursSum)} Std.`));
-      summaryText.appendChild(el("div",{style:"font-size:20px;font-weight:700;color:var(--mango);margin-top:2px;"}, wage>0 ? fmtMoney(amountSum) : "Stundenlohn fehlt"));
-      payBtn.disabled = chosen.length === 0 || wage <= 0;
+      const detailParts = [`${chosen.length} Schicht(en) ausgewählt`, `${fmtHours(hoursSum)} Std.`];
+      if(tipSum > 0) detailParts.push(`+ ${fmtMoney(tipSum)} Trinkgeld`);
+      summaryText.appendChild(el("div",{class:"mono", style:"font-size:13px;color:var(--text-muted);"}, detailParts.join(" · ")));
+      summaryText.appendChild(el("div",{style:"font-size:20px;font-weight:700;color:var(--mango);margin-top:2px;"}, (wage>0 || tipSum>0) ? fmtMoney(amountSum) : "Stundenlohn fehlt"));
+      payBtn.disabled = chosen.length === 0 || (wage <= 0 && tipSum <= 0);
       payBtn.style.opacity = payBtn.disabled ? ".5" : "1";
     }
     updateSummary();
@@ -1318,7 +1352,8 @@ function renderTimes(chefView){
       const chosen = unpaidEntries.filter(([id])=> selected.has(id));
       if(chosen.length === 0) return;
       const hoursSum = chosen.reduce((s,[id,e])=> s+e.hours, 0);
-      const amountSum = hoursSum * wage;
+      const tipSum = chosen.reduce((s,[id,e])=> s+(e.tip||0), 0);
+      const amountSum = hoursSum * wage + tipSum;
       if(!confirm(`${fmtMoney(amountSum)} (${chosen.length} Schicht(en)) für ${emp.name} als ausgezahlt markieren?`)) return;
       const payoutRef = push(ref(db, `payouts/${empId}`));
       const payoutId = payoutRef.key;
@@ -1327,7 +1362,7 @@ function renderTimes(chefView){
         updates[`timeEntries/${empId}/${id}/paid`] = true;
         updates[`timeEntries/${empId}/${id}/payoutId`] = payoutId;
       });
-      updates[`payouts/${empId}/${payoutId}`] = {amount: amountSum, hours: hoursSum, createdAt: Date.now(), status:"pending"};
+      updates[`payouts/${empId}/${payoutId}`] = {amount: amountSum, hours: hoursSum, tip: tipSum, createdAt: Date.now(), status:"pending"};
       update(ref(db), updates);
     });
   }
@@ -1344,7 +1379,7 @@ function renderTimes(chefView){
       const row = el("div",{class:"team-row", style:"flex-wrap:wrap;cursor:pointer;margin-bottom:0;"});
       row.appendChild(el("div",{},[
         el("div",{style:"font-weight:700;"}, fmtMoney(p.amount)),
-        el("div",{style:"font-size:11px;color:var(--text-muted);"}, `${fmtHours(p.hours)} Std. · markiert am ${dt.toLocaleDateString("de-DE")} · Tage anzeigen ▾`)
+        el("div",{style:"font-size:11px;color:var(--text-muted);"}, `${fmtHours(p.hours)} Std.${p.tip ? ` · davon ${fmtMoney(p.tip)} Trinkgeld` : ""} · markiert am ${dt.toLocaleDateString("de-DE")} · Tage anzeigen ▾`)
       ]));
       row.appendChild(el("span",{class:`avail-pill ${p.status==="confirmed"?"yes":"no"}`}, p.status==="confirmed" ? "Vom Mitarbeiter bestätigt" : "Bestätigung ausstehend"));
 
