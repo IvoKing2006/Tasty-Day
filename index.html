@@ -319,6 +319,13 @@ let state = {
   passwordResets: {},
   announcements: {},
   swapRequests: {},
+  costsView: "day",
+  costsDayOffset: 0,
+  costsWeekOffset: 0,
+  costsMonthOffset: 0,
+  costsYearOffset: 0,
+  statsView: "total",
+  statsWeekOffset: 0,
   payouts: {},
   forgot: { step:"name", name:"", employeeId:null, error:"", info:"" },
   chefAvailEmpId: null,
@@ -958,7 +965,7 @@ function renderSchedule(editable){
           ticket.appendChild(el("div",{class:"ticket-time mono"}, `${s.start} – ${s.end}`));
 
           if(isMe && !editable && state.currentUser.role !== "chef"){
-            const pendingReq = Object.entries(state.swapRequests || {}).find(([rid,r])=> r.assignId === assignId && r.status === "pending");
+            const pendingReq = Object.entries(state.swapRequests || {}).find(([rid,r])=> r.from && r.from.assignId === assignId && r.status === "pending");
             if(pendingReq){
               ticket.appendChild(el("div",{style:"margin-top:8px;font-size:11px;color:var(--chili);font-weight:700;"}, "⏳ Tausch angefragt"));
             } else {
@@ -1461,32 +1468,138 @@ function renderTeam(){
     });
   }
   section.appendChild(card);
+
+  // reset section
+  const resetCard = el("div",{class:"card", style:"border-color:var(--chili);"});
+  resetCard.appendChild(el("h3",{style:"margin:0 0 6px;font-size:15px;color:var(--chili);"}, "⚠️ Daten zurücksetzen"));
+  resetCard.appendChild(el("p",{style:"font-size:12px;color:var(--text-muted);margin:0 0 14px;"}, "Vorsicht: Diese Aktionen können nicht rückgängig gemacht werden."));
+
+  function resetButton(label, doReset){
+    const btn = el("button",{class:"btn-danger", style:"width:auto;padding:9px 16px;font-size:12px;border-radius:9px;margin:0 8px 8px 0;"}, label);
+    btn.addEventListener("click", ()=>{
+      if(confirm(`"${label}" wirklich ausführen? Das kann nicht rückgängig gemacht werden.`)){
+        doReset();
+      }
+    });
+    return btn;
+  }
+
+  const selectiveRow = el("div",{style:"display:flex;flex-wrap:wrap;margin-bottom:14px;"},[
+    resetButton("Nur Wochenpläne löschen", ()=> remove(ref(db, "weeks"))),
+    resetButton("Nur Arbeitszeiten löschen", ()=> remove(ref(db, "timeEntries"))),
+    resetButton("Nur Auszahlungen löschen", ()=> remove(ref(db, "payouts"))),
+    resetButton("Nur Ankündigungen löschen", ()=> remove(ref(db, "announcements"))),
+    resetButton("Nur Tauschanfragen löschen", ()=> remove(ref(db, "swapRequests"))),
+    resetButton("Nur Passwort-Anfragen löschen", ()=> remove(ref(db, "passwordResets"))),
+  ]);
+  resetCard.appendChild(selectiveRow);
+
+  const fullResetBtn = el("button",{class:"btn-danger", style:"width:auto;padding:11px 20px;font-size:13px;border-radius:9px;font-weight:700;background:var(--chili);color:#fff;"}, "🗑️ Komplett alles zurücksetzen (inkl. Mitarbeiter-Accounts)");
+  fullResetBtn.addEventListener("click", ()=>{
+    const typed = prompt('Das löscht WIRKLICH ALLES (alle Accounts, Wochenpläne, Zeiten, Auszahlungen). Tippe "RESET" um zu bestätigen:');
+    if(typed === "RESET"){
+      remove(ref(db, "employees"));
+      remove(ref(db, "weeks"));
+      remove(ref(db, "timeEntries"));
+      remove(ref(db, "payouts"));
+      remove(ref(db, "announcements"));
+      remove(ref(db, "swapRequests"));
+      remove(ref(db, "passwordResets"));
+      logout();
+    }
+  });
+  resetCard.appendChild(fullResetBtn);
+  section.appendChild(resetCard);
+
   return section;
+}
+
+function collectOtherAssignments(excludeAssignId, excludeEmployeeId){
+  const result = [];
+  const scheduleObj = state.weekData.schedule || {};
+  Object.keys(scheduleObj).forEach(dayKey=>{
+    Object.keys(scheduleObj[dayKey] || {}).forEach(shiftKey=>{
+      Object.entries(scheduleObj[dayKey][shiftKey] || {}).forEach(([assignId, s])=>{
+        if(assignId === excludeAssignId) return;
+        if(s.employeeId === excludeEmployeeId) return;
+        result.push({dayKey, shiftKey, assignId, employeeId: s.employeeId, start:s.start, end:s.end});
+      });
+    });
+  });
+  const dayOrder = DAYS.map(d=> d.key);
+  result.sort((a,b)=> dayOrder.indexOf(a.dayKey) - dayOrder.indexOf(b.dayKey));
+  return result;
 }
 
 function openSwapForm(ticket, wid, dayKey, shiftKey, assignId, fromEmployeeId, empIds){
   const existing = ticket.querySelector(".swap-form");
   if(existing){ existing.remove(); return; }
-  const form = el("div",{class:"swap-form", style:"margin-top:8px;display:flex;flex-direction:column;gap:6px;"});
-  const candidates = empIds.filter(id=> id !== fromEmployeeId);
-  if(candidates.length === 0){
-    form.appendChild(el("div",{style:"font-size:11px;color:var(--ink);opacity:.7;"}, "Kein anderer Mitarbeiter verfügbar."));
-    ticket.appendChild(form);
-    return;
+  const form = el("div",{class:"swap-form", style:"margin-top:8px;display:flex;flex-direction:column;gap:8px;"});
+  const dayLabel = (key)=> (DAYS.find(d=> d.key===key) || {}).label || key;
+
+  const modeSelect = el("select",{style:"width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--line);background:var(--paper-dim);color:var(--ink);font-size:12px;"},[
+    el("option",{value:"swap"}, "Echter Tausch — mit einer anderen Schicht tauschen"),
+    el("option",{value:"giveaway"}, "Komplett abgeben — ich arbeite dann gar nicht"),
+  ]);
+
+  const targetWrap = el("div",{});
+  form.appendChild(modeSelect);
+  form.appendChild(targetWrap);
+
+  function buildSwapTargetSelect(){
+    targetWrap.innerHTML = "";
+    const others = collectOtherAssignments(assignId, fromEmployeeId);
+    if(others.length === 0){
+      targetWrap.appendChild(el("div",{style:"font-size:11px;color:var(--ink);opacity:.7;"}, "Keine anderen Schichten in dieser Woche zum Tauschen vorhanden."));
+      return null;
+    }
+    const sel = el("select",{style:"width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--line);background:var(--paper-dim);color:var(--ink);font-size:12px;"});
+    others.forEach((o,i)=>{
+      const name = state.employees[o.employeeId] ? state.employees[o.employeeId].name : "?";
+      sel.appendChild(el("option",{value:String(i)}, `${name} — ${dayLabel(o.dayKey)} (${o.shiftKey}) ${o.start}–${o.end}`));
+    });
+    targetWrap.appendChild(sel);
+    return {sel, others};
   }
-  const select = el("select",{style:"width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--line);background:var(--paper-dim);color:var(--ink);font-size:12px;"});
-  candidates.forEach(id=> select.appendChild(el("option",{value:id}, state.employees[id].name)));
+
+  function buildGiveawaySelect(){
+    targetWrap.innerHTML = "";
+    const candidates = empIds.filter(id=> id !== fromEmployeeId);
+    if(candidates.length === 0){
+      targetWrap.appendChild(el("div",{style:"font-size:11px;color:var(--ink);opacity:.7;"}, "Kein anderer Mitarbeiter verfügbar."));
+      return null;
+    }
+    const sel = el("select",{style:"width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--line);background:var(--paper-dim);color:var(--ink);font-size:12px;"});
+    candidates.forEach(id=> sel.appendChild(el("option",{value:id}, state.employees[id].name)));
+    targetWrap.appendChild(sel);
+    return {sel};
+  }
+
+  let current = buildSwapTargetSelect();
+  modeSelect.addEventListener("change", ()=>{
+    current = modeSelect.value === "swap" ? buildSwapTargetSelect() : buildGiveawaySelect();
+  });
+
   const sendBtn = el("button",{class:"btn btn-primary", style:"padding:8px;font-size:12px;"}, "Anfrage senden");
   sendBtn.addEventListener("click", async ()=>{
-    const newRef = push(ref(db, "swapRequests"));
-    await set(newRef, {
-      weekId: wid, dayKey, shiftKey, assignId,
-      fromEmployeeId, toEmployeeId: select.value,
+    if(!current) return;
+    const mode = modeSelect.value;
+    const record = {
+      weekId: wid,
+      mode,
+      from: {employeeId: fromEmployeeId, dayKey, shiftKey, assignId},
       status:"pending", createdAt: Date.now()
-    });
+    };
+    if(mode === "swap"){
+      const chosen = current.others[parseInt(current.sel.value,10)];
+      record.to = {employeeId: chosen.employeeId, dayKey: chosen.dayKey, shiftKey: chosen.shiftKey, assignId: chosen.assignId};
+    } else {
+      record.to = {employeeId: current.sel.value};
+    }
+    const newRef = push(ref(db, "swapRequests"));
+    await set(newRef, record);
     form.remove();
   });
-  form.appendChild(select);
   form.appendChild(sendBtn);
   ticket.appendChild(form);
 }
@@ -1509,12 +1622,19 @@ function renderSwaps(){
 
   const dayLabel = (key)=> (DAYS.find(d=> d.key===key) || {}).label || key;
   requests.forEach(([reqId, r])=>{
-    const fromName = state.employees[r.fromEmployeeId] ? state.employees[r.fromEmployeeId].name : "?";
-    const toName = state.employees[r.toEmployeeId] ? state.employees[r.toEmployeeId].name : "?";
+    const fromName = state.employees[r.from.employeeId] ? state.employees[r.from.employeeId].name : "?";
+    const toName = state.employees[r.to.employeeId] ? state.employees[r.to.employeeId].name : "?";
     const card = el("div",{class:"card"});
-    card.appendChild(el("div",{style:"font-size:13px;margin-bottom:4px;"}, [
-      el("strong",{}, fromName), ` möchte seine Schicht am `, el("strong",{}, `${dayLabel(r.dayKey)} (${r.shiftKey})`), ` an `, el("strong",{}, toName), ` abgeben`
-    ]));
+    if(r.mode === "swap"){
+      card.appendChild(el("div",{style:"font-size:13px;margin-bottom:4px;"}, [
+        el("strong",{}, fromName), ` (${dayLabel(r.from.dayKey)}, ${r.from.shiftKey}) möchte tauschen mit `,
+        el("strong",{}, toName), ` (${dayLabel(r.to.dayKey)}, ${r.to.shiftKey})`
+      ]));
+    } else {
+      card.appendChild(el("div",{style:"font-size:13px;margin-bottom:4px;"}, [
+        el("strong",{}, fromName), ` möchte seine Schicht am `, el("strong",{}, `${dayLabel(r.from.dayKey)} (${r.from.shiftKey})`), ` komplett an `, el("strong",{}, toName), ` abgeben`
+      ]));
+    }
     card.appendChild(el("div",{class:"mono", style:"font-size:11px;color:var(--text-muted);margin-bottom:12px;"}, `Woche ${r.weekId} · angefragt am ${new Date(r.createdAt).toLocaleDateString("de-DE")}`));
 
     if(r.status === "pending"){
@@ -1522,10 +1642,17 @@ function renderSwaps(){
       const approveBtn = el("button",{class:"btn btn-primary", style:"width:auto;padding:9px 18px;"}, "Genehmigen");
       const rejectBtn = el("button",{class:"btn-cancel", style:"width:auto;padding:9px 18px;"}, "Ablehnen");
       approveBtn.addEventListener("click", async ()=>{
-        const assignPath = `weeks/${r.weekId}/schedule/${r.dayKey}/${r.shiftKey}/${r.assignId}`;
-        const snap = await get(ref(db, assignPath));
-        if(snap.exists()){
-          await update(ref(db, assignPath), {employeeId: r.toEmployeeId});
+        const fromPath = `weeks/${r.weekId}/schedule/${r.from.dayKey}/${r.from.shiftKey}/${r.from.assignId}`;
+        const fromSnap = await get(ref(db, fromPath));
+        if(fromSnap.exists()){
+          await update(ref(db, fromPath), {employeeId: r.to.employeeId});
+        }
+        if(r.mode === "swap"){
+          const toPath = `weeks/${r.weekId}/schedule/${r.to.dayKey}/${r.to.shiftKey}/${r.to.assignId}`;
+          const toSnap = await get(ref(db, toPath));
+          if(toSnap.exists()){
+            await update(ref(db, toPath), {employeeId: r.from.employeeId});
+          }
         }
         await update(ref(db, `swapRequests/${reqId}`), {status:"approved"});
       });
@@ -1549,7 +1676,7 @@ function renderStats(){
   section.appendChild(el("div",{class:"section-head"},[
     el("div",{},[
       el("h2",{class:"section-title"}, "Statistik"),
-      el("p",{class:"section-sub"}, "Geleistete Stunden im Vergleich, gesamter erfasster Zeitraum.")
+      el("p",{class:"section-sub"}, state.statsView==="total" ? "Geleistete Stunden im Vergleich, gesamter erfasster Zeitraum." : "Geleistete Stunden im Vergleich, nur diese Woche.")
     ])
   ]));
 
@@ -1559,22 +1686,44 @@ function renderStats(){
     return section;
   }
 
+  const toggleRow = el("div",{style:"display:flex;gap:6px;margin-bottom:16px;"},[
+    el("button",{class:`tab ${state.statsView==="total"?"active":""}`, style:"background:var(--bg-elevated);", onclick:()=>{ state.statsView="total"; render(); }}, "Gesamt"),
+    el("button",{class:`tab ${state.statsView==="week"?"active":""}`, style:"background:var(--bg-elevated);", onclick:()=>{ state.statsView="week"; render(); }}, "Pro Woche"),
+  ]);
+  section.appendChild(toggleRow);
+
+  const card = el("div",{class:"card"});
+
+  if(state.statsView === "week"){
+    card.appendChild(el("div",{class:"week-nav", style:"margin-bottom:16px;"},[
+      el("button",{onclick:()=>{state.statsWeekOffset--; render();}},"‹"),
+      el("span",{class:"week-label"}, `${weekRangeLabel(state.statsWeekOffset)} · ${weekIdFor(state.statsWeekOffset)}`),
+      el("button",{onclick:()=>{state.statsWeekOffset++; render();}},"›"),
+    ]));
+  }
+
+  const dates = state.statsView === "week" ? datesForWeek(state.statsWeekOffset) : null;
+  const rangeStart = dates ? dates[0].toISOString().slice(0,10) : null;
+  const rangeEnd = dates ? dates[6].toISOString().slice(0,10) : null;
+
   const totals = empIds.map(id=>{
-    const entries = Object.values(state.timeEntries[id] || {});
+    let entries = Object.values(state.timeEntries[id] || {});
+    if(state.statsView === "week"){
+      entries = entries.filter(e=> e.date >= rangeStart && e.date <= rangeEnd);
+    }
     const hours = entries.reduce((s,e)=> s+e.hours, 0);
     return {id, name: state.employees[id].name, hours};
   }).sort((a,b)=> b.hours - a.hours);
 
   const maxHours = Math.max(1, ...totals.map(t=> t.hours));
-  const card = el("div",{class:"card"});
   totals.forEach(t=>{
-    const pct = Math.max(4, Math.round((t.hours/maxHours)*100));
+    const pct = t.hours > 0 ? Math.max(4, Math.round((t.hours/maxHours)*100)) : 0;
     card.appendChild(el("div",{class:"bar-row"},[
       el("span",{class:"bar-label"}, t.name),
       el("div",{class:"bar-track"},[
-        el("div",{class:"bar-fill", style:`width:${pct}%;`},[
+        t.hours > 0 ? el("div",{class:"bar-fill", style:`width:${pct}%;`},[
           el("span",{}, `${fmtHours(t.hours)} Std.`)
-        ])
+        ]) : el("span",{style:"font-size:11px;color:var(--text-muted);margin-left:10px;line-height:26px;"}, "0,00 Std.")
       ])
     ]));
   });
@@ -1593,7 +1742,7 @@ function renderCosts(){
   ]));
 
   const empIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
-  const dailyMap = {}, weeklyMap = {}, monthlyMap = {};
+  const dailyMap = {}, weeklyMap = {}, monthlyMap = {}, yearlyMap = {};
   empIds.forEach(id=>{
     const wage = employeeWage(id);
     Object.values(state.timeEntries[id] || {}).forEach(entry=>{
@@ -1611,58 +1760,90 @@ function renderCosts(){
       if(!monthlyMap[mk]) monthlyMap[mk] = {hours:0, cost:0};
       monthlyMap[mk].hours += entry.hours;
       monthlyMap[mk].cost += cost;
+
+      const yk = entry.date.slice(0,4);
+      if(!yearlyMap[yk]) yearlyMap[yk] = {hours:0, cost:0};
+      yearlyMap[yk].hours += entry.hours;
+      yearlyMap[yk].cost += cost;
     });
   });
 
-  if(Object.keys(dailyMap).length === 0){
-    section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},"💶"),"Noch keine erfassten Arbeitszeiten."]));
-    return section;
-  }
+  // view toggle
+  const toggleRow = el("div",{style:"display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;"});
+  const views = [{key:"day",label:"Tag"},{key:"week",label:"Woche"},{key:"month",label:"Monat"},{key:"year",label:"Jahr"}];
+  views.forEach(v=>{
+    toggleRow.appendChild(el("button",{
+      class:`tab ${state.costsView===v.key?"active":""}`,
+      style:"background:var(--bg-elevated);",
+      onclick:()=>{ state.costsView=v.key; render(); }
+    }, v.label));
+  });
+  section.appendChild(toggleRow);
 
-  function buildGroup(map, sortDesc, labelFn, defaultOpenKey){
-    const details = el("details",{class:"cost-group"});
-    const keys = Object.keys(map).sort((a,b)=> sortDesc ? b.localeCompare(a) : a.localeCompare(b));
-    if(keys.includes(defaultOpenKey)) details.open = true;
-    const arrow = el("span",{style:"color:var(--mango);margin-right:8px;font-size:11px;"}, details.open ? "▾" : "▸");
-    details.addEventListener("toggle", ()=>{ arrow.textContent = details.open ? "▾" : "▸"; });
-    details.appendChild(el("summary",{},[
-      el("div",{style:"display:flex;align-items:center;"},[arrow, el("span",{}, "Alle anzeigen")]),
-      el("span",{class:"mono", style:"font-size:12px;color:var(--mango);font-weight:700;"}, fmtMoney(keys.reduce((s,k)=> s+map[k].cost,0)))
-    ]));
-    const list = el("div",{style:"padding:6px 0;"});
-    keys.forEach(k=>{
-      list.appendChild(el("div",{class:"cost-row"},[
-        el("span",{}, labelFn(k)),
-        el("div",{style:"display:flex;gap:14px;"},[
-          el("span",{class:"mono", style:"color:var(--text-muted);"}, `${fmtHours(map[k].hours)} Std.`),
-          el("span",{class:"mono", style:"color:var(--mango);font-weight:700;"}, fmtMoney(map[k].cost))
-        ])
-      ]));
+  const card = el("div",{class:"card"});
+
+  if(state.costsView === "day"){
+    const dateInput = el("input",{type:"date", style:"padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;margin-bottom:16px;"});
+    const base = new Date();
+    base.setDate(base.getDate() + state.costsDayOffset);
+    dateInput.value = base.toISOString().slice(0,10);
+    dateInput.addEventListener("change", ()=>{
+      const diffDays = Math.round((new Date(dateInput.value) - new Date(new Date().toISOString().slice(0,10))) / 86400000);
+      state.costsDayOffset = diffDays;
+      render();
     });
-    details.appendChild(list);
-    return details;
+    card.appendChild(dateInput);
+    const key = base.toISOString().slice(0,10);
+    const data = dailyMap[key] || {hours:0, cost:0};
+    card.appendChild(costResultBox(base.toLocaleDateString("de-DE",{weekday:"long", day:"2-digit", month:"long", year:"numeric"}), data));
   }
 
-  const todayKey = new Date().toISOString().slice(0,10);
-  const currentWeekKey = isoWeekKeyFromDate(todayKey);
-  const currentMonthKey = todayKey.slice(0,7);
+  else if(state.costsView === "week"){
+    card.appendChild(el("div",{class:"week-nav", style:"margin-bottom:16px;"},[
+      el("button",{onclick:()=>{state.costsWeekOffset--; render();}},"‹"),
+      el("span",{class:"week-label"}, `${weekRangeLabel(state.costsWeekOffset)} · ${weekIdFor(state.costsWeekOffset)}`),
+      el("button",{onclick:()=>{state.costsWeekOffset++; render();}},"›"),
+    ]));
+    const key = weekIdFor(state.costsWeekOffset);
+    const data = weeklyMap[key] || {hours:0, cost:0};
+    card.appendChild(costResultBox(`Woche ${key}`, data));
+  }
 
-  const dayCard = el("div",{class:"card"});
-  dayCard.appendChild(el("h3",{style:"margin:0 0 8px;font-size:15px;"}, "Nach Tag"));
-  dayCard.appendChild(buildGroup(dailyMap, true, (k)=> new Date(k).toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit", year:"numeric"}), todayKey));
-  section.appendChild(dayCard);
+  else if(state.costsView === "month"){
+    const base = new Date();
+    base.setMonth(base.getMonth() + state.costsMonthOffset, 1);
+    card.appendChild(el("div",{class:"week-nav", style:"margin-bottom:16px;"},[
+      el("button",{onclick:()=>{state.costsMonthOffset--; render();}},"‹"),
+      el("span",{class:"week-label"}, monthLabel(base.toISOString().slice(0,7))),
+      el("button",{onclick:()=>{state.costsMonthOffset++; render();}},"›"),
+    ]));
+    const key = base.toISOString().slice(0,7);
+    const data = monthlyMap[key] || {hours:0, cost:0};
+    card.appendChild(costResultBox(monthLabel(key), data));
+  }
 
-  const weekCard = el("div",{class:"card"});
-  weekCard.appendChild(el("h3",{style:"margin:0 0 8px;font-size:15px;"}, "Nach Woche"));
-  weekCard.appendChild(buildGroup(weeklyMap, true, (k)=> k, currentWeekKey));
-  section.appendChild(weekCard);
+  else if(state.costsView === "year"){
+    const year = new Date().getFullYear() + state.costsYearOffset;
+    card.appendChild(el("div",{class:"week-nav", style:"margin-bottom:16px;"},[
+      el("button",{onclick:()=>{state.costsYearOffset--; render();}},"‹"),
+      el("span",{class:"week-label"}, String(year)),
+      el("button",{onclick:()=>{state.costsYearOffset++; render();}},"›"),
+    ]));
+    const key = String(year);
+    const data = yearlyMap[key] || {hours:0, cost:0};
+    card.appendChild(costResultBox(`Jahr ${key}`, data));
+  }
 
-  const monthCard = el("div",{class:"card"});
-  monthCard.appendChild(el("h3",{style:"margin:0 0 8px;font-size:15px;"}, "Nach Monat"));
-  monthCard.appendChild(buildGroup(monthlyMap, true, (k)=> monthLabel(k), currentMonthKey));
-  section.appendChild(monthCard);
-
+  section.appendChild(card);
   return section;
+}
+
+function costResultBox(label, data){
+  return el("div",{style:"background:var(--bg-elevated-2);border-radius:12px;padding:20px;text-align:center;"},[
+    el("div",{style:"font-size:13px;color:var(--text-muted);margin-bottom:10px;"}, label),
+    el("div",{class:"mono", style:"font-size:32px;font-weight:700;color:var(--mango);"}, fmtMoney(data.cost)),
+    el("div",{class:"mono", style:"font-size:13px;color:var(--text-muted);margin-top:6px;"}, `${fmtHours(data.hours)} Std. gesamt`)
+  ]);
 }
 
 // ---------- announcements banner (all users) ----------
