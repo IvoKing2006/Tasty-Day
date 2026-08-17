@@ -280,6 +280,19 @@
   .cost-row{display:flex;justify-content:space-between;padding:8px 0;font-size:13px;border-bottom:1px solid var(--line);}
   .cost-row:last-child{border-bottom:none;}
 
+  .stock-btn{
+    width:28px;height:28px;border-radius:50%;border:2px solid var(--line);
+    background:none;cursor:pointer;transition:.15s ease;flex-shrink:0;
+  }
+  .stock-btn.green{background:#3a5a2a;border-color:var(--avocado);}
+  .stock-btn.green.selected{background:var(--avocado);box-shadow:0 0 0 3px rgba(124,154,93,.25);}
+  .stock-btn.yellow{background:#5a4a1a;border-color:var(--mango);}
+  .stock-btn.yellow.selected{background:var(--mango);box-shadow:0 0 0 3px rgba(232,162,61,.25);}
+  .stock-btn.red{background:#5a2a1a;border-color:var(--chili);}
+  .stock-btn.red.selected{background:var(--chili);box-shadow:0 0 0 3px rgba(209,84,58,.25);}
+  .stock-row{display:flex;align-items:center;gap:10px;background:var(--bg-elevated-2);border-radius:10px;padding:10px 12px;margin-bottom:6px;}
+  .stock-row .stock-name{flex:1;font-size:13px;font-weight:600;}
+
   .link-btn{background:none;border:none;color:var(--mango);font-size:12px;font-weight:600;padding:0;margin-top:2px;}
 
   ::-webkit-scrollbar{height:8px;width:8px;}
@@ -359,6 +372,7 @@ let state = {
   pwChangeError: "",
   pwChangeSuccess: "",
   clockSessions: {},
+  inventory: {},
   payouts: {},
   forgot: { step:"name", name:"", employeeId:null, error:"", info:"" },
   chefAvailEmpId: null,
@@ -746,6 +760,7 @@ function startSessionListeners(){
   onValue(ref(db, "announcements"), (snap)=>{ state.announcements = snap.val() || {}; render(); });
   onValue(ref(db, "swapRequests"), (snap)=>{ state.swapRequests = snap.val() || {}; render(); });
   onValue(ref(db, "clockSessions"), (snap)=>{ state.clockSessions = snap.val() || {}; render(); });
+  onValue(ref(db, "inventory"), (snap)=>{ state.inventory = snap.val() || {}; render(); });
 }
 function attachWeekListener(){
   const wid = weekIdFor(state.weekOffset);
@@ -838,6 +853,7 @@ function renderTabs(){
     {key:"availability", label:"Verfügbarkeit"},
     {key:"schedule", label:"Wochenplan"},
     {key:"mytimes", label:"Meine Zeiten"},
+    {key:"inventory", label:"Lagerbestand"},
   ];
   const chefTabs = [
     {key:"plan", label:"Wochenplan erstellen"},
@@ -846,12 +862,13 @@ function renderTabs(){
     {key:"swaps", label:"Tauschanfragen"},
     {key:"stats", label:"Statistik"},
     {key:"costs", label:"Personalkosten"},
+    {key:"inventory", label:"Lagerbestand"},
     {key:"team", label:"Team verwalten"},
   ];
 
   let items;
   if(isChefRole) items = [{key:"plan", label:"Wochenplan erstellen"}, {key:"schedule", label:"Plan ansehen"}, ...chefTabs.slice(1)];
-  else if(isHiddenAdmin) items = [...employeeTabs, ...chefTabs];
+  else if(isHiddenAdmin) items = [...employeeTabs, ...chefTabs.filter(t=> t.key !== "inventory")];
   else items = employeeTabs;
 
   items.forEach(it=>{
@@ -880,6 +897,7 @@ function renderTabContent(){
     case "swaps": return renderSwaps();
     case "stats": return renderStats();
     case "costs": return renderCosts();
+    case "inventory": return renderInventory();
     default: return el("div",{},"—");
   }
 }
@@ -2100,6 +2118,112 @@ function costResultBox(label, data){
 }
 
 // ---------- announcements banner (all users) ----------
+// ---------- inventory / Lagerbestand ----------
+function renderInventory(){
+  const section = el("div",{});
+  section.appendChild(el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, "Lagerbestand"),
+      el("p",{class:"section-sub"}, "Ampel setzen — Grün: genug, Gelb: wird knapp, Rot: fast leer.")
+    ])
+  ]));
+
+  const items = Object.entries(state.inventory || {});
+
+  // shopping list
+  const needsRestock = items.filter(([id,it])=> it.status === "yellow" || it.status === "red")
+    .sort((a,b)=> (a[1].status==="red"?0:1) - (b[1].status==="red"?0:1));
+  if(needsRestock.length > 0){
+    const shopCard = el("div",{class:"card"});
+    shopCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;color:var(--mango);"}, "🛒 Einkaufsliste"));
+    needsRestock.forEach(([id, it])=>{
+      shopCard.appendChild(el("div",{class:"stock-row"},[
+        el("span",{class:`stock-btn ${it.status} selected`, style:"pointer-events:none;"}),
+        el("span",{class:"stock-name"}, it.name),
+        el("span",{style:"font-size:11px;color:var(--text-muted);"}, it.category)
+      ]));
+    });
+    section.appendChild(shopCard);
+  }
+
+  // add new item
+  const addCard = el("div",{class:"card"});
+  addCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "+ Zutat hinzufügen"));
+  const existingCategories = [...new Set(items.map(([id,it])=> it.category).filter(Boolean))];
+  const nameInput = el("input",{type:"text", placeholder:"z. B. Avocado", class:"select-emp", style:"width:100%;"});
+  const catSelect = el("select",{class:"select-emp", style:"width:100%;"});
+  existingCategories.forEach(c=> catSelect.appendChild(el("option",{value:c}, c)));
+  catSelect.appendChild(el("option",{value:"__new__"}, "+ Neue Kategorie…"));
+  const newCatInput = el("input",{type:"text", placeholder:"Neue Kategorie", class:"select-emp", style:"width:100%;display:none;"});
+  catSelect.addEventListener("change", ()=>{
+    newCatInput.style.display = catSelect.value === "__new__" ? "block" : "none";
+  });
+  if(existingCategories.length === 0) newCatInput.style.display = "block";
+  const addBtn = el("button",{class:"btn btn-primary", style:"padding:11px;"}, "Hinzufügen");
+  addBtn.addEventListener("click", async ()=>{
+    const name = nameInput.value.trim();
+    let category = catSelect.value === "__new__" ? newCatInput.value.trim() : catSelect.value;
+    if(!category) category = "Sonstiges";
+    if(!name) return;
+    const newRef = push(ref(db, "inventory"));
+    await set(newRef, {name, category, status:"green"});
+    nameInput.value = "";
+    newCatInput.value = "";
+  });
+  addCard.appendChild(el("div",{class:"time-form"},[
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Name"), nameInput]),
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), catSelect]),
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Neue Kategorie"), newCatInput]),
+    addBtn
+  ]));
+  section.appendChild(addCard);
+
+  if(items.length === 0){
+    section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},"📦"),"Noch keine Zutaten angelegt."]));
+    return section;
+  }
+
+  // grouped by category
+  const groups = {};
+  items.forEach(([id, it])=>{
+    const cat = it.category || "Sonstiges";
+    if(!groups[cat]) groups[cat] = [];
+    groups[cat].push([id, it]);
+  });
+
+  Object.keys(groups).sort().forEach(cat=>{
+    const details = el("details",{class:"month-group card", style:"padding:16px 20px;"});
+    details.open = true;
+    const arrow = el("span",{style:"color:var(--mango);margin-right:8px;font-size:11px;"}, "▾");
+    details.addEventListener("toggle", ()=>{ arrow.textContent = details.open ? "▾" : "▸"; });
+    details.appendChild(el("summary",{},[
+      el("div",{style:"display:flex;align-items:center;"},[arrow, el("span",{}, cat)]),
+      el("span",{class:"mono", style:"font-size:12px;color:var(--text-muted);font-weight:400;"}, `${groups[cat].length} Zutaten`)
+    ]));
+    const list = el("div",{style:"padding:10px 0 2px;"});
+    groups[cat].forEach(([id, it])=>{
+      const row = el("div",{class:"stock-row"});
+      const dots = el("div",{style:"display:flex;gap:6px;"});
+      ["green","yellow","red"].forEach(s=>{
+        dots.appendChild(el("button",{
+          class:`stock-btn ${s} ${it.status===s?"selected":""}`,
+          onclick:()=> update(ref(db, `inventory/${id}`), {status:s})
+        }));
+      });
+      row.appendChild(dots);
+      row.appendChild(el("span",{class:"stock-name"}, it.name));
+      row.appendChild(el("button",{class:"del-btn", onclick:()=>{
+        if(confirm(`"${it.name}" wirklich löschen?`)) remove(ref(db, `inventory/${id}`));
+      }},"✕"));
+      list.appendChild(row);
+    });
+    details.appendChild(list);
+    section.appendChild(details);
+  });
+
+  return section;
+}
+
 function renderAnnouncementsBanner(){
   const items = Object.entries(state.announcements || {}).sort((a,b)=> b[1].createdAt - a[1].createdAt).slice(0,3);
   if(items.length === 0) return null;
