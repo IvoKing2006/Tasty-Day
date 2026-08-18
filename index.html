@@ -364,10 +364,18 @@ let state = {
   costsYearOffset: 0,
   statsView: "total",
   statsWeekOffset: 0,
+  inventory: {},
+  inventoryLog: {},
+  revenue: {},
+  expenses: {},
+  financeView: "day",
+  financeDayOffset: 0,
+  financeWeekOffset: 0,
+  financeMonthOffset: 0,
+  financeYearOffset: 0,
   showPasswordChange: false,
   pwChangeError: "",
   pwChangeSuccess: "",
-  inventory: {},
   payouts: {},
   forgot: { step:"name", name:"", employeeId:null, error:"", info:"" },
   chefAvailEmpId: null,
@@ -755,6 +763,9 @@ function startSessionListeners(){
   onValue(ref(db, "announcements"), (snap)=>{ state.announcements = snap.val() || {}; render(); });
   onValue(ref(db, "swapRequests"), (snap)=>{ state.swapRequests = snap.val() || {}; render(); });
   onValue(ref(db, "inventory"), (snap)=>{ state.inventory = snap.val() || {}; render(); });
+  onValue(ref(db, "inventoryLog"), (snap)=>{ state.inventoryLog = snap.val() || {}; render(); });
+  onValue(ref(db, "revenue"), (snap)=>{ state.revenue = snap.val() || {}; render(); });
+  onValue(ref(db, "expenses"), (snap)=>{ state.expenses = snap.val() || {}; render(); });
 }
 function attachWeekListener(){
   const wid = weekIdFor(state.weekOffset);
@@ -856,6 +867,7 @@ function renderTabs(){
     {key:"swaps", label:"Tauschanfragen"},
     {key:"stats", label:"Statistik"},
     {key:"costs", label:"Personalkosten"},
+    {key:"finance", label:"Finanzen"},
     {key:"inventory", label:"Lagerbestand"},
     {key:"team", label:"Team verwalten"},
   ];
@@ -891,6 +903,7 @@ function renderTabContent(){
     case "swaps": return renderSwaps();
     case "stats": return renderStats();
     case "costs": return renderCosts();
+    case "finance": return renderFinance();
     case "inventory": return renderInventory();
     default: return el("div",{},"—");
   }
@@ -1859,15 +1872,7 @@ function renderStats(){
 }
 
 // ---------- personnel costs (chef) ----------
-function renderCosts(){
-  const section = el("div",{});
-  section.appendChild(el("div",{class:"section-head"},[
-    el("div",{},[
-      el("h2",{class:"section-title"}, "Personalkosten"),
-      el("p",{class:"section-sub"}, "Berechnet aus erfassten Stunden × Stundenlohn, über alle Mitarbeiter.")
-    ])
-  ]));
-
+function computePersonnelCostMaps(){
   const empIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
   const dailyMap = {}, weeklyMap = {}, monthlyMap = {}, yearlyMap = {};
   empIds.forEach(id=>{
@@ -1894,6 +1899,19 @@ function renderCosts(){
       yearlyMap[yk].cost += cost;
     });
   });
+  return {dailyMap, weeklyMap, monthlyMap, yearlyMap};
+}
+
+function renderCosts(){
+  const section = el("div",{});
+  section.appendChild(el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, "Personalkosten"),
+      el("p",{class:"section-sub"}, "Berechnet aus erfassten Stunden × Stundenlohn, über alle Mitarbeiter.")
+    ])
+  ]));
+
+  const {dailyMap, weeklyMap, monthlyMap, yearlyMap} = computePersonnelCostMaps();
 
   // view toggle
   const toggleRow = el("div",{style:"display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;"});
@@ -1962,6 +1980,220 @@ function renderCosts(){
   }
 
   section.appendChild(card);
+  return section;
+}
+
+// ---------- Finanzen (Umsatz, Ausgaben, Gewinn) ----------
+function buildAmountMaps(source){
+  const dailyMap = {}, weeklyMap = {}, monthlyMap = {}, yearlyMap = {};
+  Object.values(source || {}).forEach(entry=>{
+    const amt = entry.amount || 0;
+    if(!dailyMap[entry.date]) dailyMap[entry.date] = 0;
+    dailyMap[entry.date] += amt;
+    const wk = isoWeekKeyFromDate(entry.date);
+    if(!weeklyMap[wk]) weeklyMap[wk] = 0;
+    weeklyMap[wk] += amt;
+    const mk = entry.date.slice(0,7);
+    if(!monthlyMap[mk]) monthlyMap[mk] = 0;
+    monthlyMap[mk] += amt;
+    const yk = entry.date.slice(0,4);
+    if(!yearlyMap[yk]) yearlyMap[yk] = 0;
+    yearlyMap[yk] += amt;
+  });
+  return {dailyMap, weeklyMap, monthlyMap, yearlyMap};
+}
+
+function renderFinance(){
+  const section = el("div",{});
+  section.appendChild(el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, "Finanzen"),
+      el("p",{class:"section-sub"}, "Umsatz, Ausgaben und Personalkosten im Überblick — Gewinn wird automatisch berechnet.")
+    ])
+  ]));
+
+  const revMaps = buildAmountMaps(state.revenue);
+  const expMaps = buildAmountMaps(state.expenses);
+  const pc = computePersonnelCostMaps();
+  const costDaily = pc.dailyMap, costWeekly = pc.weeklyMap, costMonthly = pc.monthlyMap, costYearly = pc.yearlyMap;
+
+  const toggleRow = el("div",{style:"display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;"});
+  const views = [{key:"day",label:"Tag"},{key:"week",label:"Woche"},{key:"month",label:"Monat"},{key:"year",label:"Jahr"}];
+  views.forEach(v=>{
+    toggleRow.appendChild(el("button",{
+      class:`tab ${state.financeView===v.key?"active":""}`,
+      style:"background:var(--bg-elevated);",
+      onclick:()=>{ state.financeView=v.key; render(); }
+    }, v.label));
+  });
+  section.appendChild(toggleRow);
+
+  const overviewCard = el("div",{class:"card"});
+  let periodLabel, revKey, dateForForms;
+
+  if(state.financeView === "day"){
+    const base = new Date();
+    base.setDate(base.getDate() + state.financeDayOffset);
+    const dateInput = el("input",{type:"date", style:"padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;margin-bottom:16px;"});
+    dateInput.value = toDateKey(base);
+    dateInput.addEventListener("change", ()=>{
+      const diffDays = Math.round((localDateFromKey(dateInput.value) - localDateFromKey(toDateKey(new Date()))) / 86400000);
+      state.financeDayOffset = diffDays;
+      render();
+    });
+    overviewCard.appendChild(dateInput);
+    periodLabel = base.toLocaleDateString("de-DE",{weekday:"long", day:"2-digit", month:"long", year:"numeric"});
+    revKey = toDateKey(base);
+    dateForForms = toDateKey(base);
+  } else if(state.financeView === "week"){
+    overviewCard.appendChild(el("div",{class:"week-nav", style:"margin-bottom:16px;"},[
+      el("button",{onclick:()=>{state.financeWeekOffset--; render();}},"‹"),
+      el("span",{class:"week-label"}, `${weekRangeLabel(state.financeWeekOffset)} · ${weekIdFor(state.financeWeekOffset)}`),
+      el("button",{onclick:()=>{state.financeWeekOffset++; render();}},"›"),
+    ]));
+    periodLabel = `Woche ${weekIdFor(state.financeWeekOffset)}`;
+    revKey = weekIdFor(state.financeWeekOffset);
+    dateForForms = toDateKey(new Date());
+  } else if(state.financeView === "month"){
+    const base = new Date();
+    base.setMonth(base.getMonth() + state.financeMonthOffset, 1);
+    overviewCard.appendChild(el("div",{class:"week-nav", style:"margin-bottom:16px;"},[
+      el("button",{onclick:()=>{state.financeMonthOffset--; render();}},"‹"),
+      el("span",{class:"week-label"}, monthLabel(toMonthKey(base))),
+      el("button",{onclick:()=>{state.financeMonthOffset++; render();}},"›"),
+    ]));
+    periodLabel = monthLabel(toMonthKey(base));
+    revKey = toMonthKey(base);
+    dateForForms = toDateKey(new Date());
+  } else {
+    const year = new Date().getFullYear() + state.financeYearOffset;
+    overviewCard.appendChild(el("div",{class:"week-nav", style:"margin-bottom:16px;"},[
+      el("button",{onclick:()=>{state.financeYearOffset--; render();}},"‹"),
+      el("span",{class:"week-label"}, String(year)),
+      el("button",{onclick:()=>{state.financeYearOffset++; render();}},"›"),
+    ]));
+    periodLabel = `Jahr ${year}`;
+    revKey = String(year);
+    dateForForms = toDateKey(new Date());
+  }
+
+  const mapsByView = {
+    day: {rev: revMaps.dailyMap, exp: expMaps.dailyMap, cost: costDaily},
+    week: {rev: revMaps.weeklyMap, exp: expMaps.weeklyMap, cost: costWeekly},
+    month: {rev: revMaps.monthlyMap, exp: expMaps.monthlyMap, cost: costMonthly},
+    year: {rev: revMaps.yearlyMap, exp: expMaps.yearlyMap, cost: costYearly},
+  }[state.financeView];
+
+  const revenue = mapsByView.rev[revKey] || 0;
+  const expensesTotal = mapsByView.exp[revKey] || 0;
+  const personnelCost = (mapsByView.cost[revKey] && mapsByView.cost[revKey].cost) || 0;
+  const profit = revenue - expensesTotal - personnelCost;
+  const costPct = revenue > 0 ? (personnelCost/revenue*100) : 0;
+
+  overviewCard.appendChild(el("div",{style:"text-align:center;margin-bottom:18px;"},[
+    el("div",{style:"font-size:13px;color:var(--text-muted);margin-bottom:6px;"}, periodLabel),
+    el("div",{class:"mono", style:`font-size:34px;font-weight:700;color:${profit>=0?"var(--avocado)":"var(--chili)"};`}, fmtMoney(profit)),
+    el("div",{style:"font-size:11px;color:var(--text-muted);margin-top:4px;"}, "Gewinn (Umsatz − Personalkosten − Ausgaben)")
+  ]));
+
+  const breakdown = el("div",{style:"display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;"});
+  function statBox(label, value, color, isPct){
+    return el("div",{style:"background:var(--bg-elevated-2);border-radius:10px;padding:12px 14px;text-align:center;"},[
+      el("div",{style:"font-size:11px;color:var(--text-muted);margin-bottom:4px;"}, label),
+      el("div",{class:"mono", style:`font-size:16px;font-weight:700;color:${color};`}, isPct ? (value.toLocaleString("de-DE",{maximumFractionDigits:1})+" %") : fmtMoney(value))
+    ]);
+  }
+  breakdown.appendChild(statBox("Umsatz", revenue, "var(--text)"));
+  breakdown.appendChild(statBox("Personalkosten", personnelCost, "var(--mango)"));
+  breakdown.appendChild(statBox("Ausgaben", expensesTotal, "var(--chili)"));
+  breakdown.appendChild(statBox("Personalkosten-Quote", costPct, "var(--text-muted)", true));
+  overviewCard.appendChild(breakdown);
+  section.appendChild(overviewCard);
+
+  const formsCard = el("div",{class:"card"});
+  formsCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Eintragen"));
+
+  const revDate = el("input",{type:"date", class:"select-emp"});
+  const revAmount = el("input",{type:"number", step:"0.01", min:"0", placeholder:"z. B. 1800", class:"select-emp"});
+  const revBtn = el("button",{class:"btn btn-primary", style:"padding:10px;"}, "+ Umsatz eintragen");
+  revDate.value = dateForForms;
+  revBtn.addEventListener("click", async ()=>{
+    const amount = parseFloat(revAmount.value);
+    if(!revDate.value || isNaN(amount)) return;
+    const newRef = push(ref(db, "revenue"));
+    await set(newRef, {date: revDate.value, amount});
+    revAmount.value = "";
+  });
+  formsCard.appendChild(el("div",{class:"time-form", style:"margin-bottom:14px;"},[
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Datum"), revDate]),
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Umsatz (€)"), revAmount]),
+    revBtn
+  ]));
+
+  const existingExpCategories = [...new Set(Object.values(state.expenses||{}).map(e=> e.category).filter(Boolean))];
+  const expDate = el("input",{type:"date", class:"select-emp"});
+  const expAmount = el("input",{type:"number", step:"0.01", min:"0", placeholder:"z. B. 250", class:"select-emp"});
+  const expCatSelect = el("select",{class:"select-emp"});
+  existingExpCategories.forEach(c=> expCatSelect.appendChild(el("option",{value:c}, c)));
+  expCatSelect.appendChild(el("option",{value:"__new__"}, "+ Neue Kategorie…"));
+  const expNewCat = el("input",{type:"text", placeholder:"z. B. Wareneinkauf, Miete", class:"select-emp", style:"display:none;"});
+  expCatSelect.addEventListener("change", ()=>{ expNewCat.style.display = expCatSelect.value === "__new__" ? "block" : "none"; });
+  if(existingExpCategories.length === 0) expNewCat.style.display = "block";
+  const expBtn = el("button",{class:"btn btn-primary", style:"padding:10px;"}, "+ Ausgabe eintragen");
+  expDate.value = dateForForms;
+  expBtn.addEventListener("click", async ()=>{
+    const amount = parseFloat(expAmount.value);
+    let category = expCatSelect.value === "__new__" ? expNewCat.value.trim() : expCatSelect.value;
+    if(!category) category = "Sonstiges";
+    if(!expDate.value || isNaN(amount)) return;
+    const newRef = push(ref(db, "expenses"));
+    await set(newRef, {date: expDate.value, amount, category});
+    expAmount.value = ""; expNewCat.value = "";
+  });
+  formsCard.appendChild(el("div",{class:"time-form"},[
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Datum"), expDate]),
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Ausgabe (€)"), expAmount]),
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), expCatSelect]),
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Neue Kategorie"), expNewCat]),
+    expBtn
+  ]));
+  section.appendChild(formsCard);
+
+  const recentRev = Object.entries(state.revenue||{}).sort((a,b)=> b[1].date.localeCompare(a[1].date)).slice(0,10);
+  const recentExp = Object.entries(state.expenses||{}).sort((a,b)=> b[1].date.localeCompare(a[1].date)).slice(0,10);
+
+  if(recentRev.length > 0){
+    const revListCard = el("div",{class:"card"});
+    revListCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Letzte Umsatz-Einträge"));
+    recentRev.forEach(([id, r])=>{
+      const dt = new Date(r.date);
+      revListCard.appendChild(el("div",{class:"time-row"},[
+        el("span",{}, dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit", year:"numeric"})),
+        el("div",{style:"display:flex;align-items:center;gap:10px;"},[
+          el("span",{class:"hrs"}, fmtMoney(r.amount)),
+          el("button",{class:"del-btn", onclick:()=> remove(ref(db, `revenue/${id}`))},"✕")
+        ])
+      ]));
+    });
+    section.appendChild(revListCard);
+  }
+
+  if(recentExp.length > 0){
+    const expListCard = el("div",{class:"card"});
+    expListCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Letzte Ausgaben"));
+    recentExp.forEach(([id, r])=>{
+      const dt = new Date(r.date);
+      expListCard.appendChild(el("div",{class:"time-row"},[
+        el("span",{}, `${dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit", year:"numeric"})} · ${r.category||"Sonstiges"}`),
+        el("div",{style:"display:flex;align-items:center;gap:10px;"},[
+          el("span",{class:"hrs", style:"color:var(--chili);"}, fmtMoney(r.amount)),
+          el("button",{class:"del-btn", onclick:()=> remove(ref(db, `expenses/${id}`))},"✕")
+        ])
+      ]));
+    });
+    section.appendChild(expListCard);
+  }
+
   return section;
 }
 
@@ -2080,13 +2312,29 @@ function renderInventory(){
       const plusBtn = el("button",{class:"stock-adjust"}, "+");
       const sollLabel = el("span",{class:"mono", style:"font-size:12px;color:var(--text-muted);white-space:nowrap;"}, `/ ${fmtNum(it.soll||0)} ${it.unit||""}`);
 
-      function saveIst(newVal){
+      function saveIst(newVal, prevVal){
         const v = Math.max(0, newVal);
         update(ref(db, `inventory/${id}`), {ist: v});
+        const consumed = prevVal - v;
+        if(consumed > 0){
+          const logRef = push(ref(db, `inventoryLog/${id}`));
+          set(logRef, {date: toDateKey(new Date()), amount: consumed});
+        }
       }
-      minusBtn.addEventListener("click", ()=> saveIst((parseFloat(istInput.value)||0) - 1));
-      plusBtn.addEventListener("click", ()=> saveIst((parseFloat(istInput.value)||0) + 1));
-      istInput.addEventListener("change", ()=> saveIst(parseFloat(istInput.value)||0));
+      minusBtn.addEventListener("click", ()=>{
+        const cur = parseFloat(istInput.value)||0;
+        istInput.value = Math.max(0, cur-1);
+        saveIst(cur-1, cur);
+      });
+      plusBtn.addEventListener("click", ()=>{
+        const cur = parseFloat(istInput.value)||0;
+        istInput.value = cur+1;
+        saveIst(cur+1, cur);
+      });
+      istInput.addEventListener("change", ()=>{
+        const prevVal = it.ist||0;
+        saveIst(parseFloat(istInput.value)||0, prevVal);
+      });
 
       const istGroup = el("div",{style:"display:flex;align-items:center;gap:6px;"},[minusBtn, istInput, plusBtn, sollLabel]);
       row.appendChild(istGroup);
@@ -2101,10 +2349,50 @@ function renderInventory(){
       });
       row.appendChild(sollEditBtn);
 
+      const logEntries = Object.values(state.inventoryLog[id] || {});
+      const consumeBtn = el("button",{class:"link-btn", style:"font-size:11px;"}, `📊 Verbrauch${logEntries.length?"":""}`);
+      row.appendChild(consumeBtn);
+
       row.appendChild(el("button",{class:"del-btn", onclick:()=>{
         if(confirm(`"${it.name}" wirklich löschen?`)) remove(ref(db, `inventory/${id}`));
       }},"✕"));
       list.appendChild(row);
+
+      const chartBox = el("div",{style:"display:none;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:-2px 0 8px;"});
+      let chartOpen = false;
+      consumeBtn.addEventListener("click", ()=>{
+        chartOpen = !chartOpen;
+        if(chartOpen){
+          chartBox.innerHTML = "";
+          const weekdayLabels = ["Mo","Di","Mi","Do","Fr","Sa","So"];
+          const sums = [0,0,0,0,0,0,0];
+          logEntries.forEach(le=>{
+            const d = localDateFromKey(le.date);
+            const idx = (d.getDay()+6)%7; // Mo=0 ... So=6
+            sums[idx] += le.amount;
+          });
+          const max = Math.max(1, ...sums);
+          if(logEntries.length === 0){
+            chartBox.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);"}, "Noch keine Verbrauchsdaten — wird automatisch erfasst, sobald die Ist-Menge verringert wird."));
+          } else {
+            const maxIdx = sums.indexOf(Math.max(...sums));
+            chartBox.appendChild(el("div",{style:"font-size:11px;color:var(--text-muted);margin-bottom:10px;"}, `Verbraucht meist am ${weekdayLabels[maxIdx]}`));
+            weekdayLabels.forEach((wl,i)=>{
+              const pct = sums[i]>0 ? Math.max(4, Math.round((sums[i]/max)*100)) : 0;
+              chartBox.appendChild(el("div",{style:"display:flex;align-items:center;gap:8px;margin-bottom:5px;"},[
+                el("span",{style:"width:22px;font-size:11px;color:var(--text-muted);flex-shrink:0;"}, wl),
+                el("div",{class:"bar-track", style:"height:16px;"},[
+                  sums[i]>0 ? el("div",{class:"bar-fill", style:`width:${pct}%;height:100%;`},[
+                    el("span",{style:"font-size:10px;"}, fmtNum(sums[i]))
+                  ]) : null
+                ])
+              ]));
+            });
+          }
+        }
+        chartBox.style.display = chartOpen ? "block" : "none";
+      });
+      list.appendChild(chartBox);
     });
     details.appendChild(list);
     section.appendChild(details);
