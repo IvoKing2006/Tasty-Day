@@ -2003,23 +2003,60 @@ function buildAmountMaps(source){
   return {dailyMap, weeklyMap, monthlyMap, yearlyMap};
 }
 
+function periodKeysForView(view, endOffset, count){
+  const keys = [];
+  for(let i=count-1;i>=0;i--){
+    const offset = endOffset - i;
+    if(view==="day"){
+      const d = new Date(); d.setDate(d.getDate()+offset);
+      keys.push({key: toDateKey(d), label: d.toLocaleDateString("de-DE",{weekday:"short"})});
+    } else if(view==="week"){
+      const wk = weekIdFor(offset);
+      keys.push({key: wk, label: "KW"+wk.split("-W")[1]});
+    } else if(view==="month"){
+      const d = new Date(); d.setMonth(d.getMonth()+offset,1);
+      keys.push({key: toMonthKey(d), label: d.toLocaleDateString("de-DE",{month:"short"})});
+    } else {
+      const y = new Date().getFullYear()+offset;
+      keys.push({key:String(y), label:String(y)});
+    }
+  }
+  return keys;
+}
+
 function renderFinance(){
   const section = el("div",{});
   section.appendChild(el("div",{class:"section-head"},[
     el("div",{},[
       el("h2",{class:"section-title"}, "Finanzen"),
-      el("p",{class:"section-sub"}, "Umsatz, Ausgaben und Personalkosten im Überblick — Gewinn wird automatisch berechnet.")
+      el("p",{class:"section-sub"}, "Umsatz, Ausgaben und Personalkosten im Überblick.")
     ])
   ]));
 
   const revMaps = buildAmountMaps(state.revenue);
   const expMaps = buildAmountMaps(state.expenses);
   const pc = computePersonnelCostMaps();
-  const costDaily = pc.dailyMap, costWeekly = pc.weeklyMap, costMonthly = pc.monthlyMap, costYearly = pc.yearlyMap;
+  const mapsByView = {
+    day: {rev: revMaps.dailyMap, exp: expMaps.dailyMap, cost: pc.dailyMap},
+    week: {rev: revMaps.weeklyMap, exp: expMaps.weeklyMap, cost: pc.weeklyMap},
+    month: {rev: revMaps.monthlyMap, exp: expMaps.monthlyMap, cost: pc.monthlyMap},
+    year: {rev: revMaps.yearlyMap, exp: expMaps.yearlyMap, cost: pc.yearlyMap},
+  }[state.financeView];
 
+  const offsetKey = state.financeView+"Offset";
+  const currentOffset = {day: state.financeDayOffset, week: state.financeWeekOffset, month: state.financeMonthOffset, year: state.financeYearOffset}[state.financeView];
+
+  function profitAt(offset){
+    const k = periodKeysForView(state.financeView, offset, 1)[0].key;
+    const rev = mapsByView.rev[k] || 0;
+    const exp = mapsByView.exp[k] || 0;
+    const cost = (mapsByView.cost[k] && mapsByView.cost[k].cost) || 0;
+    return {key:k, rev, exp, cost, profit: rev-exp-cost};
+  }
+
+  // period toggle
   const toggleRow = el("div",{style:"display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;"});
-  const views = [{key:"day",label:"Tag"},{key:"week",label:"Woche"},{key:"month",label:"Monat"},{key:"year",label:"Jahr"}];
-  views.forEach(v=>{
+  [{key:"day",label:"Tag"},{key:"week",label:"Woche"},{key:"month",label:"Monat"},{key:"year",label:"Jahr"}].forEach(v=>{
     toggleRow.appendChild(el("button",{
       class:`tab ${state.financeView===v.key?"active":""}`,
       style:"background:var(--bg-elevated);",
@@ -2028,170 +2065,159 @@ function renderFinance(){
   });
   section.appendChild(toggleRow);
 
-  const overviewCard = el("div",{class:"card"});
-  let periodLabel, revKey, dateForForms;
-
-  if(state.financeView === "day"){
-    const base = new Date();
-    base.setDate(base.getDate() + state.financeDayOffset);
-    const dateInput = el("input",{type:"date", style:"padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;margin-bottom:16px;"});
-    dateInput.value = toDateKey(base);
-    dateInput.addEventListener("change", ()=>{
-      const diffDays = Math.round((localDateFromKey(dateInput.value) - localDateFromKey(toDateKey(new Date()))) / 86400000);
-      state.financeDayOffset = diffDays;
-      render();
-    });
-    overviewCard.appendChild(dateInput);
-    periodLabel = base.toLocaleDateString("de-DE",{weekday:"long", day:"2-digit", month:"long", year:"numeric"});
-    revKey = toDateKey(base);
-    dateForForms = toDateKey(base);
-  } else if(state.financeView === "week"){
-    overviewCard.appendChild(el("div",{class:"week-nav", style:"margin-bottom:16px;"},[
-      el("button",{onclick:()=>{state.financeWeekOffset--; render();}},"‹"),
-      el("span",{class:"week-label"}, `${weekRangeLabel(state.financeWeekOffset)} · ${weekIdFor(state.financeWeekOffset)}`),
-      el("button",{onclick:()=>{state.financeWeekOffset++; render();}},"›"),
-    ]));
-    periodLabel = `Woche ${weekIdFor(state.financeWeekOffset)}`;
-    revKey = weekIdFor(state.financeWeekOffset);
-    dateForForms = toDateKey(new Date());
-  } else if(state.financeView === "month"){
-    const base = new Date();
-    base.setMonth(base.getMonth() + state.financeMonthOffset, 1);
-    overviewCard.appendChild(el("div",{class:"week-nav", style:"margin-bottom:16px;"},[
-      el("button",{onclick:()=>{state.financeMonthOffset--; render();}},"‹"),
-      el("span",{class:"week-label"}, monthLabel(toMonthKey(base))),
-      el("button",{onclick:()=>{state.financeMonthOffset++; render();}},"›"),
-    ]));
-    periodLabel = monthLabel(toMonthKey(base));
-    revKey = toMonthKey(base);
-    dateForForms = toDateKey(new Date());
+  // period navigation label
+  let periodLabel;
+  if(state.financeView==="day"){
+    const d = new Date(); d.setDate(d.getDate()+currentOffset);
+    periodLabel = d.toLocaleDateString("de-DE",{weekday:"long", day:"2-digit", month:"long", year:"numeric"});
+  } else if(state.financeView==="week"){
+    periodLabel = `Woche ${weekIdFor(currentOffset)} · ${weekRangeLabel(currentOffset)}`;
+  } else if(state.financeView==="month"){
+    const d = new Date(); d.setMonth(d.getMonth()+currentOffset,1);
+    periodLabel = monthLabel(toMonthKey(d));
   } else {
-    const year = new Date().getFullYear() + state.financeYearOffset;
-    overviewCard.appendChild(el("div",{class:"week-nav", style:"margin-bottom:16px;"},[
-      el("button",{onclick:()=>{state.financeYearOffset--; render();}},"‹"),
-      el("span",{class:"week-label"}, String(year)),
-      el("button",{onclick:()=>{state.financeYearOffset++; render();}},"›"),
-    ]));
-    periodLabel = `Jahr ${year}`;
-    revKey = String(year);
-    dateForForms = toDateKey(new Date());
+    periodLabel = String(new Date().getFullYear()+currentOffset);
   }
+  const navRow = el("div",{class:"week-nav", style:"margin-bottom:16px;justify-content:center;"},[
+    el("button",{onclick:()=>{ state[offsetKey]--; render(); }},"‹"),
+    el("span",{class:"week-label", style:"min-width:220px;"}, periodLabel),
+    el("button",{onclick:()=>{ state[offsetKey]++; render(); }},"›"),
+  ]);
+  section.appendChild(navRow);
 
-  const mapsByView = {
-    day: {rev: revMaps.dailyMap, exp: expMaps.dailyMap, cost: costDaily},
-    week: {rev: revMaps.weeklyMap, exp: expMaps.weeklyMap, cost: costWeekly},
-    month: {rev: revMaps.monthlyMap, exp: expMaps.monthlyMap, cost: costMonthly},
-    year: {rev: revMaps.yearlyMap, exp: expMaps.yearlyMap, cost: costYearly},
-  }[state.financeView];
+  const current = profitAt(currentOffset);
+  const previous = profitAt(currentOffset-1);
+  const trendPct = previous.profit !== 0 ? ((current.profit-previous.profit)/Math.abs(previous.profit))*100 : (current.profit!==0 ? 100 : 0);
+  const trendUp = current.profit >= previous.profit;
 
-  const revenue = mapsByView.rev[revKey] || 0;
-  const expensesTotal = mapsByView.exp[revKey] || 0;
-  const personnelCost = (mapsByView.cost[revKey] && mapsByView.cost[revKey].cost) || 0;
-  const profit = revenue - expensesTotal - personnelCost;
-  const costPct = revenue > 0 ? (personnelCost/revenue*100) : 0;
-
-  overviewCard.appendChild(el("div",{style:"text-align:center;margin-bottom:18px;"},[
-    el("div",{style:"font-size:13px;color:var(--text-muted);margin-bottom:6px;"}, periodLabel),
-    el("div",{class:"mono", style:`font-size:34px;font-weight:700;color:${profit>=0?"var(--avocado)":"var(--chili)"};`}, fmtMoney(profit)),
-    el("div",{style:"font-size:11px;color:var(--text-muted);margin-top:4px;"}, "Gewinn (Umsatz − Personalkosten − Ausgaben)")
+  // hero card
+  const heroCard = el("div",{class:"card"});
+  heroCard.appendChild(el("div",{style:"text-align:center;"},[
+    el("div",{style:"font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;"}, "Gewinn"),
+    el("div",{class:"mono", style:`font-size:40px;font-weight:700;color:${current.profit>=0?"var(--avocado)":"var(--chili)"};line-height:1.1;`}, fmtMoney(current.profit)),
+    el("div",{style:"display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;font-size:13px;"},[
+      el("span",{style:`color:${trendUp?"var(--avocado)":"var(--chili)"};font-weight:700;`}, `${trendUp?"▲":"▼"} ${Math.abs(trendPct).toLocaleString("de-DE",{maximumFractionDigits:0})}%`),
+      el("span",{style:"color:var(--text-muted);"}, "ggü. vorherigem Zeitraum")
+    ])
   ]));
+  section.appendChild(heroCard);
 
-  const breakdown = el("div",{style:"display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;"});
-  function statBox(label, value, color, isPct){
-    return el("div",{style:"background:var(--bg-elevated-2);border-radius:10px;padding:12px 14px;text-align:center;"},[
-      el("div",{style:"font-size:11px;color:var(--text-muted);margin-bottom:4px;"}, label),
-      el("div",{class:"mono", style:`font-size:16px;font-weight:700;color:${color};`}, isPct ? (value.toLocaleString("de-DE",{maximumFractionDigits:1})+" %") : fmtMoney(value))
+  // comparison bars: Umsatz vs Personalkosten vs Ausgaben
+  const compareCard = el("div",{class:"card"});
+  compareCard.appendChild(el("h3",{style:"margin:0 0 14px;font-size:14px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;"}, "Verhältnis"));
+  const maxVal = Math.max(current.rev, current.cost, current.exp, 1);
+  function compareBar(label, value, color){
+    const pct = value>0 ? Math.max(3, Math.round((value/maxVal)*100)) : 0;
+    return el("div",{class:"bar-row"},[
+      el("span",{class:"bar-label", style:"min-width:130px;"}, label),
+      el("div",{class:"bar-track"},[
+        value>0 ? el("div",{class:"bar-fill", style:`width:${pct}%;background:${color};`},[
+          el("span",{style:"color:var(--bg);"}, fmtMoney(value))
+        ]) : null
+      ])
     ]);
   }
-  breakdown.appendChild(statBox("Umsatz", revenue, "var(--text)"));
-  breakdown.appendChild(statBox("Personalkosten", personnelCost, "var(--mango)"));
-  breakdown.appendChild(statBox("Ausgaben", expensesTotal, "var(--chili)"));
-  breakdown.appendChild(statBox("Personalkosten-Quote", costPct, "var(--text-muted)", true));
-  overviewCard.appendChild(breakdown);
-  section.appendChild(overviewCard);
-
-  const formsCard = el("div",{class:"card"});
-  formsCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Eintragen"));
-
-  const revDate = el("input",{type:"date", class:"select-emp"});
-  const revAmount = el("input",{type:"number", step:"0.01", min:"0", placeholder:"z. B. 1800", class:"select-emp"});
-  const revBtn = el("button",{class:"btn btn-primary", style:"padding:10px;"}, "+ Umsatz eintragen");
-  revDate.value = dateForForms;
-  revBtn.addEventListener("click", async ()=>{
-    const amount = parseFloat(revAmount.value);
-    if(!revDate.value || isNaN(amount)) return;
-    const newRef = push(ref(db, "revenue"));
-    await set(newRef, {date: revDate.value, amount});
-    revAmount.value = "";
-  });
-  formsCard.appendChild(el("div",{class:"time-form", style:"margin-bottom:14px;"},[
-    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Datum"), revDate]),
-    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Umsatz (€)"), revAmount]),
-    revBtn
-  ]));
-
-  const existingExpCategories = [...new Set(Object.values(state.expenses||{}).map(e=> e.category).filter(Boolean))];
-  const expDate = el("input",{type:"date", class:"select-emp"});
-  const expAmount = el("input",{type:"number", step:"0.01", min:"0", placeholder:"z. B. 250", class:"select-emp"});
-  const expCatSelect = el("select",{class:"select-emp"});
-  existingExpCategories.forEach(c=> expCatSelect.appendChild(el("option",{value:c}, c)));
-  expCatSelect.appendChild(el("option",{value:"__new__"}, "+ Neue Kategorie…"));
-  const expNewCat = el("input",{type:"text", placeholder:"z. B. Wareneinkauf, Miete", class:"select-emp", style:"display:none;"});
-  expCatSelect.addEventListener("change", ()=>{ expNewCat.style.display = expCatSelect.value === "__new__" ? "block" : "none"; });
-  if(existingExpCategories.length === 0) expNewCat.style.display = "block";
-  const expBtn = el("button",{class:"btn btn-primary", style:"padding:10px;"}, "+ Ausgabe eintragen");
-  expDate.value = dateForForms;
-  expBtn.addEventListener("click", async ()=>{
-    const amount = parseFloat(expAmount.value);
-    let category = expCatSelect.value === "__new__" ? expNewCat.value.trim() : expCatSelect.value;
-    if(!category) category = "Sonstiges";
-    if(!expDate.value || isNaN(amount)) return;
-    const newRef = push(ref(db, "expenses"));
-    await set(newRef, {date: expDate.value, amount, category});
-    expAmount.value = ""; expNewCat.value = "";
-  });
-  formsCard.appendChild(el("div",{class:"time-form"},[
-    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Datum"), expDate]),
-    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Ausgabe (€)"), expAmount]),
-    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), expCatSelect]),
-    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Neue Kategorie"), expNewCat]),
-    expBtn
-  ]));
-  section.appendChild(formsCard);
-
-  const recentRev = Object.entries(state.revenue||{}).sort((a,b)=> b[1].date.localeCompare(a[1].date)).slice(0,10);
-  const recentExp = Object.entries(state.expenses||{}).sort((a,b)=> b[1].date.localeCompare(a[1].date)).slice(0,10);
-
-  if(recentRev.length > 0){
-    const revListCard = el("div",{class:"card"});
-    revListCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Letzte Umsatz-Einträge"));
-    recentRev.forEach(([id, r])=>{
-      const dt = new Date(r.date);
-      revListCard.appendChild(el("div",{class:"time-row"},[
-        el("span",{}, dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit", year:"numeric"})),
-        el("div",{style:"display:flex;align-items:center;gap:10px;"},[
-          el("span",{class:"hrs"}, fmtMoney(r.amount)),
-          el("button",{class:"del-btn", onclick:()=> remove(ref(db, `revenue/${id}`))},"✕")
-        ])
-      ]));
-    });
-    section.appendChild(revListCard);
+  compareCard.appendChild(compareBar("Umsatz", current.rev, "var(--avocado)"));
+  compareCard.appendChild(compareBar("Personalkosten", current.cost, "var(--mango)"));
+  compareCard.appendChild(compareBar("Ausgaben", current.exp, "var(--chili)"));
+  if(current.rev > 0){
+    compareCard.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-top:6px;text-align:right;"}, `Personalkosten-Quote: ${(current.cost/current.rev*100).toLocaleString("de-DE",{maximumFractionDigits:1})} %`));
   }
+  section.appendChild(compareCard);
 
-  if(recentExp.length > 0){
-    const expListCard = el("div",{class:"card"});
-    expListCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Letzte Ausgaben"));
-    recentExp.forEach(([id, r])=>{
-      const dt = new Date(r.date);
-      expListCard.appendChild(el("div",{class:"time-row"},[
-        el("span",{}, `${dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit", year:"numeric"})} · ${r.category||"Sonstiges"}`),
+  // trend chart — last 6 periods
+  const trendCard = el("div",{class:"card"});
+  trendCard.appendChild(el("h3",{style:"margin:0 0 14px;font-size:14px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;"}, "Verlauf (letzte 6)"));
+  const periods = periodKeysForView(state.financeView, currentOffset, 6).map(p=>{
+    const rev = mapsByView.rev[p.key] || 0;
+    const exp = mapsByView.exp[p.key] || 0;
+    const cost = (mapsByView.cost[p.key] && mapsByView.cost[p.key].cost) || 0;
+    return {...p, profit: rev-exp-cost};
+  });
+  const maxAbsProfit = Math.max(1, ...periods.map(p=> Math.abs(p.profit)));
+  const trendRow = el("div",{style:"display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:10px;"});
+  periods.forEach(p=>{
+    const isCurrent = p.key === current.key;
+    const barHeightPct = Math.max(4, Math.round((Math.abs(p.profit)/maxAbsProfit)*100));
+    const col = el("div",{style:"flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;"});
+    col.appendChild(el("div",{class:"mono", style:"font-size:9px;color:var(--text-muted);white-space:nowrap;"}, fmtMoney(p.profit)));
+    col.appendChild(el("div",{style:`width:100%;height:${barHeightPct}%;border-radius:5px 5px 0 0;background:${p.profit>=0?"var(--avocado)":"var(--chili)"};opacity:${isCurrent?1:.5};`}));
+    col.appendChild(el("div",{style:`font-size:10px;color:${isCurrent?"var(--mango)":"var(--text-muted)"};font-weight:${isCurrent?700:400};`}, p.label));
+    trendRow.appendChild(col);
+  });
+  trendCard.appendChild(trendRow);
+  section.appendChild(trendCard);
+
+  // add entry (collapsed by default)
+  const addCard = el("div",{class:"card"});
+  const addToggle = el("button",{class:"btn btn-primary", style:"width:auto;padding:10px 20px;"}, "+ Eintrag hinzufügen");
+  const addBody = el("div",{style:"display:none;margin-top:16px;"});
+  let addOpen = false;
+  addToggle.addEventListener("click", ()=>{ addOpen=!addOpen; addBody.style.display = addOpen?"block":"none"; });
+  addCard.appendChild(addToggle);
+  addCard.appendChild(addBody);
+
+  const typeSelect = el("select",{class:"select-emp", style:"width:100%;margin-bottom:10px;"},[
+    el("option",{value:"revenue"}, "Umsatz"),
+    el("option",{value:"expense"}, "Ausgabe"),
+  ]);
+  const entryDate = el("input",{type:"date", class:"select-emp", style:"width:100%;"});
+  entryDate.value = toDateKey(new Date());
+  const entryAmount = el("input",{type:"number", step:"0.01", min:"0", placeholder:"Betrag in €", class:"select-emp", style:"width:100%;"});
+  const existingExpCategories = [...new Set(Object.values(state.expenses||{}).map(e=> e.category).filter(Boolean))];
+  const catWrap = el("div",{style:"display:none;"});
+  const catSelect = el("select",{class:"select-emp", style:"width:100%;"});
+  existingExpCategories.forEach(c=> catSelect.appendChild(el("option",{value:c}, c)));
+  catSelect.appendChild(el("option",{value:"__new__"}, "+ Neue Kategorie…"));
+  const newCatInput = el("input",{type:"text", placeholder:"z. B. Wareneinkauf, Miete", class:"select-emp", style:"width:100%;margin-top:8px;display:none;"});
+  catSelect.addEventListener("change", ()=>{ newCatInput.style.display = catSelect.value==="__new__" ? "block" : "none"; });
+  catWrap.appendChild(catSelect);
+  catWrap.appendChild(newCatInput);
+  typeSelect.addEventListener("change", ()=>{ catWrap.style.display = typeSelect.value==="expense" ? "block" : "none"; });
+
+  const saveEntryBtn = el("button",{class:"btn btn-primary", style:"margin-top:12px;"}, "Speichern");
+  saveEntryBtn.addEventListener("click", async ()=>{
+    const amount = parseFloat(entryAmount.value);
+    if(!entryDate.value || isNaN(amount)) return;
+    if(typeSelect.value === "revenue"){
+      await set(push(ref(db, "revenue")), {date: entryDate.value, amount});
+    } else {
+      let category = catSelect.value === "__new__" ? newCatInput.value.trim() : catSelect.value;
+      if(!category) category = "Sonstiges";
+      await set(push(ref(db, "expenses")), {date: entryDate.value, amount, category});
+    }
+    entryAmount.value = ""; newCatInput.value = "";
+    addOpen = false; addBody.style.display = "none";
+  });
+
+  addBody.appendChild(el("div",{class:"field"},[el("label",{},"Art"), typeSelect]));
+  addBody.appendChild(el("div",{class:"field"},[el("label",{},"Datum"), entryDate]));
+  addBody.appendChild(el("div",{class:"field"},[el("label",{},"Betrag (€)"), entryAmount]));
+  addBody.appendChild(el("div",{class:"field"},[el("label",{},"Kategorie"), catWrap]));
+  addBody.appendChild(saveEntryBtn);
+  section.appendChild(addCard);
+
+  // combined ledger
+  const ledgerEntries = [
+    ...Object.entries(state.revenue||{}).map(([id,r])=> ({id, type:"revenue", date:r.date, amount:r.amount})),
+    ...Object.entries(state.expenses||{}).map(([id,r])=> ({id, type:"expense", date:r.date, amount:r.amount, category:r.category})),
+  ].sort((a,b)=> b.date.localeCompare(a.date)).slice(0,20);
+
+  if(ledgerEntries.length > 0){
+    const ledgerCard = el("div",{class:"card"});
+    ledgerCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Kontobuch"));
+    ledgerEntries.forEach(e=>{
+      const dt = new Date(e.date);
+      const isRev = e.type === "revenue";
+      ledgerCard.appendChild(el("div",{class:"time-row"},[
+        el("span",{}, `${dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit", year:"numeric"})}${isRev?"":" · "+(e.category||"Sonstiges")}`),
         el("div",{style:"display:flex;align-items:center;gap:10px;"},[
-          el("span",{class:"hrs", style:"color:var(--chili);"}, fmtMoney(r.amount)),
-          el("button",{class:"del-btn", onclick:()=> remove(ref(db, `expenses/${id}`))},"✕")
+          el("span",{class:"mono", style:`font-weight:700;color:${isRev?"var(--avocado)":"var(--chili)"};`}, `${isRev?"+":"−"}${fmtMoney(e.amount)}`),
+          el("button",{class:"del-btn", onclick:()=> remove(ref(db, `${isRev?"revenue":"expenses"}/${e.id}`))},"✕")
         ])
       ]));
     });
-    section.appendChild(expListCard);
+    section.appendChild(ledgerCard);
   }
 
   return section;
