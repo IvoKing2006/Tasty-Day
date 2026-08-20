@@ -1608,6 +1608,10 @@ function renderDashboard(){
   const pendingSwaps = Object.values(state.swapRequests||{}).filter(r=> r.status==="pending").length;
   const activeInv = Object.entries(state.inventory||{}).filter(([id,it])=> !it.archived);
   const criticalInv = activeInv.filter(([id,it])=> stockStatus(it.ist||0, it.soll||0)==="red");
+  const expiringSoonInv = activeInv.filter(([id,it])=>{
+    const exp = earliestBatchExpiry(it);
+    return exp && daysUntil(exp) <= EXPIRY_WARN_DAYS;
+  });
 
   const todayKey = todayDayKey();
   const todaySchedule = (state.weekData.schedule && state.weekData.schedule[todayKey]) || {};
@@ -1638,6 +1642,12 @@ function renderDashboard(){
   tile2.appendChild(el("div",{class:"dash-value"}, String(criticalInv.length)));
   tile2.appendChild(el("div",{class:"dash-label"}, "Kritische Zutaten"));
   grid.appendChild(tile2);
+
+  const tile2b = el("div",{class:`dash-tile ${expiringSoonInv.length>0?"warn":"good"}`, onclick:()=>{ state.tab="inventory"; render(); }});
+  tile2b.appendChild(el("span",{class:"dash-icon"},"⏰"));
+  tile2b.appendChild(el("div",{class:"dash-value"}, String(expiringSoonInv.length)));
+  tile2b.appendChild(el("div",{class:"dash-label"}, `Läuft in ${EXPIRY_WARN_DAYS} Tagen ab`));
+  grid.appendChild(tile2b);
 
   const tile3 = el("div",{class:`dash-tile ${weekProfit>=0?"good":"warn"}`, onclick:()=>{ state.tab="finance"; render(); }});
   tile3.appendChild(el("span",{class:"dash-icon"},"💶"));
@@ -2521,8 +2531,9 @@ async function consumeInventoryBatches(id, qty){
       updates[`inventory/${id}/batches/${bid}/qty`] = newQty;
     }
   }
-  const actuallyConsumed = qty - remaining;
-  const newIst = Math.max(0, prevIst - actuallyConsumed);
+  // Ist-Menge sinkt immer um die volle angeforderte Menge, unabhängig davon,
+  // ob genug erfasste Chargen dafür vorhanden sind (nicht jede Ware hat ein MHD erfasst).
+  const newIst = Math.max(0, prevIst - qty);
   updates[`inventory/${id}/ist`] = newIst;
   await update(ref(db), updates);
   logInventoryConsumption(id, prevIst, newIst);
@@ -2618,7 +2629,7 @@ function renderInventory(){
     .sort((a,b)=> a.expiry.localeCompare(b.expiry));
   if(expiringSoon.length > 0){
     const expCard = el("div",{class:"card"});
-    expCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;color:var(--mango);"}, "⏰ Läuft bald ab"));
+    expCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;color:var(--mango);"}, `⏰ Läuft bald ab (${expiringSoon.length})`));
     expiringSoon.forEach(({id, it, expiry})=>{
       const days = daysUntil(expiry);
       const batchQty = Object.values(it.batches||{}).filter(b=>b.expiry===expiry).reduce((s,b)=>s+b.qty,0);
