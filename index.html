@@ -2145,10 +2145,24 @@ function renderFinance(){
   ]));
   section.appendChild(heroCard);
 
-  // comparison bars: Umsatz vs Personalkosten vs Ausgaben
+  // comparison bars: Umsatz vs Personalkosten vs Ausgaben nach Kategorie
+  function expensesByCategoryForKey(view, key){
+    const map = {};
+    Object.values(state.expenses||{}).forEach(e=>{
+      let k;
+      if(view==="day") k = e.date;
+      else if(view==="week") k = isoWeekKeyFromDate(e.date);
+      else if(view==="month") k = e.date.slice(0,7);
+      else k = e.date.slice(0,4);
+      if(k === key) map[e.category||"Sonstiges"] = (map[e.category||"Sonstiges"]||0) + e.amount;
+    });
+    return map;
+  }
+  const expByCategory = Object.entries(expensesByCategoryForKey(state.financeView, current.key)).sort((a,b)=> b[1]-a[1]);
+
   const compareCard = el("div",{class:"card"});
   compareCard.appendChild(el("h3",{style:"margin:0 0 14px;font-size:14px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;"}, "Verhältnis"));
-  const maxVal = Math.max(current.rev, current.cost, current.exp, 1);
+  const maxVal = Math.max(current.rev, current.cost, ...expByCategory.map(([c,v])=>v), 1);
   function compareBar(label, value, color){
     const pct = value>0 ? Math.max(3, Math.round((value/maxVal)*100)) : 0;
     return el("div",{class:"bar-row"},[
@@ -2162,7 +2176,13 @@ function renderFinance(){
   }
   compareCard.appendChild(compareBar("Umsatz", current.rev, "var(--avocado)"));
   compareCard.appendChild(compareBar("Personalkosten", current.cost, "var(--mango)"));
-  compareCard.appendChild(compareBar("Ausgaben", current.exp, "var(--chili)"));
+  if(expByCategory.length === 0){
+    compareCard.appendChild(compareBar("Ausgaben", 0, "var(--chili)"));
+  } else {
+    expByCategory.forEach(([cat, val])=>{
+      compareCard.appendChild(compareBar(cat, val, "var(--chili)"));
+    });
+  }
   if(current.rev > 0){
     compareCard.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-top:6px;text-align:right;"}, `Personalkosten-Quote: ${(current.cost/current.rev*100).toLocaleString("de-DE",{maximumFractionDigits:1})} %`));
   }
