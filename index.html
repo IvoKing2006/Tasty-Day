@@ -1261,8 +1261,14 @@ function openAssignForm(group, dayKey, shift, empIds, wid){
       alert("Bitte Von- und Bis-Uhrzeit eintragen.");
       return;
     }
+    const chosenId = empSelect.value;
+    const availEntry = state.weekData.availability && state.weekData.availability[chosenId] && state.weekData.availability[chosenId][dayKey] && state.weekData.availability[chosenId][dayKey][shift.key];
+    if(availEntry && availEntry.note){
+      const proceed = confirm(`${state.employees[chosenId].name} hat für diese Schicht eine Notiz hinterlassen:\n\n„${availEntry.note}“\n\nTrotzdem einteilen?`);
+      if(!proceed) return;
+    }
     const newRef = push(ref(db, `weeks/${wid}/schedule/${dayKey}/${shift.key}`));
-    await set(newRef, {employeeId: empSelect.value, start: startInput.value, end: endInput.value});
+    await set(newRef, {employeeId: chosenId, start: startInput.value, end: endInput.value});
     form.remove();
   });
   cancelBtn.addEventListener("click", ()=> form.remove());
