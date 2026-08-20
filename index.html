@@ -2491,12 +2491,14 @@ function renderInventory(){
     ])
   ]));
 
+  const STORAGE_AREAS = ["Lager hinten", "Lager vorne", "Küche"];
+
   const allItems = Object.entries(state.inventory || {}).map(([id,it])=> [id, {...it, status: stockStatus(it.ist||0, it.soll||0)}]);
   const items = allItems.filter(([id,it])=> !it.archived);
   const archivedItems = allItems.filter(([id,it])=> it.archived);
 
   // top action row: search, scan, print labels
-  const actionRow = el("div",{style:"display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"});
+  const actionRow = el("div",{style:"display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;"});
   const searchInput = el("input",{type:"text", placeholder:"🔍 Zutat suchen…", style:"flex:1;min-width:180px;padding:11px 14px;border-radius:9px;border:1px solid var(--line);background:var(--bg-elevated);color:var(--text);font-size:14px;"});
   const scanBtn = el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 18px;"}, "📷 Scannen");
   const printBtn = el("button",{class:"btn-cancel", style:"width:auto;padding:11px 18px;"}, "🖨️ Etiketten");
@@ -2506,6 +2508,24 @@ function renderInventory(){
   actionRow.appendChild(scanBtn);
   actionRow.appendChild(printBtn);
   section.appendChild(actionRow);
+
+  // area filter
+  let activeArea = "Alle";
+  const areaFilterRow = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"});
+  ["Alle", ...STORAGE_AREAS].forEach(area=>{
+    const btn = el("button",{
+      class:`tab ${area==="Alle"?"active":""}`,
+      style:"background:var(--bg-elevated);",
+      onclick:()=>{
+        activeArea = area;
+        areaFilterRow.querySelectorAll("button").forEach(b=> b.classList.remove("active"));
+        btn.classList.add("active");
+        renderList(searchInput.value);
+      }
+    }, area);
+    areaFilterRow.appendChild(btn);
+  });
+  section.appendChild(areaFilterRow);
 
   // total value summary
   const totalValue = items.reduce((s,[id,it])=> s + ((it.price||0) * (it.ist||0)), 0);
@@ -2543,6 +2563,9 @@ function renderInventory(){
   const packSizeInput = el("input",{type:"number", step:"1", min:"0", placeholder:"z. B. 24 (leer = keine Packs)", class:"select-emp", style:"width:100%;"});
   const priceInput = el("input",{type:"number", step:"0.01", min:"0", placeholder:"z. B. 0,45 (optional)", class:"select-emp", style:"width:100%;"});
   const supplierInput = el("input",{type:"text", placeholder:"z. B. Metro (optional)", class:"select-emp", style:"width:100%;"});
+  const areaSelect = el("select",{class:"select-emp", style:"width:100%;"});
+  STORAGE_AREAS.forEach(a=> areaSelect.appendChild(el("option",{value:a}, a)));
+  const shelfInput = el("input",{type:"text", placeholder:"z. B. Regal 3, Kühlschrank links (optional)", class:"select-emp", style:"width:100%;"});
   const catSelect = el("select",{class:"select-emp", style:"width:100%;"});
   existingCategories.forEach(c=> catSelect.appendChild(el("option",{value:c}, c)));
   catSelect.appendChild(el("option",{value:"__new__"}, "+ Neue Kategorie…"));
@@ -2558,16 +2581,17 @@ function renderInventory(){
     if(!category) category = "Sonstiges";
     if(!name) return;
     const soll = parseFloat(sollInput.value) || 0;
-    const record = {name, category, unit: unitInput.value.trim() || "Stück", soll, ist: soll};
+    const record = {name, category, unit: unitInput.value.trim() || "Stück", soll, ist: soll, area: areaSelect.value};
     const packSize = parseFloat(packSizeInput.value);
     if(packSize > 0) record.packSize = packSize;
     const price = parseFloat(priceInput.value);
     if(price > 0) record.price = price;
     if(supplierInput.value.trim()) record.supplier = supplierInput.value.trim();
+    if(shelfInput.value.trim()) record.shelf = shelfInput.value.trim();
     const newRef = push(ref(db, "inventory"));
     await set(newRef, record);
     nameInput.value = ""; unitInput.value = ""; sollInput.value = ""; newCatInput.value = "";
-    packSizeInput.value = ""; priceInput.value = ""; supplierInput.value = "";
+    packSizeInput.value = ""; priceInput.value = ""; supplierInput.value = ""; shelfInput.value = "";
   });
   addCard.appendChild(el("div",{class:"time-form"},[
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Name"), nameInput]),
@@ -2576,6 +2600,8 @@ function renderInventory(){
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Stück pro Packung"), packSizeInput]),
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Preis pro Einheit (€)"), priceInput]),
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lieferant"), supplierInput]),
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lagerbereich"), areaSelect]),
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Regal / Kühlschrank"), shelfInput]),
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), catSelect]),
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Neue Kategorie"), newCatInput]),
     addBtn
@@ -2594,7 +2620,10 @@ function renderInventory(){
 
   function renderList(filterText){
     listWrap.innerHTML = "";
-    const filtered = items.filter(([id,it])=> it.name.toLowerCase().includes(filterText.toLowerCase()));
+    const filtered = items.filter(([id,it])=>
+      it.name.toLowerCase().includes(filterText.toLowerCase()) &&
+      (activeArea === "Alle" || it.area === activeArea)
+    );
     if(filtered.length === 0){
       listWrap.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},"🔍"),"Keine Zutat gefunden."]));
       return;
@@ -2628,6 +2657,7 @@ function renderInventory(){
         const nameCol = el("div",{style:"flex:1;min-width:100px;"});
         nameCol.appendChild(el("div",{class:"stock-name"}, it.name));
         const subBits = [];
+        if(it.area) subBits.push(it.shelf ? `${it.area} · ${it.shelf}` : it.area);
         if(it.supplier) subBits.push(it.supplier);
         if(it.price) subBits.push(`${fmtMoney(it.price)}/${it.unit||"Stk"}`);
         if(subBits.length) nameCol.appendChild(el("div",{style:"font-size:10px;color:var(--text-muted);"}, subBits.join(" · ")));
@@ -2737,6 +2767,10 @@ function renderInventory(){
             const ePack = el("input",{type:"number", step:"1", min:"0", value:it.packSize||"", placeholder:"leer = keine Packs", class:"select-emp", style:"width:100%;"});
             const ePrice = el("input",{type:"number", step:"0.01", min:"0", value:it.price||"", placeholder:"optional", class:"select-emp", style:"width:100%;"});
             const eSupplier = el("input",{type:"text", value:it.supplier||"", placeholder:"optional", class:"select-emp", style:"width:100%;"});
+            const eArea = el("select",{class:"select-emp", style:"width:100%;"});
+            STORAGE_AREAS.forEach(a=> eArea.appendChild(el("option",{value:a}, a)));
+            eArea.value = it.area || STORAGE_AREAS[0];
+            const eShelf = el("input",{type:"text", value:it.shelf||"", placeholder:"z. B. Regal 3 (optional)", class:"select-emp", style:"width:100%;"});
             const eCat = el("input",{type:"text", value:it.category||"", class:"select-emp", style:"width:100%;"});
             const saveBtn = el("button",{class:"btn btn-primary", style:"padding:10px;"}, "Speichern");
             saveBtn.addEventListener("click", ()=>{
@@ -2745,12 +2779,14 @@ function renderInventory(){
                 unit: eUnit.value.trim() || "Stück",
                 soll: parseFloat(eSoll.value) || 0,
                 category: eCat.value.trim() || "Sonstiges",
+                area: eArea.value,
               };
               const packVal = parseFloat(ePack.value);
               updates.packSize = packVal > 0 ? packVal : null;
               const priceVal = parseFloat(ePrice.value);
               updates.price = priceVal > 0 ? priceVal : null;
               updates.supplier = eSupplier.value.trim() || null;
+              updates.shelf = eShelf.value.trim() || null;
               update(ref(db, `inventory/${id}`), updates);
               editOpen = false;
               editBox.style.display = "none";
@@ -2762,6 +2798,8 @@ function renderInventory(){
               el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Stück pro Packung"), ePack]),
               el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Preis pro Einheit (€)"), ePrice]),
               el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lieferant"), eSupplier]),
+              el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lagerbereich"), eArea]),
+              el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Regal / Kühlschrank"), eShelf]),
               el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), eCat]),
               saveBtn
             ]));
