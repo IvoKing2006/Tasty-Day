@@ -1791,12 +1791,15 @@ function renderTeam(){
     resetButton("Nur Ankündigungen löschen", ()=> remove(ref(db, "announcements"))),
     resetButton("Nur Tauschanfragen löschen", ()=> remove(ref(db, "swapRequests"))),
     resetButton("Nur Passwort-Anfragen löschen", ()=> remove(ref(db, "passwordResets"))),
+    resetButton("Nur Lagerbestand löschen", ()=>{ remove(ref(db, "inventory")); remove(ref(db, "inventoryLog")); }),
+    resetButton("Nur Umsatz löschen", ()=> remove(ref(db, "revenue"))),
+    resetButton("Nur Ausgaben löschen", ()=> remove(ref(db, "expenses"))),
   ]);
   resetCard.appendChild(selectiveRow);
 
   const fullResetBtn = el("button",{class:"btn-danger", style:"width:auto;padding:11px 20px;font-size:13px;border-radius:9px;font-weight:700;background:var(--chili);color:#fff;"}, "🗑️ Komplett alles zurücksetzen (inkl. Mitarbeiter-Accounts)");
   fullResetBtn.addEventListener("click", ()=>{
-    const typed = prompt('Das löscht WIRKLICH ALLES (alle Accounts, Wochenpläne, Zeiten, Auszahlungen). Tippe "RESET" um zu bestätigen:');
+    const typed = prompt('Das löscht WIRKLICH ALLES (alle Accounts, Wochenpläne, Zeiten, Auszahlungen, Lagerbestand, Finanzen). Tippe "RESET" um zu bestätigen:');
     if(typed === "RESET"){
       remove(ref(db, "employees"));
       remove(ref(db, "weeks"));
@@ -1805,6 +1808,10 @@ function renderTeam(){
       remove(ref(db, "announcements"));
       remove(ref(db, "swapRequests"));
       remove(ref(db, "passwordResets"));
+      remove(ref(db, "inventory"));
+      remove(ref(db, "inventoryLog"));
+      remove(ref(db, "revenue"));
+      remove(ref(db, "expenses"));
       logout();
     }
   });
