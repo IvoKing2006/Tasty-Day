@@ -2288,7 +2288,9 @@ function renderInventory(){
     ])
   ]));
 
-  const items = Object.entries(state.inventory || {}).map(([id,it])=> [id, {...it, status: stockStatus(it.ist||0, it.soll||0)}]);
+  const allItems = Object.entries(state.inventory || {}).map(([id,it])=> [id, {...it, status: stockStatus(it.ist||0, it.soll||0)}]);
+  const items = allItems.filter(([id,it])=> !it.archived);
+  const archivedItems = allItems.filter(([id,it])=> it.archived);
 
   // top action row: search, scan, print labels
   const actionRow = el("div",{style:"display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"});
@@ -2467,23 +2469,20 @@ function renderInventory(){
           row.appendChild(packBtn);
         }
 
-        const sollEditBtn = el("button",{class:"link-btn", style:"font-size:11px;"}, "Soll ändern");
-        sollEditBtn.addEventListener("click", ()=>{
-          const newSoll = prompt(`Neue Soll-Menge für ${it.name} (aktuell ${it.soll||0} ${it.unit||""}):`, it.soll||0);
-          if(newSoll !== null){
-            const v = parseFloat(newSoll);
-            if(!isNaN(v) && v >= 0) update(ref(db, `inventory/${id}`), {soll: v});
-          }
-        });
-        row.appendChild(sollEditBtn);
+        const editBtn = el("button",{class:"link-btn", style:"font-size:11px;"}, "✎ Bearbeiten");
+        row.appendChild(editBtn);
 
         const logEntries = Object.values(state.inventoryLog[id] || {});
         const consumeBtn = el("button",{class:"link-btn", style:"font-size:11px;"}, "📊 Verbrauch");
         row.appendChild(consumeBtn);
 
-        row.appendChild(el("button",{class:"del-btn", onclick:()=>{
-          if(confirm(`"${it.name}" wirklich löschen?`)) remove(ref(db, `inventory/${id}`));
-        }},"✕"));
+        const archiveBtn = el("button",{class:"link-btn", style:"font-size:11px;color:var(--text-muted);"}, "📦 Archivieren");
+        archiveBtn.addEventListener("click", ()=>{
+          if(confirm(`"${it.name}" archivieren? Sie verschwindet aus der aktiven Liste, bleibt aber inkl. Verbrauchshistorie erhalten und kann jederzeit reaktiviert werden.`)){
+            update(ref(db, `inventory/${id}`), {archived:true});
+          }
+        });
+        row.appendChild(archiveBtn);
         list.appendChild(row);
 
         const chartBox = el("div",{style:"display:none;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:-2px 0 8px;"});
@@ -2521,6 +2520,52 @@ function renderInventory(){
           chartBox.style.display = chartOpen ? "block" : "none";
         });
         list.appendChild(chartBox);
+
+        // edit form
+        const editBox = el("div",{style:"display:none;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px;margin:-2px 0 8px;"});
+        let editOpen = false;
+        editBtn.addEventListener("click", ()=>{
+          editOpen = !editOpen;
+          if(editOpen){
+            editBox.innerHTML = "";
+            const eName = el("input",{type:"text", value:it.name, class:"select-emp", style:"width:100%;"});
+            const eUnit = el("input",{type:"text", value:it.unit||"", class:"select-emp", style:"width:100%;"});
+            const eSoll = el("input",{type:"number", step:"0.1", min:"0", value:it.soll||0, class:"select-emp", style:"width:100%;"});
+            const ePack = el("input",{type:"number", step:"1", min:"0", value:it.packSize||"", placeholder:"leer = keine Packs", class:"select-emp", style:"width:100%;"});
+            const ePrice = el("input",{type:"number", step:"0.01", min:"0", value:it.price||"", placeholder:"optional", class:"select-emp", style:"width:100%;"});
+            const eSupplier = el("input",{type:"text", value:it.supplier||"", placeholder:"optional", class:"select-emp", style:"width:100%;"});
+            const eCat = el("input",{type:"text", value:it.category||"", class:"select-emp", style:"width:100%;"});
+            const saveBtn = el("button",{class:"btn btn-primary", style:"padding:10px;"}, "Speichern");
+            saveBtn.addEventListener("click", ()=>{
+              const updates = {
+                name: eName.value.trim() || it.name,
+                unit: eUnit.value.trim() || "Stück",
+                soll: parseFloat(eSoll.value) || 0,
+                category: eCat.value.trim() || "Sonstiges",
+              };
+              const packVal = parseFloat(ePack.value);
+              updates.packSize = packVal > 0 ? packVal : null;
+              const priceVal = parseFloat(ePrice.value);
+              updates.price = priceVal > 0 ? priceVal : null;
+              updates.supplier = eSupplier.value.trim() || null;
+              update(ref(db, `inventory/${id}`), updates);
+              editOpen = false;
+              editBox.style.display = "none";
+            });
+            editBox.appendChild(el("div",{class:"time-form"},[
+              el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Name"), eName]),
+              el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Einheit"), eUnit]),
+              el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Soll-Menge"), eSoll]),
+              el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Stück pro Packung"), ePack]),
+              el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Preis pro Einheit (€)"), ePrice]),
+              el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lieferant"), eSupplier]),
+              el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), eCat]),
+              saveBtn
+            ]));
+          }
+          editBox.style.display = editOpen ? "block" : "none";
+        });
+        list.appendChild(editBox);
       });
       details.appendChild(list);
       listWrap.appendChild(details);
@@ -2529,6 +2574,34 @@ function renderInventory(){
 
   renderList(searchVal0);
   searchInput.addEventListener("input", ()=> renderList(searchInput.value));
+
+  if(archivedItems.length > 0){
+    const archDetails = el("details",{class:"month-group card", style:"padding:16px 20px;"});
+    const archArrow = el("span",{style:"color:var(--text-muted);margin-right:8px;font-size:11px;"}, "▸");
+    archDetails.addEventListener("toggle", ()=>{ archArrow.textContent = archDetails.open ? "▾" : "▸"; });
+    archDetails.appendChild(el("summary",{},[
+      el("div",{style:"display:flex;align-items:center;"},[archArrow, el("span",{}, "📦 Archivierte Zutaten")]),
+      el("span",{class:"mono", style:"font-size:12px;color:var(--text-muted);font-weight:400;"}, `${archivedItems.length}`)
+    ]));
+    const archList = el("div",{style:"padding:10px 0 2px;"});
+    archivedItems.sort((a,b)=> a[1].name.localeCompare(b[1].name)).forEach(([id, it])=>{
+      const row = el("div",{class:"stock-row"});
+      row.appendChild(el("span",{class:"stock-name", style:"opacity:.6;"}, `${it.name} — ${it.category||""}`));
+      const restoreBtn = el("button",{class:"link-btn", style:"font-size:11px;"}, "↩️ Reaktivieren");
+      restoreBtn.addEventListener("click", ()=> update(ref(db, `inventory/${id}`), {archived:false}));
+      row.appendChild(restoreBtn);
+      const deleteForeverBtn = el("button",{class:"del-btn", onclick:()=>{
+        if(confirm(`"${it.name}" endgültig löschen? Das kann nicht rückgängig gemacht werden.`)){
+          remove(ref(db, `inventory/${id}`));
+          remove(ref(db, `inventoryLog/${id}`));
+        }
+      }},"✕");
+      row.appendChild(deleteForeverBtn);
+      archList.appendChild(row);
+    });
+    archDetails.appendChild(archList);
+    section.appendChild(archDetails);
+  }
 
   return section;
 }
