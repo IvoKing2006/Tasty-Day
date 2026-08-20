@@ -417,6 +417,7 @@ let state = {
   financeMonthOffset: 0,
   financeYearOffset: 0,
   showPasswordChange: false,
+  showAvailInline: false,
   pwChangeError: "",
   pwChangeSuccess: "",
   payouts: {},
@@ -1007,10 +1008,16 @@ function renderAvailability(chefView){
     const grid = el("div",{class:"avail-grid"});
     DAYS.forEach((d,i)=>{
       const dayShifts = shiftsForAvailability(d.key);
-      const pills = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"});
+      const pills = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;flex-direction:column;align-items:flex-end;"});
       dayShifts.forEach(shift=>{
         const available = isAvailableOn(state.chefAvailEmpId, d.key, shift.key);
-        pills.appendChild(el("span",{class:`avail-pill ${available?"yes":"no"}`}, `${shift.label}: ${available ? "Kann" : "Kann nicht"}`));
+        const entry = state.weekData.availability && state.weekData.availability[state.chefAvailEmpId] && state.weekData.availability[state.chefAvailEmpId][d.key] && state.weekData.availability[state.chefAvailEmpId][d.key][shift.key];
+        const row = el("div",{style:"display:flex;align-items:center;gap:8px;"});
+        row.appendChild(el("span",{class:`avail-pill ${available?"yes":"no"}`}, `${shift.label}: ${available ? "Kann" : "Kann nicht"}`));
+        if(entry && entry.note){
+          row.appendChild(el("span",{style:"font-size:11px;color:var(--text-muted);font-style:italic;"}, `„${entry.note}“`));
+        }
+        pills.appendChild(row);
       });
       const row = el("div",{class:"avail-day"},[
         el("div",{},[
@@ -1082,6 +1089,17 @@ function renderSchedule(editable){
   ]);
   section.appendChild(head);
 
+  if(editable){
+    const toggleRow = el("div",{style:"margin-bottom:16px;"});
+    const toggleBtn = el("button",{
+      class:`tab ${state.showAvailInline?"active":""}`,
+      style:"background:var(--bg-elevated);",
+      onclick:()=>{ state.showAvailInline = !state.showAvailInline; render(); }
+    }, state.showAvailInline ? "👁️ Verfügbarkeit ausblenden" : "👁️ Verfügbarkeit einblenden");
+    toggleRow.appendChild(toggleBtn);
+    section.appendChild(toggleRow);
+  }
+
   const dates = datesForWeek(state.weekOffset);
   const wid = weekIdFor(state.weekOffset);
   const allEmpIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
@@ -1125,6 +1143,19 @@ function buildScheduleBoard(editable, empIds, dates, wid, groupKey){
         }},"✕ entfernen") : null
       ]);
       group.appendChild(labelRow);
+
+      if(editable && state.showAvailInline && empIds.length > 0){
+        const availableNames = empIds.filter(id=> isAvailableOn(id, d.key, shift.key)).map(id=> state.employees[id].name);
+        const availRow = el("div",{style:"display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;"});
+        if(availableNames.length === 0){
+          availRow.appendChild(el("span",{style:"font-size:10px;color:var(--text-muted);font-style:italic;"}, "Niemand als „Kann“ eingetragen"));
+        } else {
+          availableNames.forEach(name=>{
+            availRow.appendChild(el("span",{style:"font-size:10px;font-weight:700;background:rgba(124,154,93,.18);color:var(--avocado);border:1px solid var(--avocado);border-radius:12px;padding:2px 8px;"}, `✓ ${name}`));
+          });
+        }
+        group.appendChild(availRow);
+      }
       const ticketsWrap = el("div",{class:"board-tickets"});
       const allAssignments = (state.weekData.schedule && state.weekData.schedule[d.key] && state.weekData.schedule[d.key][shift.key]) || {};
       const assignEntries = Object.entries(allAssignments).filter(([assignId, s])=> empIds.includes(s.employeeId));
