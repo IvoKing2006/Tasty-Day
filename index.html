@@ -2889,29 +2889,68 @@ function openInventoryScanner(){
 // ---------- printable inventory labels ----------
 function openInventoryLabelsOverlay(items){
   const overlay = el("div",{style:"position:fixed;inset:0;background:var(--bg);z-index:100;overflow-y:auto;padding:24px;"});
-  const bar = el("div",{class:"no-print", style:"display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"},[
+  const bar = el("div",{class:"no-print", style:"display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px;"},[
     el("h2",{class:"section-title"}, "Etiketten zum Ausdrucken"),
     el("div",{style:"display:flex;gap:10px;"},[
-      el("button",{class:"btn btn-primary", style:"width:auto;padding:10px 20px;", onclick:()=> window.print()}, "🖨️ Drucken"),
+      el("button",{class:"btn btn-primary", style:"width:auto;padding:10px 20px;", onclick:()=> doPrint()}, "🖨️ Drucken"),
       el("button",{class:"btn-cancel", style:"width:auto;padding:10px 20px;", onclick:()=> overlay.remove()}, "Schließen"),
     ])
   ]);
   overlay.appendChild(bar);
 
+  const selectRow = el("div",{class:"no-print", style:"display:flex;gap:16px;margin-bottom:16px;"});
+  const selectAllBtn = el("button",{class:"link-btn"}, "Alle auswählen");
+  const selectNewBtn = el("button",{class:"link-btn"}, "Nur neue (noch nie gedruckt)");
+  const selectNoneBtn = el("button",{class:"link-btn"}, "Keine auswählen");
+  selectRow.appendChild(selectAllBtn);
+  selectRow.appendChild(selectNewBtn);
+  selectRow.appendChild(selectNoneBtn);
+  overlay.appendChild(selectRow);
+
+  const checkboxes = [];
   const grid = el("div",{class:"print-area"});
   items.forEach(([id, it])=>{
+    const wrap = el("div",{style:"display:flex;flex-direction:column;align-items:center;gap:6px;"});
+    const checkLabel = el("label",{class:"no-print", style:"display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);cursor:pointer;"});
+    const checkbox = el("input",{type:"checkbox", style:"width:14px;height:14px;accent-color:var(--mango);cursor:pointer;"});
+    checkbox.checked = !it.labelPrinted;
+    checkbox.dataset.itemId = id;
+    checkboxes.push(checkbox);
+    checkLabel.appendChild(checkbox);
+    checkLabel.appendChild(document.createTextNode(it.labelPrinted ? "bereits gedruckt" : "neu"));
+    wrap.appendChild(checkLabel);
+
     const card = el("div",{class:"label-card"});
     const qrBox = el("div",{});
     card.appendChild(qrBox);
     card.appendChild(el("div",{class:"lbl-name"}, it.name));
     card.appendChild(el("div",{class:"lbl-cat"}, it.category||""));
-    grid.appendChild(card);
+    wrap.appendChild(card);
+    checkbox.addEventListener("change", ()=>{ card.style.display = checkbox.checked ? "flex" : "none"; });
+    card.style.display = checkbox.checked ? "flex" : "none";
+
+    grid.appendChild(wrap);
     setTimeout(()=>{
       if(window.QRCode) new window.QRCode(qrBox, {text: INV_CODE_PREFIX+id, width:110, height:110, colorDark:"#000000", colorLight:"#ffffff"});
     }, 0);
   });
   overlay.appendChild(grid);
   document.body.appendChild(overlay);
+
+  selectAllBtn.addEventListener("click", ()=> checkboxes.forEach(cb=>{ cb.checked=true; cb.dispatchEvent(new Event("change")); }));
+  selectNoneBtn.addEventListener("click", ()=> checkboxes.forEach(cb=>{ cb.checked=false; cb.dispatchEvent(new Event("change")); }));
+  selectNewBtn.addEventListener("click", ()=> checkboxes.forEach(cb=>{
+    const it = state.inventory[cb.dataset.itemId];
+    cb.checked = it ? !it.labelPrinted : true;
+    cb.dispatchEvent(new Event("change"));
+  }));
+
+  function doPrint(){
+    const checkedIds = checkboxes.filter(cb=> cb.checked).map(cb=> cb.dataset.itemId);
+    if(checkedIds.length === 0){ alert("Bitte mindestens eine Zutat auswählen."); return; }
+    checkedIds.forEach(id=> update(ref(db, `inventory/${id}`), {labelPrinted:true}));
+    window.print();
+  }
 }
 
 function fmtNum(v){
