@@ -2474,12 +2474,70 @@ function stockStatus(ist, soll){
 }
 
 const INV_CODE_PREFIX = "TDINV:";
+const EXPIRY_WARN_DAYS = 3;
 
 function logInventoryConsumption(id, prevVal, newVal){
   const consumed = prevVal - newVal;
   if(consumed > 0){
     set(push(ref(db, `inventoryLog/${id}`)), {date: toDateKey(new Date()), amount: consumed});
   }
+}
+
+async function bumpIst(id, qty){
+  const item = state.inventory[id];
+  if(!item) return;
+  await update(ref(db, `inventory/${id}`), {ist:(item.ist||0)+qty});
+}
+
+async function addInventoryBatch(id, qty, expiryOrNull){
+  const item = state.inventory[id];
+  if(!item || qty <= 0) return;
+  const batchRef = push(ref(db, `inventory/${id}/batches`));
+  const updates = {};
+  updates[`inventory/${id}/batches/${batchRef.key}`] = {qty, expiry: expiryOrNull || null, addedAt: Date.now()};
+  updates[`inventory/${id}/ist`] = (item.ist||0) + qty;
+  await update(ref(db), updates);
+}
+
+async function consumeInventoryBatches(id, qty){
+  const item = state.inventory[id];
+  if(!item) return;
+  const prevIst = item.ist||0;
+  const batches = Object.entries(item.batches || {}).sort((a,b)=>{
+    const ea = a[1].expiry || "9999-99-99";
+    const eb = b[1].expiry || "9999-99-99";
+    return ea.localeCompare(eb);
+  });
+  let remaining = qty;
+  const updates = {};
+  for(const [bid, b] of batches){
+    if(remaining <= 0) break;
+    const take = Math.min(b.qty, remaining);
+    remaining -= take;
+    const newQty = b.qty - take;
+    if(newQty <= 0){
+      updates[`inventory/${id}/batches/${bid}`] = null;
+    } else {
+      updates[`inventory/${id}/batches/${bid}/qty`] = newQty;
+    }
+  }
+  const actuallyConsumed = qty - remaining;
+  const newIst = Math.max(0, prevIst - actuallyConsumed);
+  updates[`inventory/${id}/ist`] = newIst;
+  await update(ref(db), updates);
+  logInventoryConsumption(id, prevIst, newIst);
+}
+
+function earliestBatchExpiry(item){
+  const batches = Object.values(item.batches || {}).filter(b=> b.expiry && b.qty > 0);
+  if(batches.length === 0) return null;
+  return batches.reduce((min,b)=> !min || b.expiry < min ? b.expiry : min, null);
+}
+
+function daysUntil(dateStr){
+  const target = localDateFromKey(dateStr);
+  const today = localDateFromKey(toDateKey(new Date()));
+  return Math.round((target - today) / 86400000);
 }
 
 function renderInventory(){
@@ -2551,6 +2609,28 @@ function renderInventory(){
       ]));
     });
     section.appendChild(shopCard);
+  }
+
+  // expiry warning — batches expiring within EXPIRY_WARN_DAYS
+  const expiringSoon = items
+    .map(([id,it])=> ({id, it, expiry: earliestBatchExpiry(it)}))
+    .filter(x=> x.expiry && daysUntil(x.expiry) <= EXPIRY_WARN_DAYS)
+    .sort((a,b)=> a.expiry.localeCompare(b.expiry));
+  if(expiringSoon.length > 0){
+    const expCard = el("div",{class:"card"});
+    expCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;color:var(--mango);"}, "⏰ Läuft bald ab"));
+    expiringSoon.forEach(({id, it, expiry})=>{
+      const days = daysUntil(expiry);
+      const batchQty = Object.values(it.batches||{}).filter(b=>b.expiry===expiry).reduce((s,b)=>s+b.qty,0);
+      const label = days < 0 ? `abgelaufen vor ${Math.abs(days)} Tag(en)` : days===0 ? "läuft heute ab" : `noch ${days} Tag(e)`;
+      expCard.appendChild(el("div",{class:"stock-row"},[
+        el("span",{class:"stock-dot", style:`background:${days<0?"var(--chili)":"var(--mango)"};`}),
+        el("span",{class:"stock-name"}, it.name),
+        el("span",{class:"mono", style:"font-size:12px;color:var(--text-muted);"}, `${fmtNum(batchQty)} ${it.unit||""}`),
+        el("span",{class:"mono", style:`font-size:11px;font-weight:700;color:${days<0?"var(--chili)":"var(--mango)"};`}, label)
+      ]));
+    });
+    section.appendChild(expCard);
   }
 
   // add new item
@@ -2709,6 +2789,31 @@ function renderInventory(){
         const consumeBtn = el("button",{class:"link-btn", style:"font-size:11px;"}, "📊 Verbrauch");
         row.appendChild(consumeBtn);
 
+        const batchEntries = Object.entries(it.batches || {}).filter(([bid,b])=> b.qty > 0);
+        let mhdBox = null;
+        if(batchEntries.length > 0){
+          const mhdBtn = el("button",{class:"link-btn", style:"font-size:11px;color:var(--mango);"}, "📅 MHD");
+          row.appendChild(mhdBtn);
+          mhdBox = el("div",{style:"display:none;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:-2px 0 8px;"});
+          let mhdOpen = false;
+          mhdBtn.addEventListener("click", ()=>{
+            mhdOpen = !mhdOpen;
+            if(mhdOpen){
+              mhdBox.innerHTML = "";
+              batchEntries.sort((a,b)=> (a[1].expiry||"9999").localeCompare(b[1].expiry||"9999")).forEach(([bid, b])=>{
+                const days = b.expiry ? daysUntil(b.expiry) : null;
+                const color = days===null ? "var(--text-muted)" : days<0 ? "var(--chili)" : days<=EXPIRY_WARN_DAYS ? "var(--mango)" : "var(--avocado)";
+                const label = b.expiry ? `MHD ${localDateFromKey(b.expiry).toLocaleDateString("de-DE")} (${days<0?"abgelaufen":days+" Tg."})` : "kein Datum hinterlegt";
+                mhdBox.appendChild(el("div",{style:"display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--line);"},[
+                  el("span",{}, `${fmtNum(b.qty)} ${it.unit||""}`),
+                  el("span",{style:`color:${color};font-weight:700;`}, label)
+                ]));
+              });
+            }
+            mhdBox.style.display = mhdOpen ? "block" : "none";
+          });
+        }
+
         const archiveBtn = el("button",{class:"link-btn", style:"font-size:11px;color:var(--text-muted);"}, "📦 Archivieren");
         archiveBtn.addEventListener("click", ()=>{
           if(confirm(`"${it.name}" archivieren? Sie verschwindet aus der aktiven Liste, bleibt aber inkl. Verbrauchshistorie erhalten und kann jederzeit reaktiviert werden.`)){
@@ -2717,6 +2822,7 @@ function renderInventory(){
         });
         row.appendChild(archiveBtn);
         list.appendChild(row);
+        if(mhdBox) list.appendChild(mhdBox);
 
         const chartBox = el("div",{style:"display:none;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:-2px 0 8px;"});
         let chartOpen = false;
@@ -2853,31 +2959,65 @@ function openInventoryScanner(){
     alert("Kamera-Zugriff wird von diesem Browser nicht unterstützt.");
     return;
   }
-  const overlay = el("div",{style:"position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;"});
+  const overlay = el("div",{style:"position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto;"});
 
-  const modeRow = el("div",{style:"display:flex;gap:8px;margin-bottom:16px;"});
+  const modeRow = el("div",{style:"display:flex;gap:8px;margin-bottom:14px;"});
   let mode = "out";
   const outBtn = el("button",{class:"tab active", style:"background:var(--chili);color:#fff;"}, "− Entnahme");
   const inBtn = el("button",{class:"tab", style:"background:var(--bg-elevated);color:var(--text-muted);"}, "+ Auffüllen");
-  outBtn.addEventListener("click", ()=>{ mode="out"; outBtn.style.background="var(--chili)"; outBtn.style.color="#fff"; inBtn.style.background="var(--bg-elevated)"; inBtn.style.color="var(--text-muted)"; });
-  inBtn.addEventListener("click", ()=>{ mode="in"; inBtn.style.background="var(--avocado)"; inBtn.style.color="var(--avocado-ink)"; outBtn.style.background="var(--bg-elevated)"; outBtn.style.color="var(--text-muted)"; });
+  overlay.appendChild(modeRow);
   modeRow.appendChild(outBtn);
   modeRow.appendChild(inBtn);
-  overlay.appendChild(modeRow);
+
+  // quantity selector — only relevant for Auffüllen
+  let qty = 1;
+  const qtyRow = el("div",{style:"display:none;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;"});
+  const qtyLabel = el("span",{style:"font-size:12px;color:var(--text-muted);margin-right:4px;"}, "Menge:");
+  qtyRow.appendChild(qtyLabel);
+  const qtyButtons = [];
+  [1,2,3,4,5,6].forEach(n=>{
+    const b = el("button",{class:"tab", style:`background:${n===1?"var(--avocado)":"var(--bg-elevated)"};color:${n===1?"var(--avocado-ink)":"var(--text-muted)"};padding:6px 12px;`}, String(n));
+    b.addEventListener("click", ()=>{
+      qty = n;
+      qtyButtons.forEach(bb=>{ bb.style.background="var(--bg-elevated)"; bb.style.color="var(--text-muted)"; });
+      b.style.background="var(--avocado)"; b.style.color="var(--avocado-ink)";
+    });
+    qtyButtons.push(b);
+    qtyRow.appendChild(b);
+  });
+  overlay.appendChild(qtyRow);
+
+  function setMode(m){
+    mode = m;
+    if(m==="out"){
+      outBtn.style.background="var(--chili)"; outBtn.style.color="#fff";
+      inBtn.style.background="var(--bg-elevated)"; inBtn.style.color="var(--text-muted)";
+      qtyRow.style.display = "none";
+    } else {
+      inBtn.style.background="var(--avocado)"; inBtn.style.color="var(--avocado-ink)";
+      outBtn.style.background="var(--bg-elevated)"; outBtn.style.color="var(--text-muted)";
+      qtyRow.style.display = "flex";
+    }
+  }
+  outBtn.addEventListener("click", ()=> setMode("out"));
+  inBtn.addEventListener("click", ()=> setMode("in"));
 
   const videoWrap = el("div",{style:"width:100%;max-width:340px;aspect-ratio:1;border-radius:16px;overflow:hidden;position:relative;border:2px solid var(--mango);background:#000;"});
   const video = el("video",{playsinline:"true", muted:"true", style:"width:100%;height:100%;object-fit:cover;"});
   videoWrap.appendChild(video);
   const statusText = el("div",{style:"color:var(--text);margin-top:18px;font-size:14px;text-align:center;min-height:20px;"}, "Kamera wird gestartet…");
+  const expiryBox = el("div",{style:"display:none;background:var(--bg-elevated);border-radius:12px;padding:16px;margin-top:16px;width:100%;max-width:340px;text-align:center;"});
   const closeBtn = el("button",{class:"btn-cancel", style:"margin-top:22px;width:auto;padding:10px 24px;background:var(--bg-elevated);"}, "Fertig");
 
   overlay.appendChild(videoWrap);
   overlay.appendChild(statusText);
+  overlay.appendChild(expiryBox);
   overlay.appendChild(closeBtn);
   document.body.appendChild(overlay);
 
   let stream = null;
   let scanning = true;
+  let paused = false;
   let lastCode = null, lastTime = 0;
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -2901,8 +3041,40 @@ function openInventoryScanner(){
       statusText.textContent = "Kamera-Zugriff nicht möglich: " + err.message;
     });
 
+  function askExpiryThenResume(itemId, itemName, addedQty){
+    paused = true;
+    expiryBox.style.display = "block";
+    expiryBox.innerHTML = "";
+    expiryBox.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);margin-bottom:10px;"}, `MHD für ${addedQty}× ${itemName} (optional)`));
+    const dateInput = el("input",{type:"date", style:"padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;margin-bottom:12px;width:100%;"});
+    expiryBox.appendChild(dateInput);
+    const btnRow = el("div",{style:"display:flex;gap:10px;"});
+    const saveDateBtn = el("button",{class:"btn btn-primary", style:"padding:9px;"}, "Speichern");
+    const skipBtn = el("button",{class:"btn-cancel", style:"padding:9px;"}, "Überspringen");
+    saveDateBtn.addEventListener("click", async ()=>{
+      const batchRef = push(ref(db, `inventory/${itemId}/batches`));
+      await set(batchRef, {qty: addedQty, expiry: dateInput.value || null, addedAt: Date.now()});
+      resumeScanning();
+    });
+    skipBtn.addEventListener("click", async ()=>{
+      const batchRef = push(ref(db, `inventory/${itemId}/batches`));
+      await set(batchRef, {qty: addedQty, expiry: null, addedAt: Date.now()});
+      resumeScanning();
+    });
+    btnRow.appendChild(saveDateBtn);
+    btnRow.appendChild(skipBtn);
+    expiryBox.appendChild(btnRow);
+  }
+
+  function resumeScanning(){
+    expiryBox.style.display = "none";
+    paused = false;
+    statusText.textContent = "Halte den nächsten Code vor die Kamera";
+    requestAnimationFrame(tick);
+  }
+
   function tick(){
-    if(!scanning) return;
+    if(!scanning || paused) return;
     if(video.readyState === video.HAVE_ENOUGH_DATA){
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -2915,13 +3087,20 @@ function openInventoryScanner(){
         const itemId = code.data.slice(INV_CODE_PREFIX.length);
         const item = state.inventory[itemId];
         if(item){
-          const cur = item.ist||0;
-          const delta = mode==="out" ? -1 : 1;
-          const newVal = Math.max(0, cur+delta);
-          update(ref(db, `inventory/${itemId}`), {ist:newVal});
-          if(delta<0) logInventoryConsumption(itemId, cur, newVal);
-          statusText.innerHTML = "";
-          statusText.appendChild(el("div",{style:`color:${mode==="out"?"var(--chili)":"var(--avocado)"};font-weight:700;`}, `✓ ${item.name}: ${fmtNum(newVal)} ${item.unit||""}`));
+          if(mode === "in"){
+            bumpIst(itemId, qty).then(()=>{
+              statusText.innerHTML = "";
+              statusText.appendChild(el("div",{style:"color:var(--avocado);font-weight:700;"}, `✓ ${item.name}: +${qty} ${item.unit||""}`));
+              askExpiryThenResume(itemId, item.name, qty);
+            });
+            return;
+          } else {
+            consumeInventoryBatches(itemId, 1).then(()=>{
+              const newVal = Math.max(0, (item.ist||0)-1);
+              statusText.innerHTML = "";
+              statusText.appendChild(el("div",{style:"color:var(--chili);font-weight:700;"}, `✓ ${item.name}: ${fmtNum(newVal)} ${item.unit||""}`));
+            });
+          }
         } else {
           statusText.textContent = "Unbekannter Code — Zutat nicht gefunden.";
         }
