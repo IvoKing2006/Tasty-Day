@@ -2188,17 +2188,6 @@ function renderFinance(){
   }
   section.appendChild(compareCard);
 
-  // fuel cost (Tanken) for selected period
-  const fuelExpensesRaw = {};
-  Object.entries(state.expenses||{}).filter(([id,e])=> e.category === "Tanken").forEach(([id,e])=> fuelExpensesRaw[id]=e);
-  const fuelMaps = buildAmountMaps(fuelExpensesRaw);
-  const fuelMapByView = {day: fuelMaps.dailyMap, week: fuelMaps.weeklyMap, month: fuelMaps.monthlyMap, year: fuelMaps.yearlyMap}[state.financeView];
-  const fuelCost = fuelMapByView[current.key] || 0;
-  section.appendChild(el("div",{style:"display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated-2);border-radius:10px;padding:12px 16px;margin-bottom:16px;"},[
-    el("span",{style:"font-size:13px;"}, "⛽ Tankkosten"),
-    el("span",{class:"mono", style:"font-size:16px;font-weight:700;color:var(--chili);"}, fmtMoney(fuelCost))
-  ]));
-
   // trend chart — last 6 periods
   const trendCard = el("div",{class:"card"});
   trendCard.appendChild(el("h3",{style:"margin:0 0 14px;font-size:14px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;"}, "Verlauf (letzte 6)"));
