@@ -296,6 +296,20 @@
     border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;
   }
 
+  .dash-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(160px,1fr));gap:14px;margin-bottom:20px;}
+  .dash-tile{
+    background:var(--bg-elevated);border:1px solid var(--line);border-radius:16px;
+    padding:20px;cursor:pointer;transition:.15s ease;text-align:left;
+    box-shadow:0 2px 10px rgba(0,0,0,.15);position:relative;overflow:hidden;
+  }
+  .dash-tile::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--avocado),var(--mango));opacity:.7;}
+  .dash-tile:hover{border-color:var(--mango);transform:translateY(-2px);}
+  .dash-tile .dash-icon{font-size:22px;margin-bottom:10px;display:block;}
+  .dash-tile .dash-value{font-family:'IBM Plex Mono';font-size:26px;font-weight:700;color:var(--text);margin-bottom:4px;}
+  .dash-tile .dash-label{font-size:12px;color:var(--text-muted);}
+  .dash-tile.warn .dash-value{color:var(--chili);}
+  .dash-tile.good .dash-value{color:var(--avocado);}
+
   .link-btn{background:none;border:none;color:var(--mango);font-size:12px;font-weight:600;padding:0;margin-top:2px;}
 
   ::-webkit-scrollbar{height:8px;width:8px;}
@@ -692,7 +706,7 @@ async function doLogin(name, pass){
   state.authError = "";
   const isAdmin = e.hiddenAdmin === true;
   state.currentUser = {id, name:e.name, role:e.role, isAdmin};
-  state.tab = e.role === "chef" ? "plan" : "availability";
+  state.tab = e.role === "chef" ? "dashboard" : "availability";
   state.screen = "app";
   startSessionListeners();
   render();
@@ -708,7 +722,7 @@ async function doRegister(name, pass, role, hiddenAdmin, jobType){
   await set(newRef, record);
   state.authError = "";
   state.currentUser = {id:newRef.key, name, role, isAdmin: !!hiddenAdmin};
-  state.tab = role === "chef" ? "plan" : "availability";
+  state.tab = role === "chef" ? "dashboard" : "availability";
   state.screen = "app";
   startSessionListeners();
   render();
@@ -890,6 +904,7 @@ function renderTabs(){
     {key:"inventory", label:"Lagerbestand"},
   ];
   const chefTabs = [
+    {key:"dashboard", label:"Übersicht"},
     {key:"plan", label:"Wochenplan erstellen"},
     {key:"allavail", label:"Verfügbarkeiten"},
     {key:"alltimes", label:"Arbeitszeiten — Team"},
@@ -902,7 +917,7 @@ function renderTabs(){
   ];
 
   let items;
-  if(isChefRole) items = [{key:"plan", label:"Wochenplan erstellen"}, {key:"schedule", label:"Plan ansehen"}, ...chefTabs.slice(1)];
+  if(isChefRole) items = [chefTabs[0], chefTabs[1], {key:"schedule", label:"Plan ansehen"}, ...chefTabs.slice(2)];
   else if(isHiddenAdmin) items = [...employeeTabs, ...chefTabs.filter(t=> t.key !== "inventory")];
   else items = employeeTabs;
 
@@ -929,6 +944,7 @@ function renderTabContent(){
     case "mytimes": return renderTimes(false);
     case "alltimes": return renderTimes(true);
     case "team": return renderTeam();
+    case "dashboard": return renderDashboard();
     case "swaps": return renderSwaps();
     case "stats": return renderStats();
     case "costs": return renderCosts();
@@ -1531,6 +1547,107 @@ function renderTimes(chefView){
 }
 
 // ---------- team management (chef only) ----------
+function todayDayKey(){
+  const day = new Date().getDay();
+  return DAYS[(day+6)%7].key;
+}
+
+function renderDashboard(){
+  const section = el("div",{});
+  section.appendChild(el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, `Übersicht`),
+      el("p",{class:"section-sub"}, new Date().toLocaleDateString("de-DE",{weekday:"long", day:"2-digit", month:"long", year:"numeric"}))
+    ])
+  ]));
+
+  const pendingSwaps = Object.values(state.swapRequests||{}).filter(r=> r.status==="pending").length;
+  const activeInv = Object.entries(state.inventory||{}).filter(([id,it])=> !it.archived);
+  const criticalInv = activeInv.filter(([id,it])=> stockStatus(it.ist||0, it.soll||0)==="red");
+
+  const todayKey = todayDayKey();
+  const todaySchedule = (state.weekData.schedule && state.weekData.schedule[todayKey]) || {};
+  const todayAssignments = [];
+  Object.entries(todaySchedule).forEach(([shiftKey, assigns])=>{
+    Object.values(assigns).forEach(a=> todayAssignments.push({...a, shiftKey}));
+  });
+
+  const pc = computePersonnelCostMaps();
+  const revMaps = buildAmountMaps(state.revenue);
+  const expMaps = buildAmountMaps(state.expenses);
+  const thisWeekKey = weekIdFor(0);
+  const weekRev = revMaps.weeklyMap[thisWeekKey] || 0;
+  const weekExp = expMaps.weeklyMap[thisWeekKey] || 0;
+  const weekCost = (pc.weeklyMap[thisWeekKey] && pc.weeklyMap[thisWeekKey].cost) || 0;
+  const weekProfit = weekRev - weekExp - weekCost;
+
+  const grid = el("div",{class:"dash-grid"});
+
+  const tile1 = el("div",{class:`dash-tile ${pendingSwaps>0?"warn":""}`, onclick:()=>{ state.tab="swaps"; render(); }});
+  tile1.appendChild(el("span",{class:"dash-icon"},"⇄"));
+  tile1.appendChild(el("div",{class:"dash-value"}, String(pendingSwaps)));
+  tile1.appendChild(el("div",{class:"dash-label"}, "Offene Tauschanfragen"));
+  grid.appendChild(tile1);
+
+  const tile2 = el("div",{class:`dash-tile ${criticalInv.length>0?"warn":"good"}`, onclick:()=>{ state.tab="inventory"; render(); }});
+  tile2.appendChild(el("span",{class:"dash-icon"},"📦"));
+  tile2.appendChild(el("div",{class:"dash-value"}, String(criticalInv.length)));
+  tile2.appendChild(el("div",{class:"dash-label"}, "Kritische Zutaten"));
+  grid.appendChild(tile2);
+
+  const tile3 = el("div",{class:`dash-tile ${weekProfit>=0?"good":"warn"}`, onclick:()=>{ state.tab="finance"; render(); }});
+  tile3.appendChild(el("span",{class:"dash-icon"},"💶"));
+  tile3.appendChild(el("div",{class:"dash-value"}, fmtMoney(weekProfit)));
+  tile3.appendChild(el("div",{class:"dash-label"}, "Gewinn diese Woche"));
+  grid.appendChild(tile3);
+
+  const tile4 = el("div",{class:"dash-tile", onclick:()=>{ state.tab="plan"; render(); }});
+  tile4.appendChild(el("span",{class:"dash-icon"},"👥"));
+  tile4.appendChild(el("div",{class:"dash-value"}, String(todayAssignments.length)));
+  tile4.appendChild(el("div",{class:"dash-label"}, "Im Einsatz heute"));
+  grid.appendChild(tile4);
+
+  section.appendChild(grid);
+
+  // today's shifts
+  const todayCard = el("div",{class:"card"});
+  todayCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, `Heute im Einsatz — ${(DAYS.find(d=>d.key===todayKey)||{}).label||""}`));
+  if(todayAssignments.length === 0){
+    todayCard.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);"}, "Niemand eingeteilt."));
+  } else {
+    todayAssignments.sort((a,b)=> (a.start||"").localeCompare(b.start||"")).forEach(a=>{
+      const emp = state.employees[a.employeeId];
+      const empName = emp ? emp.name : "?";
+      const jobIcon = emp && emp.jobType==="fahrer" ? "🚗" : "🍳";
+      todayCard.appendChild(el("div",{class:"team-row"},[
+        el("span",{class:"name"}, `${jobIcon} ${empName}`),
+        el("span",{class:"mono", style:"font-size:12px;color:var(--text-muted);"}, `${a.start}–${a.end}`)
+      ]));
+    });
+  }
+  section.appendChild(todayCard);
+
+  // critical inventory list
+  if(criticalInv.length > 0){
+    const critCard = el("div",{class:"card"});
+    critCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;color:var(--chili);"}, "🛒 Kritische Zutaten"));
+    criticalInv.forEach(([id, it])=>{
+      const missing = Math.max(0, (it.soll||0)-(it.ist||0));
+      critCard.appendChild(el("div",{class:"stock-row"},[
+        el("span",{class:"stock-dot red"}),
+        el("span",{class:"stock-name"}, it.name),
+        el("span",{class:"mono", style:"font-size:11px;color:var(--chili);"}, `${fmtNum(missing)} ${it.unit||""} fehlen`)
+      ]));
+    });
+    const jumpBtn = el("button",{class:"link-btn", style:"margin-top:6px;"}, "Zum Lagerbestand →");
+    jumpBtn.addEventListener("click", ()=>{ state.tab="inventory"; render(); });
+    critCard.appendChild(jumpBtn);
+    section.appendChild(critCard);
+  }
+
+  return section;
+}
+
 function renderTeam(){
   const section = el("div",{});
   section.appendChild(el("div",{class:"section-head"},[
