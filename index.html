@@ -2531,7 +2531,7 @@ function renderInventory(){
   ]));
   section.appendChild(addCard);
 
-  if(items.length === 0){
+  if(items.length === 0 && archivedItems.length === 0){
     section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},"📦"),"Noch keine Zutaten angelegt."]));
     return section;
   }
