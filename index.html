@@ -423,6 +423,7 @@ let state = {
   financeWeekOffset: 0,
   financeMonthOffset: 0,
   financeYearOffset: 0,
+  recipes: {},
   showPasswordChange: false,
   showAvailInline: false,
   pwChangeError: "",
@@ -817,6 +818,7 @@ function startSessionListeners(){
   onValue(ref(db, "inventoryLog"), (snap)=>{ state.inventoryLog = snap.val() || {}; render(); });
   onValue(ref(db, "revenue"), (snap)=>{ state.revenue = snap.val() || {}; render(); });
   onValue(ref(db, "expenses"), (snap)=>{ state.expenses = snap.val() || {}; render(); });
+  onValue(ref(db, "recipes"), (snap)=>{ state.recipes = snap.val() || {}; render(); });
 }
 function attachWeekListener(){
   const wid = weekIdFor(state.weekOffset);
@@ -921,6 +923,7 @@ function renderTabs(){
     {key:"costs", label:"Personalkosten"},
     {key:"finance", label:"Finanzen"},
     {key:"inventory", label:"Lagerbestand"},
+    {key:"recipes", label:"Kalkulation"},
     {key:"team", label:"Team verwalten"},
   ];
 
@@ -958,6 +961,7 @@ function renderTabContent(){
     case "costs": return renderCosts();
     case "finance": return renderFinance();
     case "inventory": return renderInventory();
+    case "recipes": return renderRecipes();
     default: return el("div",{},"—");
   }
 }
@@ -1708,6 +1712,193 @@ function renderDashboard(){
     critCard.appendChild(jumpBtn);
     section.appendChild(critCard);
   }
+
+  return section;
+}
+
+// ---------- Kalkulation (Gerichte-Kostenrechnung) ----------
+const MENU_SEED = [
+  ["Protein Bowl","Poke Bowls",10.90],["Wenger Bowl","Poke Bowls",14.90],["Falala Bowl","Poke Bowls",14.90],
+  ["Green Bull","Poke Bowls",14.90],["El Diablo Bowl","Poke Bowls",14.90],["Chimichanga Bowl","Poke Bowls",14.90],
+  ["Jerry Berry","Poke Bowls",14.90],["Hawaii Bowl","Poke Bowls",15.90],["Supreme Chicken Bowl","Poke Bowls",14.90],
+  ["Tokyo Bowl","Poke Bowls",15.90],["Veggie Fresh Bowl","Poke Bowls",14.90],
+  ["Selfmade Poké Bowl","Selfmade Poké Bowls",14.90],
+  ["Tuna Salat","Salat Bowls",11.90],["Caesar Salat","Salat Bowls",10.90],["Mexican Salat","Salat Bowls",10.90],
+  ["Lachs Salat","Salat Bowls",11.90],["Tomate Mozarella Salat","Salat Bowls",10.90],
+  ["Falafel Wrap","Wraps",8.90],["Chicken Wrap","Wraps",8.90],["Avocado Wrap","Wraps",8.90],
+  ["Mexican Wrap","Wraps",8.90],["Mozart Wrap","Wraps",8.90],["Tuna Wrap","Wraps",8.90],
+  ["Selfmade Wrap","Wraps",9.90],
+  ["Salmon Noodle Bowl","Noodle Bowls",15.90],["Tofu Noodle Bowl","Noodle Bowls",14.90],
+  ["Tuna Noodle Bowl","Noodle Bowls",15.90],["Chicken Noodle Bowl","Noodle Bowls",14.90],
+  ["Kartoffel Falafel Bowl","Kartoffel Bowls",15.90],["Spicy Patata Bowl","Kartoffel Bowls",14.90],
+  ["Kartoffel Chicken Bowl","Kartoffel Bowls",14.90],["Kartoffel Tuna Bowl","Kartoffel Bowls",14.90],
+  ["Selfmade Acai Bowl","Acai Bowls",8.90],["Acai Bowl des Monats","Acai Bowls",11.90],
+  ["Chia Pudding","Leckereien",5.50],["Joghurtbecher","Leckereien",5.50],
+  ["Protein Reispudding","Leckereien",10.90],["Bisky Proteinpudding","Leckereien",10.90],
+  ["Lulumon","Smoothies",6.90],["Winter Special: Bisky","Smoothies",7.90],["Mr. Cookie","Smoothies",6.90],
+  ["Strawberry Friday","Smoothies",6.90],["Super Detox","Smoothies",6.90],["Piccolo","Smoothies",6.90],
+  ["Tropical Queen","Smoothies",6.90],["Ultimate Mango","Smoothies",6.90],
+  ["Snickers","Protein Shakes",6.90],["O. D. Cookie","Protein Shakes",6.90],["O.D. Lotus","Protein Shakes",6.90],
+  ["Strong Berry","Protein Shakes",6.90],
+  ["La Passion","Homemade Eistee",5.90],["Red Line","Homemade Eistee",5.90],
+  ["Fuze Tea Pfirsich","Softdrinks",3.00],["Fuze Tea Zitrone","Softdrinks",3.00],["Coca Cola Zero","Softdrinks",3.00],
+  ["Fanta","Softdrinks",3.00],["Sprite","Softdrinks",3.00],["Wasser (still)","Softdrinks",3.00],
+  ["Wasser (medium)","Softdrinks",3.00],["Monster Energy Ultra White","Softdrinks",3.50],
+];
+
+function recipeCost(recipe){
+  let cost = 0, missing = false;
+  const ingredients = recipe.ingredients || {};
+  const hasIngredients = Object.keys(ingredients).length > 0;
+  Object.entries(ingredients).forEach(([invId, qty])=>{
+    const item = state.inventory[invId];
+    if(!item || !item.price){ missing = true; return; }
+    cost += item.price * qty;
+  });
+  return {cost, missing, hasIngredients};
+}
+
+function renderRecipes(){
+  const section = el("div",{});
+  section.appendChild(el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, "Kalkulation"),
+      el("p",{class:"section-sub"}, "Kosten pro Gericht aus Lagerbestand-Preisen, Marge im Vergleich zum Verkaufspreis.")
+    ])
+  ]));
+
+  const recipeEntries = Object.entries(state.recipes || {});
+  const existingNames = new Set(recipeEntries.map(([id,r])=> r.name.toLowerCase()));
+
+  const importCard = el("div",{class:"card"});
+  importCard.appendChild(el("h3",{style:"margin:0 0 8px;font-size:15px;"}, "📋 Speisekarte importieren"));
+  importCard.appendChild(el("p",{style:"font-size:12px;color:var(--text-muted);margin:0 0 12px;"}, "Legt alle Gerichte von tasty-day.de mit Namen, Kategorie und Verkaufspreis an (bereits vorhandene werden übersprungen). Zutaten musst du danach selbst pro Gericht zuordnen."));
+  const importBtn = el("button",{class:"btn btn-primary", style:"width:auto;padding:10px 20px;"}, "Speisekarte importieren");
+  importBtn.addEventListener("click", async ()=>{
+    const toAdd = MENU_SEED.filter(([name])=> !existingNames.has(name.toLowerCase()));
+    if(toAdd.length === 0){ alert("Alle Gerichte sind bereits angelegt."); return; }
+    const updates = {};
+    toAdd.forEach(([name, category, price])=>{
+      const newRef = push(ref(db, "recipes"));
+      updates[`recipes/${newRef.key}`] = {name, category, price, ingredients:{}};
+    });
+    await update(ref(db), updates);
+    alert(`${toAdd.length} Gerichte importiert.`);
+  });
+  importCard.appendChild(importBtn);
+  section.appendChild(importCard);
+
+  // add custom dish
+  const addCard = el("div",{class:"card"});
+  addCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "+ Eigenes Gericht hinzufügen"));
+  const dishName = el("input",{type:"text", placeholder:"z. B. Neues Gericht", class:"select-emp", style:"width:100%;"});
+  const dishCat = el("input",{type:"text", placeholder:"z. B. Poke Bowls", class:"select-emp", style:"width:100%;"});
+  const dishPrice = el("input",{type:"number", step:"0.01", min:"0", placeholder:"Verkaufspreis (€)", class:"select-emp", style:"width:100%;"});
+  const dishAddBtn = el("button",{class:"btn btn-primary", style:"padding:11px;"}, "Hinzufügen");
+  dishAddBtn.addEventListener("click", async ()=>{
+    if(!dishName.value.trim() || !dishPrice.value) return;
+    const newRef = push(ref(db, "recipes"));
+    await set(newRef, {name: dishName.value.trim(), category: dishCat.value.trim()||"Sonstiges", price: parseFloat(dishPrice.value)||0, ingredients:{}});
+    dishName.value = ""; dishCat.value = ""; dishPrice.value = "";
+  });
+  addCard.appendChild(el("div",{class:"time-form"},[
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Name"), dishName]),
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), dishCat]),
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Verkaufspreis (€)"), dishPrice]),
+    dishAddBtn
+  ]));
+  section.appendChild(addCard);
+
+  if(recipeEntries.length === 0){
+    section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},"🍱"),"Noch keine Gerichte angelegt."]));
+    return section;
+  }
+
+  const invItems = Object.entries(state.inventory||{}).filter(([id,it])=> !it.archived).sort((a,b)=> a[1].name.localeCompare(b[1].name));
+
+  // group by category
+  const groups = {};
+  recipeEntries.forEach(([id, r])=>{
+    const cat = r.category || "Sonstiges";
+    if(!groups[cat]) groups[cat] = [];
+    groups[cat].push([id, r]);
+  });
+
+  Object.keys(groups).sort().forEach(cat=>{
+    const catRecipes = groups[cat].sort((a,b)=> a[1].name.localeCompare(b[1].name));
+    const details = el("details",{class:"month-group card", style:"padding:16px 20px;"});
+    details.open = false;
+    const arrow = el("span",{style:"color:var(--mango);margin-right:8px;font-size:11px;"}, "▸");
+    details.addEventListener("toggle", ()=>{ arrow.textContent = details.open ? "▾" : "▸"; });
+    details.appendChild(el("summary",{},[
+      el("div",{style:"display:flex;align-items:center;"},[arrow, el("span",{}, cat)]),
+      el("span",{class:"mono", style:"font-size:12px;color:var(--text-muted);font-weight:400;"}, `${catRecipes.length} Gerichte`)
+    ]));
+    const list = el("div",{style:"padding:10px 0 2px;"});
+
+    catRecipes.forEach(([id, r])=>{
+      const {cost, missing, hasIngredients} = recipeCost(r);
+      const margin = r.price - cost;
+      const marginPct = r.price > 0 ? (margin/r.price*100) : 0;
+      const marginColor = !hasIngredients ? "var(--text-muted)" : margin >= 0 ? "var(--avocado)" : "var(--chili)";
+
+      const row = el("div",{class:"stock-row", style:"flex-wrap:wrap;cursor:pointer;"});
+      row.appendChild(el("div",{style:"flex:1;min-width:120px;"},[
+        el("div",{class:"stock-name"}, r.name),
+        el("div",{style:"font-size:10px;color:var(--text-muted);"}, `Preis ${fmtMoney(r.price)} · Kosten ${hasIngredients ? fmtMoney(cost) : "—"}${missing?" (unvollständig)":""}`)
+      ]));
+      row.appendChild(el("span",{class:"mono", style:`font-size:14px;font-weight:700;color:${marginColor};`}, hasIngredients ? `${fmtMoney(margin)} (${marginPct.toLocaleString("de-DE",{maximumFractionDigits:0})}%)` : "keine Zutaten"));
+      const delBtn = el("button",{class:"del-btn", onclick:(ev)=>{ ev.stopPropagation(); if(confirm(`"${r.name}" wirklich löschen?`)) remove(ref(db, `recipes/${id}`)); }},"✕");
+      row.appendChild(delBtn);
+
+      const ingBox = el("div",{style:"display:none;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px;margin:-2px 0 8px;width:100%;"});
+      let ingOpen = false;
+      row.addEventListener("click", ()=>{
+        ingOpen = !ingOpen;
+        if(ingOpen){
+          ingBox.innerHTML = "";
+          const ingredients = Object.entries(r.ingredients||{});
+          if(ingredients.length === 0){
+            ingBox.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-bottom:10px;"}, "Noch keine Zutaten zugeordnet."));
+          } else {
+            ingredients.forEach(([invId, qty])=>{
+              const item = state.inventory[invId];
+              const itemName = item ? item.name : "(gelöscht)";
+              const lineCost = item && item.price ? item.price*qty : null;
+              ingBox.appendChild(el("div",{style:"display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--line);"},[
+                el("span",{}, `${itemName} — ${fmtNum(qty)} ${item?item.unit:""}`),
+                el("div",{style:"display:flex;align-items:center;gap:8px;"},[
+                  el("span",{style:"color:var(--text-muted);"}, lineCost!==null ? fmtMoney(lineCost) : "kein Preis"),
+                  el("button",{class:"del-btn", onclick:(ev)=>{ ev.stopPropagation(); update(ref(db, `recipes/${id}/ingredients`), {[invId]: null}); }},"✕")
+                ])
+              ]));
+            });
+          }
+          const addRow = el("div",{style:"display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;"});
+          const ingSelect = el("select",{class:"select-emp", style:"flex:1;min-width:140px;"});
+          invItems.forEach(([iid,it])=> ingSelect.appendChild(el("option",{value:iid}, `${it.name} (${it.unit||"Stk"})`)));
+          const qtyInput = el("input",{type:"number", step:"0.01", min:"0", placeholder:"Menge", style:"width:90px;padding:9px;border-radius:8px;border:1px solid var(--line);background:var(--bg-elevated-2);color:var(--text);font-size:13px;"});
+          const addIngBtn = el("button",{class:"btn btn-primary", style:"width:auto;padding:9px 16px;font-size:12px;"}, "+ Zutat");
+          addIngBtn.addEventListener("click", (ev)=>{
+            ev.stopPropagation();
+            const q = parseFloat(qtyInput.value);
+            if(!ingSelect.value || !q || q<=0) return;
+            update(ref(db, `recipes/${id}/ingredients`), {[ingSelect.value]: q});
+          });
+          addRow.appendChild(ingSelect);
+          addRow.appendChild(qtyInput);
+          addRow.appendChild(addIngBtn);
+          ingBox.appendChild(addRow);
+        }
+        ingBox.style.display = ingOpen ? "block" : "none";
+      });
+
+      list.appendChild(row);
+      list.appendChild(ingBox);
+    });
+    details.appendChild(list);
+    section.appendChild(details);
+  });
 
   return section;
 }
