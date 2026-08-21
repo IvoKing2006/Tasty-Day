@@ -907,12 +907,14 @@ function renderTabs(){
   const isChefRole = state.currentUser.role === "chef";
   const isHiddenAdmin = !isChefRole && state.currentUser.isAdmin === true;
 
+  const isDriver = state.employees[state.currentUser.id] && state.employees[state.currentUser.id].jobType === "fahrer";
   const employeeTabs = [
     {key:"availability", label:"Verfügbarkeit"},
     {key:"schedule", label:"Wochenplan"},
     {key:"mytimes", label:"Meine Zeiten"},
     {key:"inventory", label:"Lagerbestand"},
   ];
+  if(isDriver) employeeTabs.push({key:"route", label:"Lieferroute"});
   const chefTabs = [
     {key:"dashboard", label:"Übersicht"},
     {key:"plan", label:"Wochenplan erstellen"},
@@ -962,6 +964,7 @@ function renderTabContent(){
     case "finance": return renderFinance();
     case "inventory": return renderInventory();
     case "recipes": return renderRecipes();
+    case "route": return renderRoute();
     default: return el("div",{},"—");
   }
 }
@@ -1898,6 +1901,127 @@ function renderRecipes(){
     });
     details.appendChild(list);
     section.appendChild(details);
+  });
+
+  return section;
+}
+
+// ---------- Lieferroute (nur Fahrer) ----------
+async function geocodeAddress(addr){
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(addr)}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if(!data || data.length === 0) return null;
+  return {lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon)};
+}
+
+function renderRoute(){
+  const section = el("div",{});
+  section.appendChild(el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, "Lieferroute"),
+      el("p",{class:"section-sub"}, "Berechnet die schnellste Reihenfolge über echte Straßen und öffnet sie direkt in Google Maps.")
+    ])
+  ]));
+
+  const card = el("div",{class:"card"});
+  card.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Start"));
+  const startInput = el("input",{type:"text", value:"Mergenthalerallee 77, 65760 Eschborn", class:"select-emp", style:"width:100%;margin-bottom:16px;"});
+  card.appendChild(startInput);
+
+  card.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Lieferstopps"));
+  const stopsWrap = el("div",{style:"display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"});
+  const stopInputs = [];
+
+  function addStopRow(value){
+    const row = el("div",{style:"display:flex;gap:8px;"});
+    const input = el("input",{type:"text", value: value||"", placeholder:"Adresse eingeben…", class:"select-emp", style:"flex:1;"});
+    const removeBtn = el("button",{class:"del-btn", style:"font-size:18px;"}, "✕");
+    removeBtn.addEventListener("click", ()=>{
+      const idx = stopInputs.indexOf(input);
+      if(idx > -1) stopInputs.splice(idx,1);
+      row.remove();
+    });
+    row.appendChild(input);
+    row.appendChild(removeBtn);
+    stopInputs.push(input);
+    stopsWrap.appendChild(row);
+  }
+  addStopRow(); addStopRow();
+  card.appendChild(stopsWrap);
+
+  const addStopBtn = el("button",{class:"add-shift-btn", style:"margin-bottom:16px;"}, "+ Weitere Adresse");
+  addStopBtn.addEventListener("click", ()=> addStopRow());
+  card.appendChild(addStopBtn);
+
+  const calcBtn = el("button",{class:"btn btn-primary", style:"padding:12px;"}, "Route berechnen");
+  card.appendChild(calcBtn);
+
+  const resultBox = el("div",{style:"margin-top:18px;"});
+  card.appendChild(resultBox);
+  section.appendChild(card);
+
+  calcBtn.addEventListener("click", async ()=>{
+    const addresses = [startInput.value.trim(), ...stopInputs.map(i=>i.value.trim()).filter(v=>v)];
+    if(addresses.length < 3){
+      resultBox.innerHTML = "";
+      resultBox.appendChild(el("div",{class:"error-msg"}, "Bitte Start und mindestens 2 Stopps eintragen."));
+      return;
+    }
+    resultBox.innerHTML = "";
+    resultBox.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Adressen werden gesucht und Route berechnet…"));
+    calcBtn.disabled = true;
+
+    try {
+      const coords = [];
+      for(const addr of addresses){
+        const c = await geocodeAddress(addr);
+        if(!c){
+          resultBox.innerHTML = "";
+          resultBox.appendChild(el("div",{class:"error-msg"}, `Adresse nicht gefunden: „${addr}“`));
+          calcBtn.disabled = false;
+          return;
+        }
+        coords.push(c);
+      }
+
+      const coordStr = coords.map(c=> `${c.lon},${c.lat}`).join(";");
+      const tripUrl = `https://router.project-osrm.org/trip/v1/driving/${coordStr}?source=first&roundtrip=false&overview=false`;
+      const tripRes = await fetch(tripUrl);
+      const tripData = await tripRes.json();
+
+      if(tripData.code !== "Ok"){
+        resultBox.innerHTML = "";
+        resultBox.appendChild(el("div",{class:"error-msg"}, "Route konnte nicht berechnet werden. Bitte Adressen prüfen."));
+        calcBtn.disabled = false;
+        return;
+      }
+
+      const ordered = tripData.waypoints
+        .map((wp, originalIdx)=> ({originalIdx, order: wp.waypoint_index}))
+        .sort((a,b)=> a.order - b.order)
+        .map(x=> addresses[x.originalIdx]);
+
+      resultBox.innerHTML = "";
+      resultBox.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;color:var(--avocado);"}, "✓ Optimale Reihenfolge"));
+      const list = el("div",{style:"display:flex;flex-direction:column;gap:6px;margin-bottom:16px;"});
+      ordered.forEach((addr, i)=>{
+        list.appendChild(el("div",{class:"team-row"},[
+          el("span",{class:"name"}, i===0 ? `🏠 Start: ${addr}` : `${i}. ${addr}`),
+        ]));
+      });
+      resultBox.appendChild(list);
+
+      const dest = ordered[ordered.length-1];
+      const waypoints = ordered.slice(1, -1);
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(ordered[0])}&destination=${encodeURIComponent(dest)}${waypoints.length?`&waypoints=${waypoints.map(w=>encodeURIComponent(w)).join("|")}`:""}&travelmode=driving`;
+      const gmapsBtn = el("a",{href:mapsUrl, target:"_blank", rel:"noopener", class:"btn btn-primary", style:"display:block;text-align:center;padding:12px;text-decoration:none;"}, "📍 In Google Maps öffnen");
+      resultBox.appendChild(gmapsBtn);
+    } catch(err){
+      resultBox.innerHTML = "";
+      resultBox.appendChild(el("div",{class:"error-msg"}, "Fehler bei der Berechnung: " + err.message));
+    }
+    calcBtn.disabled = false;
   });
 
   return section;
