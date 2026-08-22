@@ -3329,12 +3329,35 @@ function openInventoryScanner(){
   modeRow.appendChild(inBtn);
   modeRow.appendChild(inventurBtn);
 
-  // Inventur progress
-  const trackedIds = Object.entries(state.inventory||{}).filter(([id,it])=> it.inventoryTracked && !it.archived).map(([id])=>id);
-  const inventurDone = new Set();
-  const inventurProgress = el("div",{style:"display:none;font-size:12px;color:var(--mango);margin-bottom:10px;text-align:center;"});
+  // Inventur progress — persistiert pro Tag, nicht nur pro Sitzung
+  const inventurProgress = el("div",{style:"display:none;font-size:12px;margin-bottom:10px;text-align:center;max-width:340px;"});
+  function getOpenTrackedItems(){
+    const today = toDateKey(new Date());
+    return Object.entries(state.inventory||{})
+      .filter(([id,it])=> it.inventoryTracked && !it.archived && it.lastInventurDate !== today)
+      .map(([id,it])=> ({id, name:it.name}));
+  }
+  function getDoneTrackedCount(){
+    const today = toDateKey(new Date());
+    return Object.values(state.inventory||{}).filter(it=> it.inventoryTracked && !it.archived && it.lastInventurDate === today).length;
+  }
   function updateInventurProgress(){
-    inventurProgress.textContent = `Inventur: noch ${trackedIds.length - inventurDone.size} von ${trackedIds.length} offen`;
+    const open = getOpenTrackedItems();
+    const doneCount = getDoneTrackedCount();
+    const total = open.length + doneCount;
+    inventurProgress.innerHTML = "";
+    if(total === 0){
+      inventurProgress.appendChild(el("div",{style:"color:var(--text-muted);"}, "Keine Zutaten für die Inventur markiert. Bei „✎ Bearbeiten“ eine Zutat dafür auswählen."));
+      return;
+    }
+    if(open.length === 0){
+      inventurProgress.appendChild(el("div",{style:"color:var(--avocado);font-weight:700;"}, `✓ Heutige Inventur komplett (${total}/${total})`));
+      return;
+    }
+    inventurProgress.appendChild(el("div",{style:"color:var(--mango);font-weight:700;margin-bottom:6px;"}, `Noch zu scannen (${open.length} von ${total}):`));
+    inventurProgress.appendChild(el("div",{style:"display:flex;flex-wrap:wrap;gap:5px;justify-content:center;"},
+      open.map(o=> el("span",{style:"background:var(--bg-elevated-2);border:1px solid var(--line);border-radius:12px;padding:3px 9px;font-size:11px;"}, o.name))
+    ));
   }
   updateInventurProgress();
   overlay.appendChild(inventurProgress);
@@ -3461,8 +3484,7 @@ function openInventoryScanner(){
       const b = el("button",{class:"btn-primary", style:"padding:10px 14px;border-radius:9px;border:none;font-weight:700;flex:1;min-width:60px;"}, opt.label);
       b.addEventListener("click", async ()=>{
         const newIst = wholeUnits + opt.val;
-        await update(ref(db, `inventory/${itemId}`), {ist: newIst});
-        inventurDone.add(itemId);
+        await update(ref(db, `inventory/${itemId}`), {ist: newIst, lastInventurDate: toDateKey(new Date())});
         updateInventurProgress();
         statusText.innerHTML = "";
         statusText.appendChild(el("div",{style:"color:var(--mango);font-weight:700;"}, `✓ ${item.name}: ${fmtNum(newIst)} ${item.unit||""} erfasst`));
