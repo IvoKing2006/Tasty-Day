@@ -302,13 +302,6 @@
     width:56px;text-align:center;padding:5px 4px;border-radius:7px;
     border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;
   }
-  .fill-track{flex:1;min-width:80px;height:18px;background:var(--bg);border-radius:9px;overflow:hidden;border:1px solid var(--line);}
-  .fill-fill{height:100%;transition:width .2s ease;}
-  .fill-pct-btn{
-    padding:5px 9px;border-radius:7px;border:1px solid var(--line);background:var(--bg);
-    color:var(--text-muted);font-size:11px;font-weight:600;cursor:pointer;
-  }
-  .fill-pct-btn.selected{background:var(--mango);color:var(--mango-ink);border-color:var(--mango);}
 
   .dash-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(160px,1fr));gap:14px;margin-bottom:20px;}
   .dash-tile{
@@ -2814,13 +2807,8 @@ function stockStatus(ist, soll){
   if(pct <= 0.5) return "yellow";
   return "green";
 }
-function stockStatusFromPercent(pct){
-  if(pct <= 25) return "red";
-  if(pct <= 50) return "yellow";
-  return "green";
-}
 function itemStatus(it){
-  return it.trackingMode === "percent" ? stockStatusFromPercent(it.fillPercent||0) : stockStatus(it.ist||0, it.soll||0);
+  return stockStatus(it.ist||0, it.soll||0);
 }
 
 const INV_CODE_PREFIX = "TDINV:";
@@ -2951,21 +2939,13 @@ function renderInventory(){
     const shopCard = el("div",{class:"card"});
     shopCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;color:var(--chili);"}, "🛒 Einkaufsliste — kritisch"));
     needsRestock.forEach(([id, it])=>{
-      if(it.trackingMode === "percent"){
-        shopCard.appendChild(el("div",{class:"stock-row"},[
-          el("span",{class:"stock-dot red"}),
-          el("span",{class:"stock-name"}, it.name),
-          el("span",{class:"mono", style:"font-size:12px;color:var(--chili);font-weight:700;"}, `${fmtNum(it.fillPercent||0)}% übrig`)
-        ]));
-      } else {
-        const missing = Math.max(0, (it.soll||0) - (it.ist||0));
-        shopCard.appendChild(el("div",{class:"stock-row"},[
-          el("span",{class:"stock-dot red"}),
-          el("span",{class:"stock-name"}, it.name),
-          el("span",{class:"mono", style:"font-size:12px;color:var(--chili);font-weight:700;"}, `${fmtNum(it.ist||0)} / ${fmtNum(it.soll||0)} ${it.unit||""}`),
-          el("span",{class:"mono", style:"font-size:11px;color:var(--text-muted);"}, `${fmtNum(missing)} ${it.unit||""} fehlen`)
-        ]));
-      }
+      const missing = Math.max(0, (it.soll||0) - (it.ist||0));
+      shopCard.appendChild(el("div",{class:"stock-row"},[
+        el("span",{class:"stock-dot red"}),
+        el("span",{class:"stock-name"}, it.name),
+        el("span",{class:"mono", style:"font-size:12px;color:var(--chili);font-weight:700;"}, `${fmtNum(it.ist||0)} / ${fmtNum(it.soll||0)} ${it.unit||""}`),
+        el("span",{class:"mono", style:"font-size:11px;color:var(--text-muted);"}, `${fmtNum(missing)} ${it.unit||""} fehlen`)
+      ]));
     });
     section.appendChild(shopCard);
   }
@@ -2996,20 +2976,11 @@ function renderInventory(){
   const addCard = el("div",{class:"card"});
   addCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "+ Zutat hinzufügen"));
 
-  const modeRow = el("div",{style:"display:flex;gap:8px;margin-bottom:14px;"});
-  let addMode = "qty";
-  const modeQtyBtn = el("button",{class:"tab active", style:"background:var(--bg-elevated-2);"}, "Menge zählen (Stück/kg/l)");
-  const modePctBtn = el("button",{class:"tab", style:"background:var(--bg-elevated);color:var(--text-muted);"}, "📦 Box-Füllstand in %");
-  modeRow.appendChild(modeQtyBtn);
-  modeRow.appendChild(modePctBtn);
-  addCard.appendChild(modeRow);
-
   const existingCategories = [...new Set(items.map(([id,it])=> it.category).filter(Boolean))];
   const nameInput = el("input",{type:"text", placeholder:"z. B. Cola 0,33l", class:"select-emp", style:"width:100%;"});
   const unitInput = el("input",{type:"text", placeholder:"z. B. Stück, kg, Liter", class:"select-emp", style:"width:100%;"});
   const sollInput = el("input",{type:"number", step:"0.1", min:"0", placeholder:"z. B. 48", class:"select-emp", style:"width:100%;"});
   const packSizeInput = el("input",{type:"number", step:"1", min:"0", placeholder:"z. B. 24 (leer = keine Packs)", class:"select-emp", style:"width:100%;"});
-  const initPctInput = el("input",{type:"number", step:"1", min:"0", max:"100", value:"100", placeholder:"z. B. 100", class:"select-emp", style:"width:100%;"});
   const priceInput = el("input",{type:"number", step:"0.01", min:"0", placeholder:"z. B. 0,45 (optional)", class:"select-emp", style:"width:100%;"});
   const supplierInput = el("input",{type:"text", placeholder:"z. B. Metro (optional)", class:"select-emp", style:"width:100%;"});
   const areaSelect = el("select",{class:"select-emp", style:"width:100%;"});
@@ -3025,30 +2996,8 @@ function renderInventory(){
   });
   if(existingCategories.length === 0) newCatInput.style.display = "block";
 
-  const qtyFieldsWrap = el("div",{},[
-    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Einheit"), unitInput]),
-  ]);
-  const qtyFields2 = el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Soll-Menge"), sollInput]);
-  const qtyFields3 = el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Stück pro Packung"), packSizeInput]);
-  const qtyFields4 = el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"MHD (optional)"), initExpiryInput]);
   const inventurCheckbox = el("input",{type:"checkbox", style:"width:16px;height:16px;accent-color:var(--mango);cursor:pointer;"});
-  const qtyFields5 = el("label",{style:"display:flex;align-items:center;gap:8px;cursor:pointer;padding-top:22px;"},[inventurCheckbox, el("span",{style:"font-size:12px;color:var(--text-muted);"},"In Inventur (Endbestand scannen) aufnehmen")]);
-  const pctFieldsWrap = el("div",{style:"display:none;"},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Aktueller Füllstand (%)"), initPctInput]);
-
-  modeQtyBtn.addEventListener("click", ()=>{
-    addMode = "qty";
-    modeQtyBtn.classList.add("active"); modeQtyBtn.style.background="var(--bg-elevated-2)"; modeQtyBtn.style.color="";
-    modePctBtn.classList.remove("active"); modePctBtn.style.background="var(--bg-elevated)"; modePctBtn.style.color="var(--text-muted)";
-    qtyFieldsWrap.style.display=""; qtyFields2.style.display=""; qtyFields3.style.display=""; qtyFields4.style.display=""; qtyFields5.style.display="";
-    pctFieldsWrap.style.display="none";
-  });
-  modePctBtn.addEventListener("click", ()=>{
-    addMode = "percent";
-    modePctBtn.classList.add("active"); modePctBtn.style.background="var(--bg-elevated-2)"; modePctBtn.style.color="var(--mango)";
-    modeQtyBtn.classList.remove("active"); modeQtyBtn.style.background="var(--bg-elevated)"; modeQtyBtn.style.color="var(--text-muted)";
-    qtyFieldsWrap.style.display="none"; qtyFields2.style.display="none"; qtyFields3.style.display="none"; qtyFields4.style.display="none"; qtyFields5.style.display="none";
-    pctFieldsWrap.style.display="";
-  });
+  const inventurField = el("label",{style:"display:flex;align-items:center;gap:8px;cursor:pointer;padding-top:22px;"},[inventurCheckbox, el("span",{style:"font-size:12px;color:var(--text-muted);"},"In Inventur (Endbestand scannen) aufnehmen")]);
 
   const addBtn = el("button",{class:"btn btn-primary", style:"padding:11px;"}, "Hinzufügen");
   addBtn.addEventListener("click", async ()=>{
@@ -3056,19 +3005,14 @@ function renderInventory(){
     let category = catSelect.value === "__new__" ? newCatInput.value.trim() : catSelect.value;
     if(!category) category = "Sonstiges";
     if(!name) return;
-    let record;
-    if(addMode === "percent"){
-      record = {name, category, trackingMode:"percent", fillPercent: Math.max(0, Math.min(100, parseFloat(initPctInput.value) || 0)), area: areaSelect.value};
-    } else {
-      const soll = parseFloat(sollInput.value) || 0;
-      record = {name, category, unit: unitInput.value.trim() || "Stück", soll, ist: soll, area: areaSelect.value, inventoryTracked: !!inventurCheckbox.checked};
-      const packSize = parseFloat(packSizeInput.value);
-      if(packSize > 0) record.packSize = packSize;
-      if(soll > 0){
-        record.batches = {};
-        const bKey = push(ref(db, "inventory/tmp/batches")).key;
-        record.batches[bKey] = {qty: soll, expiry: initExpiryInput.value || null, addedAt: Date.now()};
-      }
+    const soll = parseFloat(sollInput.value) || 0;
+    const record = {name, category, unit: unitInput.value.trim() || "Stück", soll, ist: soll, area: areaSelect.value, inventoryTracked: !!inventurCheckbox.checked};
+    const packSize = parseFloat(packSizeInput.value);
+    if(packSize > 0) record.packSize = packSize;
+    if(soll > 0){
+      record.batches = {};
+      const bKey = push(ref(db, "inventory/tmp/batches")).key;
+      record.batches[bKey] = {qty: soll, expiry: initExpiryInput.value || null, addedAt: Date.now()};
     }
     const price = parseFloat(priceInput.value);
     if(price > 0) record.price = price;
@@ -3077,20 +3021,19 @@ function renderInventory(){
     const newRef = push(ref(db, "inventory"));
     await set(newRef, record);
     nameInput.value = ""; unitInput.value = ""; sollInput.value = ""; newCatInput.value = "";
-    packSizeInput.value = ""; priceInput.value = ""; supplierInput.value = ""; shelfInput.value = ""; initExpiryInput.value = ""; initPctInput.value = "100";
+    packSizeInput.value = ""; priceInput.value = ""; supplierInput.value = ""; shelfInput.value = ""; initExpiryInput.value = "";
   });
   addCard.appendChild(el("div",{class:"time-form"},[
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Name"), nameInput]),
-    qtyFieldsWrap,
-    qtyFields2,
-    qtyFields3,
-    pctFieldsWrap,
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Einheit"), unitInput]),
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Soll-Menge"), sollInput]),
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Stück pro Packung"), packSizeInput]),
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Preis (€)"), priceInput]),
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lieferant"), supplierInput]),
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lagerbereich"), areaSelect]),
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Regal / Kühlschrank"), shelfInput]),
-    qtyFields4,
-    qtyFields5,
+    el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"MHD (optional)"), initExpiryInput]),
+    inventurField,
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), catSelect]),
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Neue Kategorie"), newCatInput]),
     addBtn
@@ -3152,80 +3095,53 @@ function renderInventory(){
         if(subBits.length) nameCol.appendChild(el("div",{style:"font-size:10px;color:var(--text-muted);"}, subBits.join(" · ")));
         row.appendChild(nameCol);
 
-        const isPercent = it.trackingMode === "percent";
+        const minusBtn = el("button",{class:"stock-adjust"}, "−");
+        const istInput = el("input",{type:"number", step:"0.1", value: it.ist||0, class:"stock-ist-input mono"});
+        const plusBtn = el("button",{class:"stock-adjust"}, "+");
+        const sollLabel = el("span",{class:"mono", style:"font-size:12px;color:var(--text-muted);white-space:nowrap;"}, `/ ${fmtNum(it.soll||0)} ${it.unit||""}`);
 
-        if(isPercent){
-          const pct = it.fillPercent || 0;
-          const fillColor = pct<=25 ? "var(--chili)" : pct<=50 ? "var(--mango)" : "var(--avocado)";
-          const track = el("div",{class:"fill-track"},[
-            el("div",{class:"fill-fill", style:`width:${pct}%;background:${fillColor};`})
-          ]);
-          const pctLabel = el("span",{class:"mono", style:"font-size:13px;font-weight:700;min-width:38px;text-align:right;"}, `${fmtNum(pct)}%`);
-          const fillGroup = el("div",{style:"display:flex;align-items:center;gap:8px;flex:1;min-width:140px;"},[track, pctLabel]);
-          row.appendChild(fillGroup);
+        function saveIst(newVal, prevVal){
+          const v = Math.max(0, newVal);
+          update(ref(db, `inventory/${id}`), {ist: v});
+          logInventoryConsumption(id, prevVal, v);
+        }
+        minusBtn.addEventListener("click", ()=>{
+          const cur = parseFloat(istInput.value)||0;
+          istInput.value = Math.max(0, cur-1);
+          saveIst(cur-1, cur);
+        });
+        plusBtn.addEventListener("click", ()=>{
+          const cur = parseFloat(istInput.value)||0;
+          istInput.value = cur+1;
+          saveIst(cur+1, cur);
+        });
+        istInput.addEventListener("change", ()=>{
+          const prevVal = it.ist||0;
+          saveIst(parseFloat(istInput.value)||0, prevVal);
+        });
 
-          const presetRow = el("div",{style:"display:flex;gap:4px;flex-wrap:wrap;"});
-          [100,75,50,25,10,0].forEach(p=>{
-            const b = el("button",{class:`fill-pct-btn ${pct===p?"selected":""}`}, `${p}%`);
-            b.addEventListener("click", ()=>{
-              update(ref(db, `inventory/${id}`), {fillPercent: p});
-              if(p < pct) logInventoryConsumption(id, pct, p);
-            });
-            presetRow.appendChild(b);
-          });
-          row.appendChild(presetRow);
-        } else {
-          const minusBtn = el("button",{class:"stock-adjust"}, "−");
-          const istInput = el("input",{type:"number", step:"0.1", value: it.ist||0, class:"stock-ist-input mono"});
-          const plusBtn = el("button",{class:"stock-adjust"}, "+");
-          const sollLabel = el("span",{class:"mono", style:"font-size:12px;color:var(--text-muted);white-space:nowrap;"}, `/ ${fmtNum(it.soll||0)} ${it.unit||""}`);
+        const istGroup = el("div",{style:"display:flex;align-items:center;gap:6px;flex-wrap:wrap;"},[minusBtn, istInput, plusBtn, sollLabel]);
+        row.appendChild(istGroup);
 
-          function saveIst(newVal, prevVal){
-            const v = Math.max(0, newVal);
-            update(ref(db, `inventory/${id}`), {ist: v});
-            logInventoryConsumption(id, prevVal, v);
-          }
-          minusBtn.addEventListener("click", ()=>{
+        if(it.packSize > 0){
+          const packBtn = el("button",{class:"btn-cancel", style:"width:auto;padding:6px 12px;font-size:11px;border-radius:20px;white-space:nowrap;"}, `+1 Pack (${fmtNum(it.packSize)})`);
+          packBtn.addEventListener("click", ()=>{
             const cur = parseFloat(istInput.value)||0;
-            istInput.value = Math.max(0, cur-1);
-            saveIst(cur-1, cur);
+            const newVal = cur + it.packSize;
+            istInput.value = newVal;
+            saveIst(newVal, cur);
           });
-          plusBtn.addEventListener("click", ()=>{
-            const cur = parseFloat(istInput.value)||0;
-            istInput.value = cur+1;
-            saveIst(cur+1, cur);
-          });
-          istInput.addEventListener("change", ()=>{
-            const prevVal = it.ist||0;
-            saveIst(parseFloat(istInput.value)||0, prevVal);
-          });
-
-          const istGroup = el("div",{style:"display:flex;align-items:center;gap:6px;flex-wrap:wrap;"},[minusBtn, istInput, plusBtn, sollLabel]);
-          row.appendChild(istGroup);
-
-          if(it.packSize > 0){
-            const packBtn = el("button",{class:"btn-cancel", style:"width:auto;padding:6px 12px;font-size:11px;border-radius:20px;white-space:nowrap;"}, `+1 Pack (${fmtNum(it.packSize)})`);
-            packBtn.addEventListener("click", ()=>{
-              const cur = parseFloat(istInput.value)||0;
-              const newVal = cur + it.packSize;
-              istInput.value = newVal;
-              saveIst(newVal, cur);
-            });
-            row.appendChild(packBtn);
-          }
+          row.appendChild(packBtn);
         }
 
         const editBtn = el("button",{class:"link-btn", style:"font-size:11px;"}, "✎ Bearbeiten");
         row.appendChild(editBtn);
 
-        let consumeBtn = null, logEntries = [];
-        if(!isPercent){
-          logEntries = Object.values(state.inventoryLog[id] || {});
-          consumeBtn = el("button",{class:"link-btn", style:"font-size:11px;"}, "📊 Verbrauch");
-          row.appendChild(consumeBtn);
-        }
+        const logEntries = Object.values(state.inventoryLog[id] || {});
+        const consumeBtn = el("button",{class:"link-btn", style:"font-size:11px;"}, "📊 Verbrauch");
+        row.appendChild(consumeBtn);
 
-        const batchEntries = isPercent ? [] : Object.entries(it.batches || {}).filter(([bid,b])=> b.qty > 0);
+        const batchEntries = Object.entries(it.batches || {}).filter(([bid,b])=> b.qty > 0);
         let mhdBox = null;
         if(batchEntries.length > 0){
           const mhdBtn = el("button",{class:"link-btn", style:"font-size:11px;color:var(--mango);"}, "📅 MHD");
@@ -3316,64 +3232,39 @@ function renderInventory(){
               el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Name"), eName]),
             ];
 
-            if(isPercent){
-              const eFillPct = el("input",{type:"number", step:"1", min:"0", max:"100", value:it.fillPercent||0, class:"select-emp", style:"width:100%;"});
-              fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Aktueller Füllstand (%)"), eFillPct]));
-              fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Preis pro Box (€)"), ePrice]));
-              fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lieferant"), eSupplier]));
-              fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lagerbereich"), eArea]));
-              fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Regal / Kühlschrank"), eShelf]));
-              fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), eCat]));
-              saveBtn.addEventListener("click", ()=>{
-                const updates = {
-                  name: eName.value.trim() || it.name,
-                  category: eCat.value.trim() || "Sonstiges",
-                  area: eArea.value,
-                  fillPercent: Math.max(0, Math.min(100, parseFloat(eFillPct.value) || 0)),
-                };
-                const priceVal = parseFloat(ePrice.value);
-                updates.price = priceVal > 0 ? priceVal : null;
-                updates.supplier = eSupplier.value.trim() || null;
-                updates.shelf = eShelf.value.trim() || null;
-                update(ref(db, `inventory/${id}`), updates);
-                editOpen = false;
-                editBox.style.display = "none";
-              });
-            } else {
-              const eUnit = el("input",{type:"text", value:it.unit||"", class:"select-emp", style:"width:100%;"});
-              const eSoll = el("input",{type:"number", step:"0.1", min:"0", value:it.soll||0, class:"select-emp", style:"width:100%;"});
-              const ePack = el("input",{type:"number", step:"1", min:"0", value:it.packSize||"", placeholder:"leer = keine Packs", class:"select-emp", style:"width:100%;"});
-              fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Einheit"), eUnit]));
-              fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Soll-Menge"), eSoll]));
-              fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Stück pro Packung"), ePack]));
-              fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Preis pro Einheit (€)"), ePrice]));
-              fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lieferant"), eSupplier]));
-              fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lagerbereich"), eArea]));
-              fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Regal / Kühlschrank"), eShelf]));
-              const eInventurCb = el("input",{type:"checkbox", style:"width:16px;height:16px;accent-color:var(--mango);cursor:pointer;"});
-              eInventurCb.checked = !!it.inventoryTracked;
-              fields.push(el("label",{style:"display:flex;align-items:center;gap:8px;cursor:pointer;padding-top:22px;"},[eInventurCb, el("span",{style:"font-size:12px;color:var(--text-muted);"},"In Inventur aufnehmen")]));
-              fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), eCat]));
-              saveBtn.addEventListener("click", ()=>{
-                const updates = {
-                  name: eName.value.trim() || it.name,
-                  unit: eUnit.value.trim() || "Stück",
-                  soll: parseFloat(eSoll.value) || 0,
-                  category: eCat.value.trim() || "Sonstiges",
-                  area: eArea.value,
-                  inventoryTracked: !!eInventurCb.checked,
-                };
-                const packVal = parseFloat(ePack.value);
-                updates.packSize = packVal > 0 ? packVal : null;
-                const priceVal = parseFloat(ePrice.value);
-                updates.price = priceVal > 0 ? priceVal : null;
-                updates.supplier = eSupplier.value.trim() || null;
-                updates.shelf = eShelf.value.trim() || null;
-                update(ref(db, `inventory/${id}`), updates);
-                editOpen = false;
-                editBox.style.display = "none";
-              });
-            }
+            const eUnit = el("input",{type:"text", value:it.unit||"", class:"select-emp", style:"width:100%;"});
+            const eSoll = el("input",{type:"number", step:"0.1", min:"0", value:it.soll||0, class:"select-emp", style:"width:100%;"});
+            const ePack = el("input",{type:"number", step:"1", min:"0", value:it.packSize||"", placeholder:"leer = keine Packs", class:"select-emp", style:"width:100%;"});
+            fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Einheit"), eUnit]));
+            fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Soll-Menge"), eSoll]));
+            fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Stück pro Packung"), ePack]));
+            fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Preis pro Einheit (€)"), ePrice]));
+            fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lieferant"), eSupplier]));
+            fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lagerbereich"), eArea]));
+            fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Regal / Kühlschrank"), eShelf]));
+            const eInventurCb = el("input",{type:"checkbox", style:"width:16px;height:16px;accent-color:var(--mango);cursor:pointer;"});
+            eInventurCb.checked = !!it.inventoryTracked;
+            fields.push(el("label",{style:"display:flex;align-items:center;gap:8px;cursor:pointer;padding-top:22px;"},[eInventurCb, el("span",{style:"font-size:12px;color:var(--text-muted);"},"In Inventur aufnehmen")]));
+            fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), eCat]));
+            saveBtn.addEventListener("click", ()=>{
+              const updates = {
+                name: eName.value.trim() || it.name,
+                unit: eUnit.value.trim() || "Stück",
+                soll: parseFloat(eSoll.value) || 0,
+                category: eCat.value.trim() || "Sonstiges",
+                area: eArea.value,
+                inventoryTracked: !!eInventurCb.checked,
+              };
+              const packVal = parseFloat(ePack.value);
+              updates.packSize = packVal > 0 ? packVal : null;
+              const priceVal = parseFloat(ePrice.value);
+              updates.price = priceVal > 0 ? priceVal : null;
+              updates.supplier = eSupplier.value.trim() || null;
+              updates.shelf = eShelf.value.trim() || null;
+              update(ref(db, `inventory/${id}`), updates);
+              editOpen = false;
+              editBox.style.display = "none";
+            });
             fields.push(saveBtn);
             editBox.appendChild(el("div",{class:"time-form"}, fields));
           }
@@ -3607,9 +3498,6 @@ function openInventoryScanner(){
             }
             askInventurFractionThenResume(itemId, item);
             return;
-          } else if(item.trackingMode === "percent"){
-            statusText.innerHTML = "";
-            statusText.appendChild(el("div",{style:"color:var(--mango);font-weight:700;"}, `${item.name} ist eine Box-Füllstand-Zutat — bitte den Prozentwert direkt in der Liste anpassen.`));
           } else if(mode === "in"){
             bumpIst(itemId, qty).then(()=>{
               statusText.innerHTML = "";
