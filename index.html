@@ -3031,20 +3031,22 @@ function renderInventory(){
   const qtyFields2 = el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Soll-Menge"), sollInput]);
   const qtyFields3 = el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Stück pro Packung"), packSizeInput]);
   const qtyFields4 = el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"MHD (optional)"), initExpiryInput]);
+  const inventurCheckbox = el("input",{type:"checkbox", style:"width:16px;height:16px;accent-color:var(--mango);cursor:pointer;"});
+  const qtyFields5 = el("label",{style:"display:flex;align-items:center;gap:8px;cursor:pointer;padding-top:22px;"},[inventurCheckbox, el("span",{style:"font-size:12px;color:var(--text-muted);"},"In Inventur (Endbestand scannen) aufnehmen")]);
   const pctFieldsWrap = el("div",{style:"display:none;"},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Aktueller Füllstand (%)"), initPctInput]);
 
   modeQtyBtn.addEventListener("click", ()=>{
     addMode = "qty";
     modeQtyBtn.classList.add("active"); modeQtyBtn.style.background="var(--bg-elevated-2)"; modeQtyBtn.style.color="";
     modePctBtn.classList.remove("active"); modePctBtn.style.background="var(--bg-elevated)"; modePctBtn.style.color="var(--text-muted)";
-    qtyFieldsWrap.style.display=""; qtyFields2.style.display=""; qtyFields3.style.display=""; qtyFields4.style.display="";
+    qtyFieldsWrap.style.display=""; qtyFields2.style.display=""; qtyFields3.style.display=""; qtyFields4.style.display=""; qtyFields5.style.display="";
     pctFieldsWrap.style.display="none";
   });
   modePctBtn.addEventListener("click", ()=>{
     addMode = "percent";
     modePctBtn.classList.add("active"); modePctBtn.style.background="var(--bg-elevated-2)"; modePctBtn.style.color="var(--mango)";
     modeQtyBtn.classList.remove("active"); modeQtyBtn.style.background="var(--bg-elevated)"; modeQtyBtn.style.color="var(--text-muted)";
-    qtyFieldsWrap.style.display="none"; qtyFields2.style.display="none"; qtyFields3.style.display="none"; qtyFields4.style.display="none";
+    qtyFieldsWrap.style.display="none"; qtyFields2.style.display="none"; qtyFields3.style.display="none"; qtyFields4.style.display="none"; qtyFields5.style.display="none";
     pctFieldsWrap.style.display="";
   });
 
@@ -3059,7 +3061,7 @@ function renderInventory(){
       record = {name, category, trackingMode:"percent", fillPercent: Math.max(0, Math.min(100, parseFloat(initPctInput.value) || 0)), area: areaSelect.value};
     } else {
       const soll = parseFloat(sollInput.value) || 0;
-      record = {name, category, unit: unitInput.value.trim() || "Stück", soll, ist: soll, area: areaSelect.value};
+      record = {name, category, unit: unitInput.value.trim() || "Stück", soll, ist: soll, area: areaSelect.value, inventoryTracked: !!inventurCheckbox.checked};
       const packSize = parseFloat(packSizeInput.value);
       if(packSize > 0) record.packSize = packSize;
       if(soll > 0){
@@ -3088,6 +3090,7 @@ function renderInventory(){
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lagerbereich"), areaSelect]),
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Regal / Kühlschrank"), shelfInput]),
     qtyFields4,
+    qtyFields5,
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), catSelect]),
     el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Neue Kategorie"), newCatInput]),
     addBtn
@@ -3347,6 +3350,9 @@ function renderInventory(){
               fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lieferant"), eSupplier]));
               fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Lagerbereich"), eArea]));
               fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Regal / Kühlschrank"), eShelf]));
+              const eInventurCb = el("input",{type:"checkbox", style:"width:16px;height:16px;accent-color:var(--mango);cursor:pointer;"});
+              eInventurCb.checked = !!it.inventoryTracked;
+              fields.push(el("label",{style:"display:flex;align-items:center;gap:8px;cursor:pointer;padding-top:22px;"},[eInventurCb, el("span",{style:"font-size:12px;color:var(--text-muted);"},"In Inventur aufnehmen")]));
               fields.push(el("div",{},[el("label",{style:"display:block;font-size:11px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), eCat]));
               saveBtn.addEventListener("click", ()=>{
                 const updates = {
@@ -3355,6 +3361,7 @@ function renderInventory(){
                   soll: parseFloat(eSoll.value) || 0,
                   category: eCat.value.trim() || "Sonstiges",
                   area: eArea.value,
+                  inventoryTracked: !!eInventurCb.checked,
                 };
                 const packVal = parseFloat(ePack.value);
                 updates.packSize = packVal > 0 ? packVal : null;
@@ -3421,13 +3428,25 @@ function openInventoryScanner(){
   }
   const overlay = el("div",{style:"position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto;"});
 
-  const modeRow = el("div",{style:"display:flex;gap:8px;margin-bottom:14px;"});
+  const modeRow = el("div",{style:"display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;"});
   let mode = "out";
   const outBtn = el("button",{class:"tab active", style:"background:var(--chili);color:#fff;"}, "− Entnahme");
   const inBtn = el("button",{class:"tab", style:"background:var(--bg-elevated);color:var(--text-muted);"}, "+ Auffüllen");
+  const inventurBtn = el("button",{class:"tab", style:"background:var(--bg-elevated);color:var(--text-muted);"}, "📋 Inventur");
   overlay.appendChild(modeRow);
   modeRow.appendChild(outBtn);
   modeRow.appendChild(inBtn);
+  modeRow.appendChild(inventurBtn);
+
+  // Inventur progress
+  const trackedIds = Object.entries(state.inventory||{}).filter(([id,it])=> it.inventoryTracked && !it.archived).map(([id])=>id);
+  const inventurDone = new Set();
+  const inventurProgress = el("div",{style:"display:none;font-size:12px;color:var(--mango);margin-bottom:10px;text-align:center;"});
+  function updateInventurProgress(){
+    inventurProgress.textContent = `Inventur: noch ${trackedIds.length - inventurDone.size} von ${trackedIds.length} offen`;
+  }
+  updateInventurProgress();
+  overlay.appendChild(inventurProgress);
 
   // quantity selector — only relevant for Auffüllen
   let qty = 1;
@@ -3449,18 +3468,18 @@ function openInventoryScanner(){
 
   function setMode(m){
     mode = m;
-    if(m==="out"){
-      outBtn.style.background="var(--chili)"; outBtn.style.color="#fff";
-      inBtn.style.background="var(--bg-elevated)"; inBtn.style.color="var(--text-muted)";
-      qtyRow.style.display = "none";
-    } else {
-      inBtn.style.background="var(--avocado)"; inBtn.style.color="var(--avocado-ink)";
-      outBtn.style.background="var(--bg-elevated)"; outBtn.style.color="var(--text-muted)";
-      qtyRow.style.display = "flex";
-    }
+    outBtn.style.background="var(--bg-elevated)"; outBtn.style.color="var(--text-muted)";
+    inBtn.style.background="var(--bg-elevated)"; inBtn.style.color="var(--text-muted)";
+    inventurBtn.style.background="var(--bg-elevated)"; inventurBtn.style.color="var(--text-muted)";
+    qtyRow.style.display = "none";
+    inventurProgress.style.display = "none";
+    if(m==="out"){ outBtn.style.background="var(--chili)"; outBtn.style.color="#fff"; }
+    else if(m==="in"){ inBtn.style.background="var(--avocado)"; inBtn.style.color="var(--avocado-ink)"; qtyRow.style.display="flex"; }
+    else { inventurBtn.style.background="var(--mango)"; inventurBtn.style.color="var(--mango-ink)"; inventurProgress.style.display="block"; }
   }
   outBtn.addEventListener("click", ()=> setMode("out"));
   inBtn.addEventListener("click", ()=> setMode("in"));
+  inventurBtn.addEventListener("click", ()=> setMode("inventur"));
 
   const videoWrap = el("div",{style:"width:100%;max-width:340px;aspect-ratio:1;border-radius:16px;overflow:hidden;position:relative;border:2px solid var(--mango);background:#000;"});
   const video = el("video",{playsinline:"true", muted:"true", style:"width:100%;height:100%;object-fit:cover;"});
@@ -3529,8 +3548,41 @@ function openInventoryScanner(){
   function resumeScanning(){
     expiryBox.style.display = "none";
     paused = false;
-    statusText.textContent = "Halte den nächsten Code vor die Kamera";
+    statusText.textContent = mode==="inventur" ? "Nächste Zutat scannen…" : "Halte den nächsten Code vor die Kamera";
     requestAnimationFrame(tick);
+  }
+
+  function askInventurFractionThenResume(itemId, item){
+    paused = true;
+    expiryBox.style.display = "block";
+    expiryBox.innerHTML = "";
+    const wholeUnits = Math.floor(item.ist||0);
+    expiryBox.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);margin-bottom:4px;"}, `${item.name}`));
+    expiryBox.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-bottom:10px;"}, `${wholeUnits} volle ${item.unit||"Stk"} sind erfasst. Wie viel ist von der angebrochenen Einheit noch übrig?`));
+    const btnRow = el("div",{style:"display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px;"});
+    [
+      {label:"0", val:0},
+      {label:"¼", val:0.25},
+      {label:"½", val:0.5},
+      {label:"¾", val:0.75},
+      {label:"1 (voll)", val:1},
+    ].forEach(opt=>{
+      const b = el("button",{class:"btn-primary", style:"padding:10px 14px;border-radius:9px;border:none;font-weight:700;flex:1;min-width:60px;"}, opt.label);
+      b.addEventListener("click", async ()=>{
+        const newIst = wholeUnits + opt.val;
+        await update(ref(db, `inventory/${itemId}`), {ist: newIst});
+        inventurDone.add(itemId);
+        updateInventurProgress();
+        statusText.innerHTML = "";
+        statusText.appendChild(el("div",{style:"color:var(--mango);font-weight:700;"}, `✓ ${item.name}: ${fmtNum(newIst)} ${item.unit||""} erfasst`));
+        resumeScanning();
+      });
+      btnRow.appendChild(b);
+    });
+    expiryBox.appendChild(btnRow);
+    const skipBtn = el("button",{class:"btn-cancel", style:"padding:9px;width:100%;"}, "Überspringen");
+    skipBtn.addEventListener("click", ()=> resumeScanning());
+    expiryBox.appendChild(skipBtn);
   }
 
   function tick(){
@@ -3547,7 +3599,15 @@ function openInventoryScanner(){
         const itemId = code.data.slice(INV_CODE_PREFIX.length);
         const item = state.inventory[itemId];
         if(item){
-          if(item.trackingMode === "percent"){
+          if(mode === "inventur"){
+            if(!item.inventoryTracked){
+              statusText.innerHTML = "";
+              statusText.appendChild(el("div",{style:"color:var(--text-muted);"}, `${item.name} ist nicht Teil der Inventur.`));
+              return;
+            }
+            askInventurFractionThenResume(itemId, item);
+            return;
+          } else if(item.trackingMode === "percent"){
             statusText.innerHTML = "";
             statusText.appendChild(el("div",{style:"color:var(--mango);font-weight:700;"}, `${item.name} ist eine Box-Füllstand-Zutat — bitte den Prozentwert direkt in der Liste anpassen.`));
           } else if(mode === "in"){
