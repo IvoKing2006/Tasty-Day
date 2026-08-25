@@ -3581,7 +3581,6 @@ function openInventoryLabelsOverlay(items){
     const qrBox = el("div",{});
     card.appendChild(qrBox);
     card.appendChild(el("div",{class:"lbl-name"}, it.name));
-    card.appendChild(el("div",{class:"lbl-cat"}, it.category||""));
     wrap.appendChild(card);
     checkbox.addEventListener("change", ()=>{ card.style.display = checkbox.checked ? "flex" : "none"; });
     card.style.display = checkbox.checked ? "flex" : "none";
