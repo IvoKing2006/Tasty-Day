@@ -3599,13 +3599,23 @@ function openInventoryLabelsOverlay(items){
   ]);
   overlay.appendChild(bar);
 
-  const selectRow = el("div",{class:"no-print", style:"display:flex;gap:16px;margin-bottom:16px;"});
+  const selectRow = el("div",{class:"no-print", style:"display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;"});
   const selectAllBtn = el("button",{class:"link-btn"}, "Alle auswählen");
   const selectNewBtn = el("button",{class:"link-btn"}, "Nur neue (noch nie gedruckt)");
   const selectNoneBtn = el("button",{class:"link-btn"}, "Keine auswählen");
+  const resetPrintedBtn = el("button",{class:"link-btn", style:"color:var(--chili);"}, "🔄 Druck-Status zurücksetzen");
+  resetPrintedBtn.addEventListener("click", async ()=>{
+    if(!confirm("Alle Zutaten wieder als „neu / noch nie gedruckt“ markieren?")) return;
+    const updates = {};
+    items.forEach(([id])=>{ updates[`inventory/${id}/labelPrinted`] = null; });
+    await update(ref(db), updates);
+    checkboxes.forEach(cb=>{ cb.checked = true; cb.dispatchEvent(new Event("change")); });
+    alert("Druck-Status zurückgesetzt — alle Zutaten gelten wieder als neu.");
+  });
   selectRow.appendChild(selectAllBtn);
   selectRow.appendChild(selectNewBtn);
   selectRow.appendChild(selectNoneBtn);
+  selectRow.appendChild(resetPrintedBtn);
   overlay.appendChild(selectRow);
 
   const checkboxes = [];
