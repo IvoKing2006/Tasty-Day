@@ -3589,7 +3589,8 @@ function openInventoryScanner(){
 
 // ---------- printable inventory labels ----------
 function openInventoryLabelsOverlay(items){
-  const overlay = el("div",{style:"position:fixed;inset:0;background:var(--bg);z-index:100;overflow-y:auto;padding:24px;"});
+  document.querySelectorAll(".label-overlay-instance").forEach(el=> el.remove());
+  const overlay = el("div",{class:"label-overlay-instance", style:"position:fixed;inset:0;background:var(--bg);z-index:100;overflow-y:auto;padding:24px;"});
   const bar = el("div",{class:"no-print", style:"display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px;"},[
     el("h2",{class:"section-title"}, "Etiketten zum Ausdrucken"),
     el("div",{style:"display:flex;gap:10px;"},[
