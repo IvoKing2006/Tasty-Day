@@ -2171,6 +2171,7 @@ function renderTeam(){
     resetButton("Nur Tauschanfragen löschen", ()=> remove(ref(db, "swapRequests"))),
     resetButton("Nur Passwort-Anfragen löschen", ()=> remove(ref(db, "passwordResets"))),
     resetButton("Nur Lagerbestand löschen", ()=>{ remove(ref(db, "inventory")); remove(ref(db, "inventoryLog")); }),
+    resetButton("Nur Verbrauchshistorie zurücksetzen", ()=> remove(ref(db, "inventoryLog"))),
     resetButton("Nur Umsatz löschen", ()=> remove(ref(db, "revenue"))),
     resetButton("Nur Ausgaben löschen", ()=> remove(ref(db, "expenses"))),
   ]);
@@ -3242,6 +3243,14 @@ function renderInventory(){
                   ])
                 ]));
               });
+              const resetLogBtn = el("button",{class:"link-btn", style:"margin-top:8px;color:var(--chili);font-size:11px;"}, "🔄 Verbrauchshistorie zurücksetzen");
+              resetLogBtn.addEventListener("click", async ()=>{
+                if(!confirm(`Verbrauchshistorie für „${it.name}“ wirklich zurücksetzen? Die Wochentag-Auswertung beginnt danach wieder bei null.`)) return;
+                await remove(ref(db, `inventoryLog/${id}`));
+                chartBox.innerHTML = "";
+                chartBox.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);"}, "Verbrauchshistorie wurde zurückgesetzt."));
+              });
+              chartBox.appendChild(resetLogBtn);
             }
           }
           chartBox.style.display = chartOpen ? "block" : "none";
