@@ -403,6 +403,7 @@ let state = {
   tab: "availability",
   weekOffset: 0,
   weekData: { availability:{}, schedule:{}, extraShifts:{} },
+  currentWeekData: { schedule:{} },
   timeEntries: {},
   passwordResets: {},
   announcements: {},
@@ -741,6 +742,7 @@ function logout(){
   state.currentUser = null;
   state.screen = "login";
   state.weekData = {availability:{}, schedule:{}, extraShifts:{}};
+  state.currentWeekData = {schedule:{}};
   state.timeEntries = {};
   state.chefAvailEmpId = null;
   state.chefTimesEmpId = null;
@@ -809,6 +811,11 @@ onValue(ref(db, "employees"), (snap)=>{
 
 function startSessionListeners(){
   attachWeekListener();
+  onValue(ref(db, `weeks/${weekIdFor(0)}`), (snap)=>{
+    const v = snap.val() || {};
+    state.currentWeekData = {schedule: v.schedule || {}};
+    render();
+  });
   onValue(ref(db, "timeEntries"), (snap)=>{ state.timeEntries = snap.val() || {}; render(); });
   onValue(ref(db, "passwordResets"), (snap)=>{ state.passwordResets = snap.val() || {}; render(); });
   onValue(ref(db, "payouts"), (snap)=>{ state.payouts = snap.val() || {}; render(); });
@@ -1631,7 +1638,7 @@ function renderDashboard(){
   });
 
   const todayKey = todayDayKey();
-  const todaySchedule = (state.weekData.schedule && state.weekData.schedule[todayKey]) || {};
+  const todaySchedule = (state.currentWeekData.schedule && state.currentWeekData.schedule[todayKey]) || {};
   const todayAssignments = [];
   Object.entries(todaySchedule).forEach(([shiftKey, assigns])=>{
     Object.values(assigns).forEach(a=> todayAssignments.push({...a, shiftKey}));
@@ -2201,7 +2208,7 @@ function renderTeam(){
   return section;
 }
 
-function collectOtherAssignments(excludeAssignId, excludeEmployeeId){
+function collectOtherAssignments(excludeAssignId, excludeEmployeeId, empIds){
   const result = [];
   const scheduleObj = state.weekData.schedule || {};
   Object.keys(scheduleObj).forEach(dayKey=>{
@@ -2209,6 +2216,7 @@ function collectOtherAssignments(excludeAssignId, excludeEmployeeId){
       Object.entries(scheduleObj[dayKey][shiftKey] || {}).forEach(([assignId, s])=>{
         if(assignId === excludeAssignId) return;
         if(s.employeeId === excludeEmployeeId) return;
+        if(empIds && !empIds.includes(s.employeeId)) return;
         result.push({dayKey, shiftKey, assignId, employeeId: s.employeeId, start:s.start, end:s.end});
       });
     });
@@ -2235,7 +2243,7 @@ function openSwapForm(ticket, wid, dayKey, shiftKey, assignId, fromEmployeeId, e
 
   function buildSwapTargetSelect(){
     targetWrap.innerHTML = "";
-    const others = collectOtherAssignments(assignId, fromEmployeeId);
+    const others = collectOtherAssignments(assignId, fromEmployeeId, empIds);
     if(others.length === 0){
       targetWrap.appendChild(el("div",{style:"font-size:11px;color:var(--ink);opacity:.7;"}, "Keine anderen Schichten in dieser Woche zum Tauschen vorhanden."));
       return null;
