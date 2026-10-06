@@ -637,6 +637,16 @@ function renderAuth(mode){
   card.appendChild(el("div",{class:"field"},[el("label",{},"Name"), nameField]));
   card.appendChild(el("div",{class:"field"},[el("label",{},"Passwort"), passField]));
 
+  let rememberCheckbox = null;
+  if(mode === "login"){
+    rememberCheckbox = el("input",{type:"checkbox"});
+    rememberCheckbox.checked = true;
+    card.appendChild(el("label",{style:"display:flex;align-items:center;gap:8px;margin:2px 0 6px;font-size:13px;color:var(--text-muted);font-weight:600;cursor:pointer;"},[
+      rememberCheckbox,
+      el("span",{}, "Angemeldet bleiben")
+    ]));
+  }
+
   if(mode === "register" && !chefExists()){
     card.appendChild(el("div",{class:"field"},[
       el("label",{}, "Erster Account — als Chef anlegen?"),
@@ -671,7 +681,7 @@ function renderAuth(mode){
     const pass = passField.value;
     if(!name || !pass){ state.authError = "Bitte Name und Passwort eingeben."; render(); return; }
     if(mode === "login"){
-      await doLogin(name, pass);
+      await doLogin(name, pass, rememberCheckbox ? rememberCheckbox.checked : false);
     } else {
       let role = "employee";
       if(!chefExists()){
@@ -708,13 +718,17 @@ function renderAuth(mode){
   return wrap;
 }
 
-async function doLogin(name, pass){
+async function doLogin(name, pass, remember){
   const entry = Object.entries(state.employees).find(([id,e])=> e.name.toLowerCase() === name.toLowerCase());
   if(!entry){ state.authError = "Kein Konto mit diesem Namen gefunden."; render(); return; }
   const [id, e] = entry;
   if(e.password !== simpleHash(pass)){ state.authError = "Falsches Passwort."; render(); return; }
   state.authError = "";
   const isAdmin = e.hiddenAdmin === true;
+  try {
+    if(remember) localStorage.setItem("td_session", id);
+    else localStorage.removeItem("td_session");
+  } catch(err){}
   state.currentUser = {id, name:e.name, role:e.role, isAdmin};
   state.tab = e.role === "chef" ? "dashboard" : "availability";
   state.screen = "app";
@@ -739,6 +753,7 @@ async function doRegister(name, pass, role, hiddenAdmin, jobType){
 }
 
 function logout(){
+  try { localStorage.removeItem("td_session"); } catch(err){}
   state.currentUser = null;
   state.screen = "login";
   state.weekData = {availability:{}, schedule:{}, extraShifts:{}};
@@ -806,8 +821,23 @@ function renderForgot(){
 // ---------- listeners ----------
 onValue(ref(db, "employees"), (snap)=>{
   state.employees = snap.val() || {};
+  tryAutoLogin();
   render();
 });
+
+function tryAutoLogin(){
+  if(state.currentUser || state.screen !== "login") return;
+  let savedId = null;
+  try { savedId = localStorage.getItem("td_session"); } catch(err){}
+  if(!savedId) return;
+  const e = state.employees[savedId];
+  if(!e) return;
+  const isAdmin = e.hiddenAdmin === true;
+  state.currentUser = {id: savedId, name: e.name, role: e.role, isAdmin};
+  state.tab = e.role === "chef" ? "dashboard" : "availability";
+  state.screen = "app";
+  startSessionListeners();
+}
 
 function startSessionListeners(){
   attachWeekListener();
@@ -1216,6 +1246,24 @@ function buildScheduleBoard(editable, empIds, dates, wid, groupKey){
               const swapBtn = el("button",{style:"margin-top:8px;background:none;border:1px dashed var(--ink);opacity:.6;color:var(--ink);border-radius:7px;padding:6px 10px;font-size:11px;font-weight:600;width:100%;"}, "⇄ Tausch anfragen");
               swapBtn.addEventListener("click", ()=> openSwapForm(ticket, wid, d.key, shift.key, assignId, s.employeeId, empIds));
               ticket.appendChild(swapBtn);
+            }
+          }
+
+          if(editable){
+            const dayDefaults = defaultShiftsForDay(d.key);
+            const isDefaultShift = dayDefaults.some(ds=> ds.key === shift.key);
+            const otherShift = dayDefaults.find(ds=> ds.key !== shift.key);
+            if(isDefaultShift && otherShift){
+              const otherAssignments = (state.weekData.schedule && state.weekData.schedule[d.key] && state.weekData.schedule[d.key][otherShift.key]) || {};
+              const alreadyThere = Object.values(otherAssignments).some(a=> a.employeeId === s.employeeId);
+              if(!alreadyThere){
+                const copyBtn = el("button",{style:"margin-top:8px;background:none;border:1px dashed var(--avocado);color:var(--avocado);border-radius:7px;padding:6px 10px;font-size:11px;font-weight:600;width:100%;cursor:pointer;"}, `+ auch ${otherShift.label} (${s.start}–${s.end})`);
+                copyBtn.addEventListener("click", async ()=>{
+                  const newRef = push(ref(db, `weeks/${wid}/schedule/${d.key}/${otherShift.key}`));
+                  await set(newRef, {employeeId: s.employeeId, start: s.start, end: s.end});
+                });
+                ticket.appendChild(copyBtn);
+              }
             }
           }
 
