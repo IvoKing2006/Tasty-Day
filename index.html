@@ -348,6 +348,18 @@
     .print-area{position:absolute;top:0;left:0;width:100%;}
     .no-print{display:none !important;}
   }
+
+  /* ---- sanfte Animationen (nur beim Seitenwechsel) ---- */
+  @keyframes riseIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+  .anim-in .card, .anim-in .dash-tile, .anim-in .section-head, .anim-in .announce-banner, .anim-in .empty-state{
+    animation:riseIn .55s cubic-bezier(.22,1,.36,1) both;
+  }
+  .btn,.tab,.avail-btn{transition:transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;}
+  .btn:active,.tab:active,.avail-btn:active,.dash-tile:active{transform:scale(.97);}
+  @media (hover:hover){ .dash-tile:hover{transform:translateY(-3px);} }
+  @media (prefers-reduced-motion: reduce){
+    .anim-in .card, .anim-in .dash-tile, .anim-in .section-head, .anim-in .announce-banner, .anim-in .empty-state{animation:none;}
+  }
 </style>
 </head>
 <body>
@@ -442,7 +454,19 @@ function render(){
   else if(state.screen === "register") root.appendChild(renderAuth("register"));
   else if(state.screen === "forgot") root.appendChild(renderForgot());
   else root.appendChild(renderApp());
+  // Animation nur beim Wechsel von Seite/Tab, nicht bei jedem Daten-Update
+  const animKey = state.screen + "|" + state.tab;
+  if(animKey !== lastAnimKey){
+    lastAnimKey = animKey;
+    root.classList.add("anim-in");
+    root.querySelectorAll(".section-head,.announce-banner,.card,.dash-tile,.empty-state").forEach((n,i)=>{
+      n.style.animationDelay = Math.min(i*60, 480) + "ms";
+    });
+  } else {
+    root.classList.remove("anim-in");
+  }
 }
+let lastAnimKey = "";
 
 // ---------- helpers ----------
 function chefExists(){
