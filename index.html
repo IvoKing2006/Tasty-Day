@@ -669,6 +669,7 @@
   .modal-backdrop{position:fixed;inset:0;z-index:95;background:rgba(18,25,21,.35);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;}
   .help-steps{margin:0 0 20px;padding-left:20px;font-size:15px;line-height:1.55;}
   .help-steps li{margin-bottom:8px;}
+  .swap-incoming{border-color:rgba(180,101,12,.35) !important;}
   .help-steps .ic{margin-left:4px;color:var(--brand);}
   .topbar-actions{display:flex;align-items:center;gap:6px;}
 </style>
@@ -1455,7 +1456,6 @@ async function enablePush(){
       device: IS_IOS ? "iPhone/iPad" : (/Android/.test(navigator.userAgent) ? "Android" : "Computer"),
       createdAt: Date.now()
     });
-    await notifyWorker({type:"test", employeeId: state.currentUser.id});
   }catch(err){
     alert("Benachrichtigungen konnten nicht aktiviert werden: " + (err && err.message ? err.message : err));
   }
@@ -1497,7 +1497,7 @@ function renderPushHint(){
     el("span",{class:"push-hint-ic"},[ic("bell")]),
     el("div",{class:"push-hint-text"},[
       el("div",{class:"t"}, "Nichts mehr verpassen"),
-      el("div",{class:"s"}, ios ? "Füge die App zum Home-Bildschirm hinzu, dann bekommst du neue Schichten, Erinnerungen und Ankündigungen aufs Handy." : "Bekomm neue Schichten, Erinnerungen und Ankündigungen direkt aufs Handy.")
+      el("div",{class:"s"}, ios ? "Füge die App zum Home-Bildschirm hinzu, dann bekommst du Wochenplan, Tauschanfragen und Ankündigungen aufs Handy." : "Bekomm Wochenplan, Tauschanfragen und Ankündigungen direkt aufs Handy.")
     ]),
     el("div",{class:"push-hint-actions"},[
       el("button",{class:"btn btn-primary", onclick: ()=> ios ? (state.showPushHelp=true, render()) : enablePush()}, ios ? "So geht's" : (state.pushBusy ? "Einen Moment…" : "Aktivieren")),
@@ -1564,8 +1564,62 @@ function renderSendPlanButton(){
     btn.disabled = true;
     btn.textContent = "Wird gesendet…";
     const res = await notifyWorker({type:"plan", weekId: weekIdFor(state.weekOffset)});
-    btn.textContent = res && typeof res.sent === "number" ? `Gesendet an ${res.sent} Geräte` : "Senden fehlgeschlagen";
+    btn.textContent = res && typeof res.sent === "number" ? `Gesendet an ${res.sent} ${res.sent===1?"Gerät":"Geräte"}` : "Senden fehlgeschlagen";
     setTimeout(()=>{ btn.disabled = false; btn.textContent = ""; icl("send","Plan ans Team senden").forEach(n=> btn.append(n)); }, 2500);
+  });
+  return btn;
+}
+
+// Tauschanfragen, die auf MEINE Antwort warten (für Mitarbeiter, oben in jeder Ansicht)
+function renderIncomingSwaps(){
+  if(state.currentUser.role === "chef") return null;
+  const mine = Object.entries(state.swapRequests || {}).filter(([id,r])=> r.status === "colleague" && r.to && r.to.employeeId === state.currentUser.id)
+    .sort((a,b)=> a[1].createdAt - b[1].createdAt);
+  if(mine.length === 0) return null;
+  const dayLabel = (key)=> (DAYS.find(d=> d.key===key) || {}).label || key;
+  const shiftName = (key)=> key === "frueh" ? "Früh" : key === "abend" ? "Abend" : "Extra-Schicht";
+  const wrap = el("div",{});
+  mine.forEach(([reqId, r])=>{
+    const fromName = state.employees[r.from.employeeId] ? state.employees[r.from.employeeId].name : "Jemand";
+    const card = el("div",{class:"card swap-incoming"});
+    card.appendChild(el("div",{class:"announce-head"},[ el("span",{class:"ic-wrap"},[ic("swap")]), `Tauschanfrage von ${fromName}` ]));
+    const text = r.mode === "swap"
+      ? [ el("strong",{}, fromName), ` möchte die Schicht am `, el("strong",{}, `${dayLabel(r.from.dayKey)} (${shiftName(r.from.shiftKey)})`), ` gegen deine Schicht am `, el("strong",{}, `${dayLabel(r.to.dayKey)} (${shiftName(r.to.shiftKey)})`), ` tauschen.` ]
+      : [ el("strong",{}, fromName), ` möchte dir die Schicht am `, el("strong",{}, `${dayLabel(r.from.dayKey)} (${shiftName(r.from.shiftKey)})`), ` geben.` ];
+    card.appendChild(el("p",{style:"margin:4px 0 4px;font-size:14.5px;line-height:1.5;"}, text));
+    card.appendChild(el("p",{style:"margin:0 0 14px;font-size:13px;color:var(--text-muted);"}, `Woche ${r.weekId} · Wenn du zustimmst, entscheidet danach der Chef.`));
+    const yes = el("button",{class:"btn btn-primary", style:"width:auto;padding:9px 18px;"}, "Annehmen");
+    const no = el("button",{class:"btn-cancel", style:"width:auto;padding:9px 18px;"}, "Ablehnen");
+    yes.addEventListener("click", async ()=>{
+      yes.disabled = true; no.disabled = true;
+      await update(ref(db, `swapRequests/${reqId}`), {status:"pending", colleagueAnsweredAt: Date.now()});
+      notifyWorker({type:"swapAnswer", id: reqId});
+    });
+    no.addEventListener("click", async ()=>{
+      if(!confirm("Tauschanfrage wirklich ablehnen?")) return;
+      yes.disabled = true; no.disabled = true;
+      await update(ref(db, `swapRequests/${reqId}`), {status:"declined", colleagueAnsweredAt: Date.now()});
+      notifyWorker({type:"swapAnswer", id: reqId});
+    });
+    card.appendChild(el("div",{style:"display:flex;gap:10px;"},[yes, no]));
+    wrap.appendChild(card);
+  });
+  return wrap;
+}
+
+// Chef: „Verfügbarkeiten anfragen“
+function renderAskAvailabilityButton(){
+  if(!pushWorkerUrl()) return null;
+  const btn = el("button",{class:"tab"}, icl("send","Verfügbarkeiten anfragen"));
+  btn.addEventListener("click", async ()=>{
+    const dates = datesForWeek(state.weekOffset);
+    const range = `${fmtDate(dates[0])}–${fmtDate(dates[6])}`;
+    if(!confirm(`Alle Mitarbeiter bitten, ihre Verfügbarkeiten für ${range} einzutragen?`)) return;
+    btn.disabled = true;
+    btn.textContent = "Wird gesendet…";
+    const res = await notifyWorker({type:"availability", weekId: weekIdFor(state.weekOffset)});
+    btn.textContent = res && typeof res.sent === "number" ? `Gesendet an ${res.sent} ${res.sent===1?"Gerät":"Geräte"}` : "Senden fehlgeschlagen";
+    setTimeout(()=>{ btn.disabled = false; btn.textContent = ""; icl("send","Verfügbarkeiten anfragen").forEach(n=> btn.append(n)); }, 2500);
   });
   return btn;
 }
@@ -1581,6 +1635,8 @@ function renderApp(){
   const main = el("main",{});
   const banner = renderAnnouncementsBanner();
   if(banner) main.appendChild(banner);
+  const incoming = renderIncomingSwaps();
+  if(incoming) main.appendChild(incoming);
   main.appendChild(renderTabContent());
   mainCol.appendChild(main);
   shell.appendChild(mainCol);
@@ -1786,6 +1842,7 @@ function renderAvailability(chefView){
   ]);
   section.appendChild(head);
   if(!chefView){ const hint = renderPushHint(); if(hint) section.appendChild(hint); }
+  if(chefView){ const askBtn = renderAskAvailabilityButton(); if(askBtn) section.appendChild(el("div",{style:"margin-bottom:16px;"},[askBtn])); }
 
   const dates = datesForWeek(state.weekOffset);
 
@@ -2036,11 +2093,12 @@ function buildScheduleBoard(editable, empIds, dates, wid, groupKey){
           ticket.appendChild(el("div",{class:"ticket-time mono"}, `${s.start} – ${s.end}`));
 
           if(isMe && !editable && state.currentUser.role !== "chef"){
-            const pendingReq = Object.entries(state.swapRequests || {}).find(([rid,r])=> r.from && r.from.assignId === assignId && r.status === "pending");
+            const pendingReq = Object.entries(state.swapRequests || {}).find(([rid,r])=> r.from && r.from.assignId === assignId && (r.status === "pending" || r.status === "colleague"));
             if(pendingReq){
-              const [reqId] = pendingReq;
+              const [reqId, pr] = pendingReq;
               const pendingWrap = el("div",{style:"margin-top:8px;"});
-              pendingWrap.appendChild(el("div",{style:"font-size:12.5px;color:var(--chili);font-weight:700;margin-bottom:4px;"}, icl("hourglass","Tausch angefragt")));
+              const askedName = pr.to && state.employees[pr.to.employeeId] ? state.employees[pr.to.employeeId].name : "Kollege";
+              pendingWrap.appendChild(el("div",{style:"font-size:12.5px;color:var(--mango);font-weight:700;margin-bottom:4px;"}, icl("hourglass", pr.status === "colleague" ? `Wartet auf ${askedName}` : "Wartet auf den Chef")));
               const cancelBtn = el("button",{style:"background:none;border:1px solid var(--line-strong);color:var(--text);border-radius:9px;background:var(--bg-elevated);padding:5px 10px;font-size:11.5px;font-weight:600;width:100%;"}, icl("x","Anfrage zurückziehen"));
               cancelBtn.addEventListener("click", ()=>{
                 if(confirm("Diese Tauschanfrage wirklich zurückziehen?")){
@@ -3031,7 +3089,7 @@ function openSwapForm(ticket, wid, dayKey, shiftKey, assignId, fromEmployeeId, e
       weekId: wid,
       mode,
       from: {employeeId: fromEmployeeId, dayKey, shiftKey, assignId},
-      status:"pending", createdAt: Date.now()
+      status:"colleague", createdAt: Date.now()
     };
     if(mode === "swap"){
       const chosen = current.others[parseInt(current.sel.value,10)];
@@ -3041,6 +3099,7 @@ function openSwapForm(ticket, wid, dayKey, shiftKey, assignId, fromEmployeeId, e
     }
     const newRef = push(ref(db, "swapRequests"));
     await set(newRef, record);
+    notifyWorker({type:"swapRequest", id: newRef.key});
     form.remove();
   });
   form.appendChild(sendBtn);
@@ -3098,17 +3157,19 @@ function renderSwaps(){
           }
         }
         await update(ref(db, `swapRequests/${reqId}`), {status:"approved"});
-        notifyWorker({type:"swap", id: reqId});
       });
       rejectBtn.addEventListener("click", async ()=>{
         await update(ref(db, `swapRequests/${reqId}`), {status:"rejected"});
-        notifyWorker({type:"swap", id: reqId});
       });
       actions.appendChild(approveBtn);
       actions.appendChild(rejectBtn);
       card.appendChild(actions);
     } else {
-      card.appendChild(el("span",{class:`avail-pill ${r.status==="approved"?"yes":"no"}`}, r.status==="approved" ? "Genehmigt" : "Abgelehnt"));
+      const statusText = r.status==="approved" ? "Genehmigt"
+        : r.status==="colleague" ? `Wartet auf Antwort von ${toName}`
+        : r.status==="declined" ? `Von ${toName} abgelehnt`
+        : "Abgelehnt";
+      card.appendChild(el("span",{class:`avail-pill ${r.status==="approved"?"yes":"no"}`}, statusText));
     }
     section.appendChild(card);
   });
