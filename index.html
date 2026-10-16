@@ -2307,7 +2307,8 @@ function renderTimes(chefView){
           const confirmBtn = el("button",{class:"btn btn-primary", style:"width:auto;padding:8px 16px;font-size:13px;"}, "Erhalt bestätigen");
           confirmBtn.addEventListener("click", (ev)=>{
             ev.stopPropagation();
-            update(ref(db, `payouts/${state.currentUser.id}/${payoutId}`), {status:"confirmed", confirmedAt: Date.now()});
+            update(ref(db, `payouts/${state.currentUser.id}/${payoutId}`), {status:"confirmed", confirmedAt: Date.now()})
+              .then(()=> notifyWorker({type:"payoutConfirmed", employeeId: state.currentUser.id, id: payoutId}));
           });
           rightSide.appendChild(confirmBtn);
         }
@@ -2472,7 +2473,7 @@ function renderTimes(chefView){
         updates[`timeEntries/${empId}/${id}/payoutId`] = payoutId;
       });
       updates[`payouts/${empId}/${payoutId}`] = {amount: amountSum, hours: hoursSum, tip: tipSum, createdAt: Date.now(), status:"pending"};
-      update(ref(db), updates);
+      update(ref(db), updates).then(()=> notifyWorker({type:"payout", employeeId: empId, id: payoutId}));
     });
   }
   section.appendChild(payoutCard);
