@@ -1125,6 +1125,39 @@ function renderAvailability(chefView){
   });
   card.appendChild(grid);
   section.appendChild(card);
+
+  // Team-Übersicht: wer ist wann verfügbar
+  const teamIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+  const teamCard = el("div",{class:"card", style:"margin-top:16px;"});
+  teamCard.appendChild(el("h3",{style:"margin:0 0 4px;font-size:15px;"}, "Team-Übersicht"));
+  teamCard.appendChild(el("p",{style:"margin:0 0 12px;font-size:12px;color:var(--text-muted);"}, "Wer hat sich für welche Schicht als verfügbar eingetragen."));
+  const teamGrid = el("div",{class:"avail-grid", style:"gap:14px;"});
+  DAYS.forEach((d,i)=>{
+    const box = el("div",{style:"background:var(--bg-elevated-2);border-radius:10px;padding:12px 14px;"});
+    box.appendChild(el("div",{style:"display:flex;align-items:baseline;gap:8px;margin-bottom:8px;"},[
+      el("span",{class:"avail-day-label"}, d.label),
+      el("span",{class:"avail-day-date"}, fmtDate(dates[i]))
+    ]));
+    shiftsForAvailability(d.key).forEach(shift=>{
+      const names = teamIds.filter(id=> isAvailableOn(id, d.key, shift.key));
+      const row = el("div",{style:"display:flex;align-items:flex-start;gap:10px;padding:5px 0;"});
+      row.appendChild(el("span",{style:"min-width:70px;font-size:13px;color:var(--text-muted);font-weight:600;"}, shift.label));
+      const chips = el("div",{style:"display:flex;flex-wrap:wrap;gap:6px;flex:1;"});
+      if(names.length === 0){
+        chips.appendChild(el("span",{style:"font-size:12px;color:var(--text-muted);"}, "Noch niemand"));
+      } else {
+        names.forEach(id=>{
+          const me = id === state.currentUser.id;
+          chips.appendChild(el("span",{style:`font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--avocado);color:var(--avocado);${me?"background:rgba(127,176,105,.18);font-weight:700;":""}`}, state.employees[id].name));
+        });
+      }
+      row.appendChild(chips);
+      box.appendChild(row);
+    });
+    teamGrid.appendChild(box);
+  });
+  teamCard.appendChild(teamGrid);
+  section.appendChild(teamCard);
   return section;
 }
 
@@ -2115,14 +2148,25 @@ function renderTeam(){
   announceCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Ankündigungen fürs Team"));
   const announceInput = el("textarea",{rows:"2", placeholder:"Nachricht ans ganze Team...", style:"width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;resize:vertical;font-family:inherit;margin-bottom:8px;"});
   const announcePostBtn = el("button",{class:"btn btn-primary", style:"width:auto;padding:9px 18px;"}, "Posten");
+  const announceDurationSel = el("select",{style:"padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;"});
+  [["1","1 Tag"],["3","3 Tage"],["7","1 Woche"],["14","2 Wochen"],["0","Bis ich lösche"]].forEach(([v,l])=>{
+    announceDurationSel.appendChild(el("option",{value:v}, l));
+  });
+  announceDurationSel.value = "7";
   announcePostBtn.addEventListener("click", async ()=>{
     if(!announceInput.value.trim()) return;
     const newRef = push(ref(db, "announcements"));
-    await set(newRef, {text: announceInput.value.trim(), createdAt: Date.now()});
+    const days = Number(announceDurationSel.value);
+    const now = Date.now();
+    await set(newRef, {text: announceInput.value.trim(), createdAt: now, expiresAt: days > 0 ? now + days*86400000 : null});
     announceInput.value = "";
   });
   announceCard.appendChild(announceInput);
-  announceCard.appendChild(announcePostBtn);
+  announceCard.appendChild(el("div",{style:"display:flex;align-items:center;gap:10px;flex-wrap:wrap;"},[
+    el("span",{style:"font-size:12px;color:var(--text-muted);"},"Sichtbar für:"),
+    announceDurationSel,
+    announcePostBtn
+  ]));
 
   const existingAnnouncements = Object.entries(state.announcements || {}).sort((a,b)=> b[1].createdAt - a[1].createdAt);
   if(existingAnnouncements.length > 0){
@@ -2132,7 +2176,7 @@ function renderTeam(){
       list.appendChild(el("div",{class:"team-row"},[
         el("span",{style:"font-size:12px;flex:1;"}, a.text),
         el("div",{style:"display:flex;align-items:center;gap:10px;"},[
-          el("span",{class:"mono", style:"font-size:10px;color:var(--text-muted);"}, dt.toLocaleDateString("de-DE")),
+          el("span",{class:"mono", style:"font-size:10px;color:var(--text-muted);"}, dt.toLocaleDateString("de-DE") + (a.expiresAt ? (a.expiresAt < Date.now() ? " · abgelaufen" : " · bis " + new Date(a.expiresAt).toLocaleDateString("de-DE")) : " · unbegrenzt")),
           el("button",{class:"del-btn", onclick:()=> remove(ref(db, `announcements/${id}`))},"✕")
         ])
       ]));
@@ -3751,7 +3795,8 @@ function fmtNum(v){
 }
 
 function renderAnnouncementsBanner(){
-  const items = Object.entries(state.announcements || {}).sort((a,b)=> b[1].createdAt - a[1].createdAt).slice(0,3);
+  const nowTs = Date.now();
+  const items = Object.entries(state.announcements || {}).filter(([id,a])=> !a.expiresAt || a.expiresAt > nowTs).sort((a,b)=> b[1].createdAt - a[1].createdAt).slice(0,3);
   if(items.length === 0) return null;
   const banner = el("div",{class:"announce-banner"});
   banner.appendChild(el("div",{style:"font-size:11px;font-weight:700;color:var(--mango);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;"}, "📣 Ankündigungen"));
