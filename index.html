@@ -758,6 +758,92 @@
     .auth-hero h2{font-size:28px;}
     .sheet{max-height:90dvh;}
   }
+
+  /* =========================================================
+     Küchen-Modus (iPad)
+     ========================================================= */
+  .k-shell{min-height:100dvh;display:flex;flex-direction:column;background:var(--bg);}
+  .k-top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding:calc(14px + env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) 14px max(22px,env(safe-area-inset-left));
+    background:var(--bg-elevated);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30;}
+  .k-brand{display:flex;align-items:center;gap:12px;min-width:0;}
+  .k-brand img{width:44px;height:44px;border-radius:12px;box-shadow:var(--shadow-sm);}
+  .k-clock{font-size:44px;font-weight:700;letter-spacing:-0.04em;font-variant-numeric:tabular-nums;line-height:1;}
+  .k-top-right{display:flex;align-items:center;gap:8px;}
+  .k-next{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:550;color:var(--text-muted);background:var(--bg-elevated-2);padding:8px 14px;border-radius:999px;}
+  .k-next .ic{width:17px;height:17px;}
+  .k-next.k-push-on{background:var(--avocado-soft);color:var(--avocado);}
+  .k-push-btn{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:650;color:#fff;background:var(--brand);border:none;padding:9px 16px;border-radius:999px;}
+  .k-push-btn .ic{width:17px;height:17px;}
+  :root[data-theme="dark"] .k-push-btn{background:#2B855E;}
+  .k-tabs{display:flex;gap:12px;padding:18px max(22px,env(safe-area-inset-right)) 0 max(22px,env(safe-area-inset-left));max-width:1100px;width:100%;margin:0 auto;}
+  .k-tab{flex:1;min-height:64px;border-radius:18px;border:1px solid var(--line);background:var(--bg-elevated);font-size:19px;font-weight:650;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--text);}
+  .k-tab .ic{width:24px;height:24px;}
+  .k-tab.active{background:var(--brand);border-color:var(--brand);color:#fff;}
+  :root[data-theme="dark"] .k-tab.active{background:#2B855E;border-color:#2B855E;}
+  .k-main{flex:1;padding:18px max(22px,env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left));max-width:1100px;width:100%;margin:0 auto;}
+  .k-progress{background:var(--bg-elevated);border:1px solid var(--line);border-radius:18px;padding:16px 20px;margin-bottom:6px;}
+  .k-progress-text{font-size:17px;font-weight:650;margin-bottom:10px;}
+  .k-progress-bar{height:10px;border-radius:6px;background:var(--bg-elevated-2);overflow:hidden;}
+  .k-progress-bar > div{height:100%;background:var(--avocado);border-radius:6px;transition:width .4s var(--ease);}
+  .k-section-title{font-size:15px;font-weight:650;color:var(--text-muted);margin:22px 0 10px;}
+  .k-task{display:flex;align-items:center;gap:16px;background:var(--bg-elevated);border:1px solid var(--line);border-radius:18px;padding:18px 20px;margin-bottom:12px;box-shadow:var(--shadow-sm);}
+  .k-task.high{border-color:rgba(197,64,46,.45);box-shadow:inset 5px 0 0 var(--chili), var(--shadow-sm);}
+  .k-task.done{opacity:.6;}
+  .k-task-body{flex:1;min-width:0;}
+  .k-task-title{font-size:21px;font-weight:650;letter-spacing:-0.015em;overflow-wrap:anywhere;}
+  .k-task.done .k-task-title{text-decoration:line-through;}
+  .k-task-desc{font-size:16px;color:var(--text-muted);margin-top:4px;white-space:pre-line;}
+  .k-task-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .k-chip{display:inline-flex;align-items:center;font-size:13.5px;font-weight:600;padding:4px 11px;border-radius:999px;background:var(--bg-elevated-2);color:var(--text-muted);}
+  .k-chip.warn{background:var(--chili-soft);color:var(--chili);}
+  .k-chip.ok{background:var(--avocado-soft);color:var(--avocado);}
+  .k-done-btn{min-width:150px;min-height:60px;border-radius:15px;border:none;background:var(--avocado);color:#fff;font-size:18px;font-weight:650;display:inline-flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;}
+  .k-undo-btn{min-height:50px;padding:0 16px;border-radius:13px;border:1px solid var(--line-strong);background:var(--bg-elevated);color:var(--text);font-size:15px;font-weight:600;display:inline-flex;align-items:center;gap:6px;flex-shrink:0;}
+  .k-recipe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
+  .k-recipe-card{background:var(--bg-elevated);border:1px solid var(--line);border-radius:18px;padding:20px;text-align:left;min-height:116px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow-sm);color:var(--text);}
+  .k-recipe-card .n{font-size:20px;font-weight:650;letter-spacing:-0.015em;}
+  .k-recipe-card .c{font-size:14px;color:var(--text-muted);}
+  .k-back{background:none;border:none;color:var(--brand);font-size:17px;font-weight:600;padding:8px 0;margin-bottom:6px;}
+  .k-recipe-detail h2{font-size:34px;font-weight:700;letter-spacing:-0.03em;margin:0;}
+  .k-recipe-sub{font-size:16px;color:var(--text-muted);margin:6px 0 16px;}
+  .k-scale{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;font-size:15px;color:var(--text-muted);font-weight:600;}
+  .k-scale .tab{min-height:44px;padding:0 18px;font-size:16px;}
+  .k-recipe-cols{display:grid;grid-template-columns:1fr;gap:16px;align-items:start;}
+  @media(min-width:900px){ .k-recipe-cols{grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);} }
+  .k-recipe-cols .card{margin-bottom:0;}
+  .k-ing{display:flex;justify-content:space-between;gap:12px;font-size:18px;padding:12px 0;border-bottom:1px solid var(--line);}
+  .k-ing:last-child{border-bottom:none;}
+  .k-ing .amt{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .k-step{display:flex;gap:16px;font-size:19px;line-height:1.5;padding:14px 0;border-bottom:1px solid var(--line);white-space:pre-line;}
+  .k-step:last-child{border-bottom:none;}
+  .k-step-num{width:38px;height:38px;border-radius:50%;background:var(--brand);color:#fff;font-weight:700;font-size:17px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .k-notes{background:var(--mango-soft);border-radius:14px;padding:14px 18px;font-size:16px;line-height:1.5;margin-top:16px;white-space:pre-line;}
+  .k-alarm{position:fixed;inset:0;z-index:200;background:#C5402E;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;gap:18px;animation:kPulse 1.4s ease-in-out infinite;}
+  @keyframes kPulse{0%,100%{background:#C5402E;}50%{background:#962B1D;}}
+  .k-alarm > .ic{width:84px;height:84px;stroke-width:1.6;}
+  .k-alarm h1{font-size:clamp(38px,7vw,68px);line-height:1.05;letter-spacing:-0.03em;margin:0;max-width:18ch;}
+  .k-alarm p{font-size:24px;line-height:1.4;max-width:32ch;margin:0;opacity:.95;white-space:pre-line;}
+  .k-alarm-time{font-size:16px;opacity:.8;font-variant-numeric:tabular-nums;}
+  .k-alarm-btn{margin-top:10px;min-height:76px;min-width:280px;border-radius:20px;border:none;background:#fff;color:#C5402E;font-size:24px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px;}
+  .k-start{position:fixed;inset:0;z-index:220;background:var(--brand);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:30px;text-align:center;}
+  :root[data-theme="dark"] .k-start{background:#14523A;}
+  .k-start img{width:96px;height:96px;border-radius:24px;box-shadow:0 10px 30px -10px rgba(0,0,0,.4);}
+  .k-start h1{font-size:44px;letter-spacing:-0.03em;margin:0;}
+  .k-start p{font-size:18px;opacity:.85;max-width:34ch;margin:0;}
+  .k-start-btn{margin-top:8px;min-height:72px;padding:0 36px;border-radius:20px;border:none;background:#fff;color:#1D6A4C;font-size:22px;font-weight:700;display:inline-flex;align-items:center;gap:8px;}
+  .k-names{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+  .k-name{min-height:66px;border-radius:15px;border:1px solid var(--line);background:var(--bg-elevated-2);font-size:18px;font-weight:600;color:var(--text);padding:0 10px;}
+  .k-name:active{background:var(--brand-soft);border-color:var(--brand);}
+  /* Verwaltung (Chef) */
+  .k-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end;}
+  .k-form > *{min-width:0;}
+  .k-ta{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg-elevated-2);color:var(--text);font-size:14px;font-family:inherit;resize:vertical;}
+  .k-rows{display:flex;flex-direction:column;gap:8px;}
+  .k-ing-row{display:grid;grid-template-columns:90px 110px minmax(0,1fr) auto;gap:8px;align-items:center;}
+  .k-step-row{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:8px;align-items:start;}
+  .k-step-row .k-step-num{width:30px;height:30px;font-size:14px;margin-top:6px;}
+  @media(max-width:600px){ .k-ing-row{grid-template-columns:70px 80px minmax(0,1fr) auto;} }
 </style>
 </head>
 <body>
@@ -848,6 +934,15 @@ let state = {
   pushStatus: "unknown",
   pushBusy: false,
   showPushHelp: false,
+  kitchen: {},
+  kitchenStarted: false,
+  kitchenActive: [],
+  kNamePicker: null,
+  kExit: false,
+  kExitError: "",
+  kUi: {view:"tasks", recipeId:null, scale:1, cat:"Alle"},
+  kAdmin: {view:"tasks"},
+  kDraft: null,
 };
 
 function render(){
@@ -857,6 +952,7 @@ function render(){
   else if(state.screen === "login") root.appendChild(renderAuth("login"));
   else if(state.screen === "register") root.appendChild(renderAuth("register"));
   else if(state.screen === "forgot") root.appendChild(renderForgot());
+  else if(state.screen === "kitchen") root.appendChild(renderKitchen());
   else root.appendChild(renderApp());
   // Animation nur beim Wechsel von Seite/Tab, nicht bei jedem Daten-Update
   const animKey = state.screen + "|" + state.tab;
@@ -1172,12 +1268,12 @@ async function doLogin(name, pass, remember){
   state.authError = "";
   const isAdmin = e.hiddenAdmin === true;
   try {
-    if(remember) localStorage.setItem("td_session", id);
+    if(remember || e.role === "kitchen") localStorage.setItem("td_session", id);
     else localStorage.removeItem("td_session");
   } catch(err){}
   state.currentUser = {id, name:e.name, role:e.role, isAdmin};
   state.tab = e.role === "chef" ? "dashboard" : "availability";
-  state.screen = "app";
+  state.screen = e.role === "kitchen" ? "kitchen" : "app";
   startSessionListeners();
   render();
 }
@@ -1200,6 +1296,13 @@ async function doRegister(name, pass, role, hiddenAdmin, jobType){
 
 function logout(){
   try { localStorage.removeItem("td_session"); } catch(err){}
+  if(state.currentUser && state.currentUser.role === "kitchen") remove(ref(db, `kitchenPresence/${state.currentUser.id}`));
+  stopKitchenEngine();
+  state.kitchenStarted = false;
+  state.kitchenActive = [];
+  state.kNamePicker = null;
+  state.kExit = false;
+  if(kWakeLock){ try{ kWakeLock.release(); }catch(err){} kWakeLock = null; }
   state.currentUser = null;
   state.screen = "login";
   state.weekData = {availability:{}, schedule:{}, extraShifts:{}};
@@ -1287,17 +1390,32 @@ function tryAutoLogin(){
   const isAdmin = e.hiddenAdmin === true;
   state.currentUser = {id: savedId, name: e.name, role: e.role, isAdmin};
   state.tab = e.role === "chef" ? "dashboard" : "availability";
-  state.screen = "app";
+  state.screen = e.role === "kitchen" ? "kitchen" : "app";
   startSessionListeners();
 }
 
-function startSessionListeners(){
-  attachWeekListener();
-  onValue(ref(db, `weeks/${weekIdFor(0)}`), (snap)=>{
+let curWeekUnsub = null, curWeekId = null, kitchenUnsub = null;
+function attachCurrentWeekListener(){
+  const wid = weekIdFor(0);
+  if(wid === curWeekId) return;
+  if(curWeekUnsub) curWeekUnsub();
+  curWeekId = wid;
+  curWeekUnsub = onValue(ref(db, `weeks/${wid}`), (snap)=>{
     const v = snap.val() || {};
     state.currentWeekData = {schedule: v.schedule || {}};
     render();
   });
+}
+function startSessionListeners(){
+  attachCurrentWeekListener();
+  if(!kitchenUnsub) kitchenUnsub = onValue(ref(db, "kitchen"), (snap)=>{ state.kitchen = snap.val() || {}; kRecoverPending(); render(); });
+  if(state.currentUser.role === "kitchen"){
+    // Küchen-iPad braucht nur Plan von heute, Küchendaten und die Push-Einstellung
+    onValue(ref(db, "settings"), (snap)=>{ state.settings = snap.val() || {}; render(); });
+    refreshPushStatus();
+    return;
+  }
+  attachWeekListener();
   onValue(ref(db, "timeEntries"), (snap)=>{ state.timeEntries = snap.val() || {}; render(); });
   onValue(ref(db, "passwordResets"), (snap)=>{ state.passwordResets = snap.val() || {}; render(); });
   onValue(ref(db, "payouts"), (snap)=>{ state.payouts = snap.val() || {}; render(); });
@@ -1375,6 +1493,10 @@ const ICONS = {
   send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
   share:'<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/>',
   moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  tablet:'<rect width="16" height="20" x="4" y="2" rx="2.5"/><path d="M12 18h.01"/>',
+  pause:'<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
+  play:'<path d="M6 3 20 12 6 21Z"/>',
+  volume:'<path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6A1.4 1.4 0 0 1 5.4 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.4 18.4a9 9 0 0 0 0-12.8"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
 };
 function ic(name, extraClass){
@@ -1403,6 +1525,7 @@ const TAB_META = {
   costs:{label:"Personalkosten", icon:"euro"},
   finance:{label:"Finanzen", icon:"wallet"},
   recipes:{label:"Kalkulation", icon:"calculator"},
+  kitchen:{label:"Küchen-Modus", icon:"tablet"},
   team:{label:"Mitarbeiter", icon:"users"},
 };
 const CHEF_GROUPS = [
@@ -1410,7 +1533,7 @@ const CHEF_GROUPS = [
   {key:"planning", label:"Planung", icon:"calendar", tabs:["plan","schedule","allavail","swaps"]},
   {key:"team", label:"Team", icon:"users", tabs:["alltimes","team"]},
   {key:"numbers", label:"Zahlen", icon:"chart", tabs:["stats","costs","finance"]},
-  {key:"kitchen", label:"Küche", icon:"package", tabs:["inventory","recipes"]},
+  {key:"kitchen", label:"Küche", icon:"package", tabs:["inventory","recipes","kitchen"]},
 ];
 
 // Welche Bereiche jede Rolle sieht (unverändert zur bisherigen Tab-Liste)
@@ -1418,7 +1541,7 @@ function navItemKeys(){
   const isChefRole = state.currentUser.role === "chef";
   const isHiddenAdmin = !isChefRole && state.currentUser.isAdmin === true;
   const employeeTabs = ["availability","schedule","mytimes","inventory"];
-  const chefTabs = ["dashboard","plan","allavail","alltimes","swaps","stats","costs","finance","inventory","recipes","team"];
+  const chefTabs = ["dashboard","plan","allavail","alltimes","swaps","stats","costs","finance","inventory","recipes","team","kitchen"];
   if(isChefRole) return {mine:[], chef:["dashboard","plan","schedule",...chefTabs.slice(2)]};
   if(isHiddenAdmin) return {mine:employeeTabs, chef:chefTabs.filter(t=> t !== "inventory")};
   return {mine:employeeTabs, chef:[]};
@@ -1642,7 +1765,7 @@ function renderPushSettingsCard(){
   card.appendChild(el("div",{style:"display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"},[input, saveBtn]));
 
   const subs = state.pushSubs || {};
-  const staff = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+  const staff = Object.keys(state.employees).filter(id=> isStaff(state.employees[id]));
   const on = staff.filter(id=> subs[id] && Object.keys(subs[id]).length);
   const off = staff.filter(id=> !on.includes(id));
   card.appendChild(el("div",{style:"font-size:14px;margin-bottom:6px;"},[ el("strong",{}, `${on.length} von ${staff.length}`), " Mitarbeitern haben Benachrichtigungen aktiviert." ]));
@@ -1916,6 +2039,7 @@ function renderTabContent(){
     case "finance": return renderFinance();
     case "inventory": return renderInventory();
     case "recipes": return renderRecipes();
+    case "kitchen": return renderKitchenAdmin();
     default: return el("div",{},"—");
   }
 }
@@ -1945,7 +2069,7 @@ function renderAvailability(chefView){
   const dates = datesForWeek(state.weekOffset);
 
   if(chefView){
-    const empIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+    const empIds = Object.keys(state.employees).filter(id=> isStaff(state.employees[id]));
     if(empIds.length === 0){
       section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},[ic("users")]),"Noch keine Mitarbeiter registriert."]));
       return section;
@@ -2049,7 +2173,7 @@ function renderAvailability(chefView){
   section.appendChild(card);
 
   // Team-Übersicht: wer ist wann verfügbar
-  const teamIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+  const teamIds = Object.keys(state.employees).filter(id=> isStaff(state.employees[id]));
   const teamCard = el("div",{class:"card", style:"margin-top:16px;"});
   teamCard.appendChild(el("h3",{style:"margin:0 0 4px;font-size:15px;"}, "Team-Übersicht"));
   teamCard.appendChild(el("p",{style:"margin:0 0 12px;font-size:13px;color:var(--text-muted);"}, "Wer hat sich für welche Schicht als verfügbar eingetragen."));
@@ -2109,7 +2233,7 @@ function renderSchedule(editable){
 
   const dates = datesForWeek(state.weekOffset);
   const wid = weekIdFor(state.weekOffset);
-  const allEmpIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+  const allEmpIds = Object.keys(state.employees).filter(id=> isStaff(state.employees[id]));
   const kitchenIds = allEmpIds.filter(id=> (state.employees[id].jobType||"kueche") !== "fahrer");
   const driverIds = allEmpIds.filter(id=> state.employees[id].jobType === "fahrer");
 
@@ -2442,7 +2566,7 @@ function renderTimes(chefView){
     return section;
   }
 
-  const empIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+  const empIds = Object.keys(state.employees).filter(id=> isStaff(state.employees[id]));
   if(empIds.length === 0){
     section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},[ic("users")]),"Noch keine Mitarbeiter registriert."]));
     return section;
@@ -2951,7 +3075,7 @@ function renderTeam(){
     section.appendChild(card);
   }
 
-  const empIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+  const empIds = Object.keys(state.employees).filter(id=> isStaff(state.employees[id]));
 
   // announcements management
   const announceCard = el("div",{class:"card"});
@@ -3104,6 +3228,8 @@ function renderTeam(){
       remove(ref(db, "revenue"));
       remove(ref(db, "expenses"));
       remove(ref(db, "pushSubs"));
+      remove(ref(db, "kitchen"));
+      remove(ref(db, "kitchenPresence"));
       logout();
     }
   });
@@ -3285,7 +3411,7 @@ function renderStats(){
     ])
   ]));
 
-  const empIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+  const empIds = Object.keys(state.employees).filter(id=> isStaff(state.employees[id]));
   if(empIds.length === 0){
     section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},[ic("chart")]),"Noch keine Mitarbeiter registriert."]));
     return section;
@@ -3338,7 +3464,7 @@ function renderStats(){
 
 // ---------- personnel costs (chef) ----------
 function computePersonnelCostMaps(){
-  const empIds = Object.keys(state.employees).filter(id=> state.employees[id].role !== "chef");
+  const empIds = Object.keys(state.employees).filter(id=> isStaff(state.employees[id]));
   const dailyMap = {}, weeklyMap = {}, monthlyMap = {}, yearlyMap = {};
   empIds.forEach(id=>{
     const wage = employeeWage(id);
@@ -4603,6 +4729,992 @@ function openInventoryLabelsOverlay(items){
     checkedIds.forEach(id=> update(ref(db, `inventory/${id}`), {labelPrinted:true}));
     window.print();
   }
+}
+
+// =====================================================================
+// Küchen-Modus (iPad) — eigener Account mit role "kitchen"
+// Daten in Firebase unter /kitchen: tasks, taskDone/{datum}, recipes, alarms, alarmLog
+// =====================================================================
+function isStaff(e){ return !!e && e.role !== "chef" && e.role !== "kitchen"; }
+function kitchenAccounts(){ return Object.entries(state.employees).filter(([id,e])=> e && e.role === "kitchen"); }
+function kStaffSorted(ids){ return ids.slice().sort((a,b)=> state.employees[a].name.localeCompare(state.employees[b].name)); }
+const KITCHEN_SOUNDS = [["glocke","Glocke"],["piepen","Piepen"],["gong","Gong"],["sirene","Sirene"]];
+const K_SHIFT_LABEL = {both:"Ganzer Tag", frueh:"Früh", abend:"Abend"};
+
+function hmToMin(hm){ const p = String(hm||"").split(":").map(Number); return (p[0]||0)*60 + (p[1]||0); }
+function minToHm(n){ return `${String(Math.floor(n/60)).padStart(2,"0")}:${String(n%60).padStart(2,"0")}`; }
+function dayKeyOf(d){ return DAYS[(d.getDay()+6)%7].key; }
+function dayShort(key){ return (DAYS.find(d=> d.key===key)||{label:key}).label.slice(0,2); }
+function sortDays(days){ return DAYS.map(d=> d.key).filter(k=> (days||[]).includes(k)); }
+function daysSummary(days){
+  const arr = sortDays(days);
+  if(arr.length === 7) return "täglich";
+  if(arr.join() === "mon,tue,wed,thu,fri") return "Mo–Fr";
+  if(arr.join() === "sat,sun") return "Sa–So";
+  return arr.map(dayShort).join(", ") || "kein Tag";
+}
+function fmtTime(ts){ return new Date(ts).toLocaleTimeString("de-DE",{hour:"2-digit", minute:"2-digit"}); }
+function fmtFireTime(d){
+  const today = toDateKey(new Date());
+  const tomorrow = toDateKey(new Date(Date.now()+86400000));
+  const hm = minToHm(d.getHours()*60+d.getMinutes());
+  if(toDateKey(d) === today) return `heute ${hm} Uhr`;
+  if(toDateKey(d) === tomorrow) return `morgen ${hm} Uhr`;
+  return `${d.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})} ${hm} Uhr`;
+}
+
+// ---------- Ton (WebAudio, keine Dateien nötig) ----------
+let kAudioCtx = null;
+function kAudio(){
+  if(!kAudioCtx){ const AC = window.AudioContext || window.webkitAudioContext; if(AC) kAudioCtx = new AC(); }
+  if(kAudioCtx && kAudioCtx.state === "suspended") kAudioCtx.resume();
+  return kAudioCtx;
+}
+function kTone(ctx, freq, start, dur, vol, type){
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type || "sine";
+  o.frequency.setValueAtTime(freq, start);
+  g.gain.setValueAtTime(0.0001, start);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), start + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(start); o.stop(start + dur + 0.05);
+}
+function playKitchenSound(sound, volume){
+  const ctx = kAudio(); if(!ctx) return;
+  const v = Math.min(1, Math.max(0.05, volume == null ? 0.8 : Number(volume)));
+  const t = ctx.currentTime + 0.02;
+  if(sound === "piepen"){
+    for(let i=0;i<4;i++) kTone(ctx, 1000, t + i*0.25, 0.15, v*0.4, "square");
+  } else if(sound === "gong"){
+    kTone(ctx, 196, t, 2.4, v, "sine"); kTone(ctx, 392, t, 1.6, v*0.5, "sine"); kTone(ctx, 588, t, 1.0, v*0.25, "sine");
+  } else if(sound === "sirene"){
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(600, t);
+    o.frequency.linearRampToValueAtTime(1200, t+0.8);
+    o.frequency.linearRampToValueAtTime(600, t+1.6);
+    g.gain.setValueAtTime(v*0.35, t);
+    g.gain.linearRampToValueAtTime(0.0001, t+1.7);
+    o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+1.8);
+  } else { // glocke
+    kTone(ctx, 880, t, 0.9, v, "sine"); kTone(ctx, 660, t+0.45, 1.2, v, "sine");
+  }
+}
+
+// ---------- Bildschirm an lassen ----------
+let kWakeLock = null;
+async function kRequestWakeLock(){
+  try{ if("wakeLock" in navigator) kWakeLock = await navigator.wakeLock.request("screen"); }catch(err){}
+}
+document.addEventListener("visibilitychange", ()=>{
+  if(state.screen !== "kitchen" || !state.currentUser) return;
+  if(document.visibilityState === "visible"){
+    if(state.kitchenStarted){ kRequestWakeLock(); kLastPresence = 0; kitchenTick(); }
+  } else {
+    // App geht in den Hintergrund/iPad wird gesperrt → ab jetzt übernimmt die Push-Mitteilung
+    set(ref(db, `kitchenPresence/${state.currentUser.id}`), 0);
+  }
+});
+
+// ---------- Alarm-Zeitplan ----------
+function alarmMatches(a, d){
+  const s = a.schedule || {};
+  const min = d.getHours()*60 + d.getMinutes();
+  if(s.type === "once") return s.date === toDateKey(d) && hmToMin(s.time) === min;
+  if(!(s.days || []).includes(dayKeyOf(d))) return false;
+  if(s.type === "interval"){
+    const from = hmToMin(s.from), to = hmToMin(s.to), step = Math.max(5, Number(s.every) || 60);
+    return min >= from && min <= to && (min - from) % step === 0;
+  }
+  return (s.times || []).some(t=> hmToMin(t) === min);
+}
+function nextAlarmFire(a, from, limitMin){
+  const s = a.schedule || {};
+  if(s.type === "once"){
+    if(!s.date || !s.time) return null;
+    const d = localDateFromKey(s.date); d.setHours(0, hmToMin(s.time), 0, 0);
+    return d > from ? d : null;
+  }
+  const base = new Date(from); base.setSeconds(0,0);
+  for(let i=1;i<=limitMin;i++){
+    const d = new Date(base.getTime() + i*60000);
+    if(alarmMatches(a, d)) return d;
+  }
+  return null;
+}
+function kAlarmSummary(a){
+  const s = a.schedule || {};
+  if(s.type === "once") return s.date ? `Einmalig am ${localDateFromKey(s.date).toLocaleDateString("de-DE")} um ${s.time} Uhr` : "Einmalig";
+  if(s.type === "interval"){
+    const e = Number(s.every) || 60;
+    const every = e % 60 === 0 ? (e === 60 ? "jede Stunde" : `alle ${e/60} Std.`) : `alle ${e} Min.`;
+    return `${daysSummary(s.days)} · ${every} von ${s.from}–${s.to} Uhr`;
+  }
+  return `${daysSummary(s.days)} · um ${(s.times||[]).join(", ")} Uhr`;
+}
+
+// ---------- Alarm-Engine (läuft nur auf dem Küchen-iPad) ----------
+let kEngineTimer = null, kSoundTimer = null, kLastMinute = "", kLastPresence = 0;
+const kAcked = new Set();
+function kLoadFired(){ try{ return JSON.parse(localStorage.getItem("td_kfired") || "{}"); }catch(e){ return {}; } }
+function kSaveFired(m){ try{ localStorage.setItem("td_kfired", JSON.stringify(m)); }catch(e){} }
+function startKitchenEngine(){
+  if(kEngineTimer) return;
+  kEngineTimer = setInterval(kitchenTick, 10000);
+  setTimeout(kitchenTick, 0);
+}
+function stopKitchenEngine(){
+  if(kEngineTimer){ clearInterval(kEngineTimer); kEngineTimer = null; }
+  if(kSoundTimer){ clearInterval(kSoundTimer); kSoundTimer = null; }
+}
+function kitchenTick(){
+  if(state.screen !== "kitchen") return;
+  attachCurrentWeekListener(); // neue Woche → richtigen Plan laden
+  const now = new Date();
+  const clk = document.getElementById("k-clock");
+  if(clk) clk.textContent = now.toLocaleTimeString("de-DE",{hour:"2-digit", minute:"2-digit"});
+
+  // „iPad ist offen“ melden → solange schickt der Worker KEINE Push-Mitteilung
+  if(state.kitchenStarted && document.visibilityState === "visible" && Date.now() - kLastPresence > 20000){
+    kLastPresence = Date.now();
+    set(ref(db, `kitchenPresence/${state.currentUser.id}`), Date.now());
+  }
+
+  const alarms = Object.entries(state.kitchen.alarms || {}).filter(([id,a])=> a && a.active !== false);
+  const logs = state.kitchen.alarmLog || {};
+  const fired = kLoadFired();
+  const base = new Date(now); base.setSeconds(0,0);
+  let added = false;
+  // die letzten 2 Minuten mitprüfen, falls das iPad kurz gehangen hat
+  for(let back=2; back>=0; back--){
+    const d = new Date(base.getTime() - back*60000);
+    alarms.forEach(([id,a])=>{
+      if(!alarmMatches(a, d)) return;
+      const logId = kSlotId(id, d);
+      if(fired[logId] || logs[logId]) return; // schon ausgelöst (hier oder per Push vom Worker)
+      fired[logId] = Date.now();
+      fireKitchenAlarm(id, a, logId);
+      added = true;
+    });
+  }
+  const cutoff = Date.now() - 2*86400000;
+  Object.keys(fired).forEach(k=>{ if(fired[k] < cutoff) delete fired[k]; });
+  kSaveFired(fired);
+  if(kRecoverPending()) added = true;
+
+  const mk = `${now.getHours()}:${now.getMinutes()}`;
+  if(added || (mk !== kLastMinute && !state.kExit)){ kLastMinute = mk; render(); }
+}
+// Gleiche ID wie im Worker: so wird ein Alarm nie doppelt ausgelöst
+function kSlotId(alarmId, d){
+  return `${alarmId}_${toDateKey(d)}_${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}`;
+}
+// Unbestätigte Alarme der letzten Stunde anzeigen (z. B. per Push gekommen, während die App zu war)
+// und Alarme ausblenden, die schon bestätigt wurden.
+function kRecoverPending(){
+  if(state.screen !== "kitchen") return false;
+  const logs = state.kitchen.alarmLog || {};
+  let changed = false;
+  const firstBefore = state.kitchenActive[0] && state.kitchenActive[0].logId;
+  const before = state.kitchenActive.length;
+  state.kitchenActive = state.kitchenActive.filter(x=> !(logs[x.logId] && logs[x.logId].ackAt));
+  if(state.kitchenActive.length !== before) changed = true;
+  const cutoff = Date.now() - 60*60000;
+  Object.entries(logs).sort((a,b)=> (a[1].firedAt||0) - (b[1].firedAt||0)).forEach(([logId,l])=>{
+    if(!l || l.ackAt || !l.firedAt || l.firedAt < cutoff || kAcked.has(logId)) return;
+    if(state.kitchenActive.some(x=> x.logId === logId)) return;
+    const a = (state.kitchen.alarms || {})[l.alarmId] || {};
+    state.kitchenActive.push({
+      logId, alarmId:l.alarmId, title:l.title || a.title || "Alarm", text:a.text || "",
+      sound:a.sound || "glocke", volume: a.volume == null ? 0.8 : a.volume, repeat: a.repeat !== false, firedAt: l.firedAt
+    });
+    changed = true;
+  });
+  const firstAfter = state.kitchenActive[0] && state.kitchenActive[0].logId;
+  if(firstAfter !== firstBefore) kStartSound();
+  return changed;
+}
+function fireKitchenAlarm(id, a, logId){
+  set(ref(db, `kitchen/alarmLog/${logId}`), {alarmId:id, title:a.title || "Alarm", firedAt:Date.now()});
+  state.kitchenActive.push({
+    logId, alarmId:id, title:a.title || "Alarm", text:a.text || "",
+    sound:a.sound || "glocke", volume: a.volume == null ? 0.8 : a.volume, repeat: a.repeat !== false, firedAt: Date.now()
+  });
+  if(a.schedule && a.schedule.type === "once") update(ref(db, `kitchen/alarms/${id}`), {active:false});
+  if(state.kitchenActive.length === 1) kStartSound();
+}
+function kStartSound(){
+  if(kSoundTimer){ clearInterval(kSoundTimer); kSoundTimer = null; }
+  const cur = state.kitchenActive[0];
+  if(!cur) return;
+  playKitchenSound(cur.sound, cur.volume);
+  if(cur.repeat){
+    kSoundTimer = setInterval(()=>{
+      const c = state.kitchenActive[0];
+      if(!c){ clearInterval(kSoundTimer); kSoundTimer = null; return; }
+      playKitchenSound(c.sound, c.volume);
+    }, 3500);
+  }
+}
+function ackKitchenAlarm(logId, empId){
+  const idx = state.kitchenActive.findIndex(x=> x.logId === logId);
+  if(idx < 0) return;
+  state.kitchenActive.splice(idx, 1);
+  kAcked.add(logId);
+  const emp = state.employees[empId];
+  update(ref(db, `kitchen/alarmLog/${logId}`), {ackAt:Date.now(), ackBy:empId, ackByName: emp ? emp.name : "?"});
+  if(idx === 0) kStartSound();
+  render();
+}
+
+// ---------- Aufgaben-Helfer ----------
+function kTasksForDate(dateKey){
+  const dk = dayKeyOf(localDateFromKey(dateKey));
+  const prio = (t)=> t.priority === "high" ? 0 : 1;
+  return Object.entries(state.kitchen.tasks || {}).filter(([id,t])=>{
+    if(!t || t.active === false) return false;
+    if(t.repeat === "once") return t.date === dateKey;
+    return (t.days || []).includes(dk);
+  }).sort((a,b)=> prio(a[1]) - prio(b[1]) || (a[1].dueTime||"99:99").localeCompare(b[1].dueTime||"99:99") || a[1].title.localeCompare(b[1].title));
+}
+function kDoneMap(dateKey){ return (state.kitchen.taskDone && state.kitchen.taskDone[dateKey]) || {}; }
+function kCurrentShift(){
+  const shifts = defaultShiftsForDay(todayDayKey());
+  const now = new Date(); const min = now.getHours()*60 + now.getMinutes();
+  let cur = shifts[0];
+  shifts.forEach(s=>{ if(hmToMin(s.defStart) <= min) cur = s; });
+  return cur;
+}
+function kTaskWhen(t){
+  const when = t.repeat === "once" ? `einmalig am ${t.date ? localDateFromKey(t.date).toLocaleDateString("de-DE") : "?"}` : daysSummary(t.days);
+  return `${when} · ${K_SHIFT_LABEL[t.shift] || "Ganzer Tag"}${t.dueTime ? ` · bis ${t.dueTime} Uhr` : ""}${t.priority === "high" ? " · Wichtig" : ""}`;
+}
+function kTodayStaffIds(){
+  const sched = (state.currentWeekData.schedule && state.currentWeekData.schedule[todayDayKey()]) || {};
+  const ids = new Set();
+  Object.values(sched).forEach(assigns=> Object.values(assigns || {}).forEach(a=>{ if(a && isStaff(state.employees[a.employeeId])) ids.add(a.employeeId); }));
+  return kStaffSorted([...ids]);
+}
+
+// =====================================================================
+// Küchen-Bildschirm (iPad)
+// =====================================================================
+function renderKitchen(){
+  startKitchenEngine();
+  const ui = state.kUi;
+  const now = new Date();
+  const shell = el("div",{class:"k-shell"});
+
+  const top = el("header",{class:"k-top"});
+  top.appendChild(el("div",{class:"k-brand"},[
+    el("img",{src: LOGO_URI, alt:""}),
+    el("div",{},[
+      el("div",{class:"brand-name"}, "Tasty Day · Küche"),
+      el("div",{class:"brand-sub"}, now.toLocaleDateString("de-DE",{weekday:"long", day:"2-digit", month:"long"}))
+    ])
+  ]));
+  top.appendChild(el("div",{class:"k-clock", id:"k-clock"}, now.toLocaleTimeString("de-DE",{hour:"2-digit", minute:"2-digit"})));
+  top.appendChild(el("div",{class:"k-top-right"},[
+    renderKitchenPushButton(),
+    renderKitchenNext(),
+    themeButton(),
+    el("button",{class:"icon-btn", title:"Küchen-Modus beenden", "aria-label":"Küchen-Modus beenden", onclick:()=>{ state.kExit = true; state.kExitError = ""; render(); }},[ic("logout")])
+  ]));
+  shell.appendChild(top);
+
+  const tabs = el("div",{class:"k-tabs"});
+  [["tasks","clipboard","Aufgaben"],["recipes","bowl","Rezepte"]].forEach(([k,icn,l])=>{
+    tabs.appendChild(el("button",{class:`k-tab ${ui.view===k?"active":""}`, onclick:()=>{ ui.view = k; ui.recipeId = null; render(); window.scrollTo({top:0}); }},[ic(icn), l]));
+  });
+  shell.appendChild(tabs);
+
+  const main = el("main",{class:"k-main"});
+  main.appendChild(ui.view === "recipes" ? renderKitchenRecipes() : renderKitchenTasks());
+  shell.appendChild(main);
+
+  if(state.kitchenActive.length) shell.appendChild(renderKitchenAlarmOverlay());
+  if(state.kNamePicker) shell.appendChild(renderKNamePicker());
+  if(!state.kitchenStarted) shell.appendChild(renderKitchenStart());
+  if(state.kExit) shell.appendChild(renderKitchenExit());
+  if(state.showPushHelp) shell.appendChild(renderPushHelp());
+  return shell;
+}
+
+// Push fürs iPad: Alarme kommen als Mitteilung, wenn die App zu ist
+function renderKitchenPushButton(){
+  if(!pushWorkerUrl()) return null;
+  if(state.pushStatus === "on") return el("div",{class:"k-next k-push-on", title:"Alarme kommen auch als Mitteilung, wenn die App zu ist"},[ic("bell"), "Push an"]);
+  const needsHelp = ["denied","ios-install","unsupported"].includes(state.pushStatus);
+  return el("button",{class:"k-push-btn", onclick:()=>{ if(needsHelp){ state.showPushHelp = true; render(); } else enablePush(); }},
+    [ic("bell"), state.pushBusy ? "Einen Moment…" : "Mitteilungen aktivieren"]);
+}
+
+function renderKitchenNext(){
+  const now = new Date();
+  let best = null;
+  Object.values(state.kitchen.alarms || {}).forEach(a=>{
+    if(!a || a.active === false) return;
+    const d = nextAlarmFire(a, now, 24*60);
+    if(d && (!best || d < best.d)) best = {d, a};
+  });
+  return el("div",{class:"k-next"}, best
+    ? [ic("bell"), `${best.a.title || "Alarm"} · ${fmtFireTime(best.d)}`]
+    : [ic("bellOff"), "Kein Alarm in den nächsten 24 Std."]);
+}
+
+function renderKitchenStart(){
+  return el("div",{class:"k-start"},[
+    el("img",{src: LOGO_URI, alt:""}),
+    el("h1",{}, "Küchen-Modus"),
+    el("p",{}, "Einmal antippen, damit Alarme mit Ton funktionieren und der Bildschirm an bleibt."),
+    el("button",{class:"k-start-btn", onclick:()=>{
+      const ctx = kAudio();
+      if(ctx) kTone(ctx, 880, ctx.currentTime + 0.01, 0.15, 0.03, "sine"); // Ton freischalten (iOS)
+      kRequestWakeLock();
+      state.kitchenStarted = true;
+      if(state.kitchenActive.length) kStartSound();
+      render();
+    }}, icl("play","Küchen-Modus starten"))
+  ]);
+}
+
+function renderKitchenAlarmOverlay(){
+  const cur = state.kitchenActive[0];
+  const ov = el("div",{class:"k-alarm", role:"alertdialog"});
+  ov.appendChild(ic("bell"));
+  ov.appendChild(el("h1",{}, cur.title));
+  if(cur.text) ov.appendChild(el("p",{}, cur.text));
+  const more = state.kitchenActive.length - 1;
+  ov.appendChild(el("div",{class:"k-alarm-time"}, `${fmtTime(cur.firedAt)} Uhr${more > 0 ? ` · danach noch ${more} weitere${more===1?"r":""} Alarm${more===1?"":"e"}` : ""}`));
+  ov.appendChild(el("button",{class:"k-alarm-btn", onclick:()=>{
+    state.kNamePicker = {title:`Erledigt: ${cur.title}`, onPick:(empId)=> ackKitchenAlarm(cur.logId, empId)};
+    render();
+  }}, icl("check","Erledigt")));
+  return ov;
+}
+
+function renderKNamePicker(){
+  const p = state.kNamePicker;
+  const today = kTodayStaffIds();
+  const showAll = p.showAll || today.length === 0;
+  const ids = showAll ? kStaffSorted(Object.keys(state.employees).filter(id=> isStaff(state.employees[id]))) : today;
+  const ov = el("div",{class:"modal-backdrop", style:"z-index:210;", onclick:(e)=>{ if(e.target === ov){ state.kNamePicker = null; render(); } }});
+  const card = el("div",{class:"auth-card", style:"max-width:640px;max-height:90dvh;overflow-y:auto;"});
+  card.appendChild(el("h2",{class:"auth-title"}, p.title));
+  card.appendChild(el("p",{class:"auth-sub"}, showAll ? "Wer hat es erledigt?" : "Wer hat es erledigt? (heute eingeteilt)"));
+  const grid = el("div",{class:"k-names"});
+  ids.forEach(id=> grid.appendChild(el("button",{class:"k-name", onclick:()=>{
+    const fn = p.onPick; state.kNamePicker = null; fn(id); render();
+  }}, state.employees[id].name)));
+  if(!ids.length) grid.appendChild(el("div",{style:"color:var(--text-muted);"}, "Noch keine Mitarbeiter registriert."));
+  card.appendChild(grid);
+  const row = el("div",{style:"display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;"});
+  if(!showAll) row.appendChild(el("button",{class:"btn-cancel", style:"min-height:54px;padding:0 20px;font-size:16px;", onclick:()=>{ state.kNamePicker.showAll = true; render(); }}, "Andere Mitarbeiter"));
+  row.appendChild(el("button",{class:"btn-cancel", style:"min-height:54px;padding:0 20px;font-size:16px;", onclick:()=>{ state.kNamePicker = null; render(); }}, "Abbrechen"));
+  card.appendChild(row);
+  ov.appendChild(card);
+  return ov;
+}
+
+function renderKitchenExit(){
+  const ov = el("div",{class:"modal-backdrop", style:"z-index:230;", onclick:(e)=>{ if(e.target === ov){ state.kExit = false; render(); } }});
+  const card = el("div",{class:"auth-card", style:"max-width:380px;"});
+  card.appendChild(el("h2",{class:"auth-title"}, "Küchen-Modus beenden"));
+  card.appendChild(el("p",{class:"auth-sub"}, "Passwort vom iPad-Konto oder vom Chef eingeben."));
+  if(state.kExitError) card.appendChild(el("div",{class:"error-msg"}, state.kExitError));
+  const pw = el("input",{type:"password", placeholder:"Passwort"});
+  card.appendChild(el("div",{class:"field"},[el("label",{},"Passwort"), pw]));
+  const btn = el("button",{class:"btn btn-primary"}, "Beenden & abmelden");
+  btn.addEventListener("click", ()=>{
+    const h = simpleHash(pw.value);
+    const me = state.employees[state.currentUser.id];
+    const ok = (me && me.password === h) || Object.values(state.employees).some(e=> e && (e.role === "chef" || e.hiddenAdmin === true) && e.password === h);
+    if(!ok){ state.kExitError = "Falsches Passwort."; render(); return; }
+    state.kExit = false; state.kExitError = "";
+    logout();
+  });
+  card.appendChild(btn);
+  card.appendChild(el("button",{class:"link-btn", style:"margin-top:14px;", onclick:()=>{ state.kExit = false; render(); }}, "Abbrechen"));
+  ov.appendChild(card);
+  setTimeout(()=> pw.focus(), 50);
+  return ov;
+}
+
+function renderKitchenTasks(){
+  const wrap = el("div",{});
+  const today = toDateKey(new Date());
+  const tasks = kTasksForDate(today);
+  const done = kDoneMap(today);
+  const doneCount = tasks.filter(([id])=> done[id]).length;
+
+  const prog = el("div",{class:"k-progress"});
+  prog.appendChild(el("div",{class:"k-progress-text"}, tasks.length ? `${doneCount} von ${tasks.length} Aufgaben erledigt` : "Heute keine Aufgaben"));
+  if(tasks.length) prog.appendChild(el("div",{class:"k-progress-bar"},[ el("div",{style:`width:${Math.round(doneCount/tasks.length*100)}%;`}) ]));
+  wrap.appendChild(prog);
+  if(!tasks.length) return wrap;
+
+  const dayShifts = defaultShiftsForDay(todayDayKey());
+  const validKeys = dayShifts.map(s=> s.key);
+  const cur = kCurrentShift();
+  const groups = [
+    {key:cur.key, label:`${cur.label} (jetzt)`},
+    {key:"both", label:"Ganzer Tag"},
+    ...dayShifts.filter(s=> s.key !== cur.key).map(s=> ({key:s.key, label:s.label}))
+  ];
+  groups.forEach(g=>{
+    const items = tasks.filter(([id,t])=> (validKeys.includes(t.shift) ? t.shift : "both") === g.key);
+    if(!items.length) return;
+    items.sort((a,b)=> (done[a[0]]?1:0) - (done[b[0]]?1:0)); // erledigte nach unten
+    wrap.appendChild(el("div",{class:"k-section-title"}, g.label));
+    items.forEach(([id,t])=> wrap.appendChild(renderKitchenTaskCard(id, t, done[id], today)));
+  });
+  return wrap;
+}
+
+function renderKitchenTaskCard(id, t, d, today){
+  const now = new Date(); const nowMin = now.getHours()*60 + now.getMinutes();
+  const overdue = !d && t.dueTime && hmToMin(t.dueTime) < nowMin;
+  const card = el("div",{class:`k-task ${t.priority==="high" && !d ? "high" : ""} ${d ? "done" : ""}`});
+  const body = el("div",{class:"k-task-body"});
+  body.appendChild(el("div",{class:"k-task-title"}, t.title));
+  if(t.description) body.appendChild(el("div",{class:"k-task-desc"}, t.description));
+  const meta = el("div",{class:"k-task-meta"});
+  if(t.priority === "high" && !d) meta.appendChild(el("span",{class:"k-chip warn"}, "Wichtig"));
+  if(t.dueTime && !d) meta.appendChild(el("span",{class:`k-chip ${overdue ? "warn" : ""}`}, overdue ? `Überfällig · war bis ${t.dueTime} Uhr` : `bis ${t.dueTime} Uhr`));
+  if(d) meta.appendChild(el("span",{class:"k-chip ok"}, icl("check", `${d.byName} · ${fmtTime(d.at)} Uhr`)));
+  if(meta.childNodes.length) body.appendChild(meta);
+  card.appendChild(body);
+  if(d){
+    card.appendChild(el("button",{class:"k-undo-btn", onclick:()=>{
+      if(confirm(`„${t.title}“ wieder als offen markieren?`)) remove(ref(db, `kitchen/taskDone/${today}/${id}`));
+    }}, icl("undo","Rückgängig")));
+  } else {
+    card.appendChild(el("button",{class:"k-done-btn", onclick:()=>{
+      state.kNamePicker = {title:`Erledigt: ${t.title}`, onPick:(empId)=>{
+        const emp = state.employees[empId];
+        set(ref(db, `kitchen/taskDone/${today}/${id}`), {by:empId, byName: emp ? emp.name : "?", at:Date.now()});
+      }};
+      render();
+    }}, icl("check","Erledigt")));
+  }
+  return card;
+}
+
+function renderKitchenRecipes(){
+  const ui = state.kUi;
+  const all = state.kitchen.recipes || {};
+  if(ui.recipeId && all[ui.recipeId]) return renderKitchenRecipeDetail(all[ui.recipeId]);
+  ui.recipeId = null;
+  const wrap = el("div",{});
+  const recipes = Object.entries(all);
+  if(!recipes.length){
+    wrap.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},[ic("bowl")]), "Noch keine Rezepte hinterlegt."]));
+    return wrap;
+  }
+  const cats = [...new Set(recipes.map(([id,r])=> r.category || "Sonstiges"))].sort();
+  if(ui.cat !== "Alle" && !cats.includes(ui.cat)) ui.cat = "Alle";
+  if(cats.length > 1){
+    const row = el("div",{class:"k-scale"});
+    ["Alle", ...cats].forEach(c=> row.appendChild(el("button",{class:`tab ${ui.cat===c?"active":""}`, onclick:()=>{ ui.cat = c; render(); }}, c)));
+    wrap.appendChild(row);
+  }
+  const grid = el("div",{class:"k-recipe-grid"});
+  recipes.filter(([id,r])=> ui.cat === "Alle" || (r.category || "Sonstiges") === ui.cat)
+    .sort((a,b)=> a[1].name.localeCompare(b[1].name))
+    .forEach(([id,r])=>{
+      grid.appendChild(el("button",{class:"k-recipe-card", onclick:()=>{ ui.recipeId = id; ui.scale = 1; render(); window.scrollTo({top:0}); }},[
+        el("span",{class:"n"}, r.name),
+        el("span",{class:"c"}, [r.category || "Sonstiges", r.yield ? `ergibt ${r.yield}` : null].filter(Boolean).join(" · "))
+      ]));
+    });
+  wrap.appendChild(grid);
+  return wrap;
+}
+
+function renderKitchenRecipeDetail(r){
+  const ui = state.kUi;
+  const wrap = el("div",{class:"k-recipe-detail"});
+  wrap.appendChild(el("button",{class:"k-back", onclick:()=>{ ui.recipeId = null; render(); }}, "‹ Alle Rezepte"));
+  wrap.appendChild(el("h2",{}, r.name));
+  const sub = [r.category || "Sonstiges"];
+  if(r.yield) sub.push(`Ergibt ${r.yield}${ui.scale !== 1 ? ` × ${fmtNum(ui.scale)}` : ""}`);
+  wrap.appendChild(el("div",{class:"k-recipe-sub"}, sub.join(" · ")));
+
+  const ingredients = (r.ingredients || []).filter(Boolean);
+  if(ingredients.length){
+    const scaleRow = el("div",{class:"k-scale"},[ el("span",{}, "Menge:") ]);
+    [0.5,1,2,3,4].forEach(f=> scaleRow.appendChild(el("button",{class:`tab ${ui.scale===f?"active":""}`, onclick:()=>{ ui.scale = f; render(); }}, f === 0.5 ? "½ ×" : `${f} ×`)));
+    wrap.appendChild(scaleRow);
+  }
+
+  const cols = el("div",{class:"k-recipe-cols"});
+  if(ingredients.length){
+    const ingCard = el("div",{class:"card"});
+    ingCard.appendChild(el("h3",{style:"margin:0 0 6px;font-size:18px;"}, "Zutaten"));
+    ingredients.forEach(ing=>{
+      const n = parseFloat(String(ing.amount || "").replace(",", "."));
+      const amt = isNaN(n) ? (ing.amount || "") : fmtNum(n * ui.scale);
+      ingCard.appendChild(el("div",{class:"k-ing"},[ el("span",{}, ing.name || ""), el("span",{class:"amt"}, `${amt} ${ing.unit || ""}`.trim()) ]));
+    });
+    cols.appendChild(ingCard);
+  }
+  const steps = (r.steps || []).filter(s=> s && String(s).trim());
+  if(steps.length){
+    const stepCard = el("div",{class:"card"});
+    stepCard.appendChild(el("h3",{style:"margin:0 0 6px;font-size:18px;"}, "Zubereitung"));
+    steps.forEach((s,i)=> stepCard.appendChild(el("div",{class:"k-step"},[ el("span",{class:"k-step-num"}, String(i+1)), el("span",{}, s) ])));
+    cols.appendChild(stepCard);
+  }
+  wrap.appendChild(cols);
+  if(r.notes) wrap.appendChild(el("div",{class:"k-notes"},[ el("strong",{}, "Hinweis: "), r.notes ]));
+  return wrap;
+}
+
+// =====================================================================
+// Verwaltung (Chef) — Bereich „Küchen-Modus“
+// =====================================================================
+const K_TASK_DEFAULTS = {title:"", description:"", repeat:"recurring", date:"", days:["mon","tue","wed","thu","fri","sat","sun"], shift:"both", dueTime:"", priority:"normal"};
+const K_RECIPE_DEFAULTS = {name:"", category:"", yield:"", ingredients:[{amount:"", unit:"", name:""}], steps:[""], notes:""};
+const K_ALARM_DEFAULTS = {title:"", text:"", type:"times", times:["15:00"], days:["mon","tue","wed","thu","fri","sat","sun"], every:"60", from:"11:00", to:"22:00", date:"", time:"", sound:"glocke", volume:"0.8", repeat:true};
+const kLabelStyle = "display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;font-weight:550;";
+
+function kClone(o){ return JSON.parse(JSON.stringify(o)); }
+function kDraft(kind, defaults){
+  if(!state.kDraft || state.kDraft.kind !== kind) state.kDraft = {kind, id:null, data: kClone(defaults)};
+  return state.kDraft;
+}
+function kStartEdit(kind, id, data){
+  state.kDraft = {kind, id, data};
+  render();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+function kField(label, input, full){ return el("div",{style: full ? "grid-column:1/-1;" : ""},[ el("label",{style:kLabelStyle}, label), input ]); }
+function kIn(obj, key, attrs){
+  const i = el("input", Object.assign({class:"select-emp", style:"width:100%;"}, attrs || {}));
+  i.value = obj[key] == null ? "" : obj[key];
+  i.addEventListener("input", ()=>{ obj[key] = i.value; });
+  return i;
+}
+function kTa(obj, key, placeholder, rows){
+  const t = el("textarea",{rows:String(rows || 3), placeholder: placeholder || "", class:"k-ta"});
+  t.value = obj[key] == null ? "" : obj[key];
+  t.addEventListener("input", ()=>{ obj[key] = t.value; });
+  return t;
+}
+function kSel(obj, key, options, rerender){
+  const s = el("select",{class:"select-emp", style:"width:100%;"});
+  options.forEach(([v,l])=> s.appendChild(el("option",{value:v}, l)));
+  s.value = obj[key] == null ? options[0][0] : String(obj[key]);
+  s.addEventListener("change", ()=>{ obj[key] = s.value; if(rerender) render(); });
+  return s;
+}
+function kDayPicker(obj){
+  if(!Array.isArray(obj.days)) obj.days = [];
+  const wrap = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;align-items:center;"});
+  DAYS.forEach(d=>{
+    const b = el("button",{type:"button", class:`tab ${obj.days.includes(d.key) ? "active" : ""}`}, dayShort(d.key));
+    b.addEventListener("click", ()=>{
+      const i = obj.days.indexOf(d.key);
+      if(i >= 0) obj.days.splice(i,1); else obj.days.push(d.key);
+      b.classList.toggle("active");
+    });
+    wrap.appendChild(b);
+  });
+  [["Alle", DAYS.map(d=> d.key)],["Mo–Fr",["mon","tue","wed","thu","fri"]],["Sa–So",["sat","sun"]]].forEach(([l,keys])=>{
+    wrap.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-left:6px;", onclick:()=>{ obj.days = keys.slice(); render(); }}, l));
+  });
+  return wrap;
+}
+function kFormActions(d, onSave){
+  const row = el("div",{style:"display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;"});
+  const save = el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 22px;"}, d.id ? "Änderungen speichern" : "Speichern");
+  save.addEventListener("click", onSave);
+  row.appendChild(save);
+  if(d.id) row.appendChild(el("button",{class:"btn-cancel", style:"width:auto;padding:11px 22px;", onclick:()=>{ state.kDraft = null; render(); }}, "Abbrechen"));
+  return row;
+}
+function kListRow({title, sub, paused, onToggle, onEdit, onDelete}){
+  const row = el("div",{class:"team-row", style:`flex-wrap:wrap;${paused ? "opacity:.55;" : ""}`});
+  row.appendChild(el("div",{style:"flex:1;min-width:180px;"},[
+    el("div",{class:"name"}, title),
+    sub ? el("div",{style:"font-size:12.5px;color:var(--text-muted);margin-top:2px;"}, sub) : null
+  ]));
+  const acts = el("div",{style:"display:flex;align-items:center;gap:4px;"});
+  if(onToggle) acts.appendChild(el("button",{class:"icon-btn", title: paused ? "Aktivieren" : "Pausieren", "aria-label": paused ? "Aktivieren" : "Pausieren", onclick:onToggle},[ic(paused ? "play" : "pause")]));
+  acts.appendChild(el("button",{class:"icon-btn", title:"Bearbeiten", "aria-label":"Bearbeiten", onclick:onEdit},[ic("pencil")]));
+  acts.appendChild(el("button",{class:"del-btn", title:"Löschen", "aria-label":"Löschen", onclick:onDelete},[ic("trash")]));
+  row.appendChild(acts);
+  return row;
+}
+
+function renderKitchenAdmin(){
+  const section = el("div",{});
+  section.appendChild(el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, "Küchen-Modus"),
+      el("p",{class:"section-sub"}, "Aufgaben, Rezepte und Alarme für das Küchen-iPad. Alarme ertönen nur dort.")
+    ])
+  ]));
+  const views = [["tasks","clipboard","Aufgaben"],["recipes","bowl","Rezepte"],["alarms","bell","Alarme"],["log","clock","Protokoll"],["account","tablet","iPad-Konto"]];
+  const row = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"});
+  views.forEach(([k,icn,l])=> row.appendChild(el("button",{class:`tab ${state.kAdmin.view===k?"active":""}`, onclick:()=>{ state.kAdmin.view = k; state.kDraft = null; render(); }}, icl(icn,l))));
+  section.appendChild(row);
+
+  if(!kitchenAccounts().length && state.kAdmin.view !== "account"){
+    section.appendChild(el("div",{class:"card", style:"display:flex;align-items:center;gap:14px;flex-wrap:wrap;"},[
+      el("span",{class:"push-hint-ic"},[ic("tablet")]),
+      el("div",{style:"flex:1;min-width:200px;"},[
+        el("div",{style:"font-weight:650;"}, "Noch kein iPad-Konto angelegt"),
+        el("div",{style:"font-size:14px;color:var(--text-muted);"}, "Leg zuerst ein Konto an, mit dem sich das Küchen-iPad anmeldet.")
+      ]),
+      el("button",{class:"btn btn-primary", style:"width:auto;padding:10px 18px;", onclick:()=>{ state.kAdmin.view = "account"; render(); }}, "Konto anlegen")
+    ]));
+  }
+
+  const v = state.kAdmin.view;
+  if(v === "recipes") section.appendChild(renderKAdminRecipes());
+  else if(v === "alarms") section.appendChild(renderKAdminAlarms());
+  else if(v === "log") section.appendChild(renderKAdminLog());
+  else if(v === "account") section.appendChild(renderKAdminAccount());
+  else section.appendChild(renderKAdminTasks());
+  return section;
+}
+
+// ---------- Aufgaben verwalten ----------
+function renderKAdminTasks(){
+  const wrap = el("div",{});
+  const today = toDateKey(new Date());
+  const todays = kTasksForDate(today);
+  const done = kDoneMap(today);
+
+  const tc = el("div",{class:"card"});
+  tc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, `Heute · ${todays.filter(([id])=> done[id]).length} von ${todays.length} erledigt`));
+  if(!todays.length) tc.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Für heute sind keine Aufgaben eingetragen."));
+  todays.forEach(([id,t])=>{
+    const dd = done[id];
+    tc.appendChild(el("div",{class:"team-row", style:"flex-wrap:wrap;"},[
+      el("div",{style:"flex:1;min-width:160px;"},[ el("div",{class:"name"}, t.title), el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, kTaskWhen(t)) ]),
+      dd ? el("span",{class:"avail-pill yes"}, `${dd.byName} · ${fmtTime(dd.at)} Uhr`) : el("span",{class:"avail-pill no"}, "offen")
+    ]));
+  });
+  wrap.appendChild(tc);
+
+  const d = kDraft("task", K_TASK_DEFAULTS); const x = d.data;
+  const fc = el("div",{class:"card"});
+  fc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, d.id ? "Aufgabe bearbeiten" : "+ Neue Aufgabe"));
+  const form = el("div",{class:"k-form"});
+  form.appendChild(kField("Aufgabe", kIn(x,"title",{type:"text", placeholder:"z. B. Tomaten vorschneiden"}), true));
+  form.appendChild(kField("Beschreibung (optional)", kTa(x,"description","z. B. 2 Kisten, in Würfel, in die blaue Box", 2), true));
+  form.appendChild(kField("Wiederholung", kSel(x,"repeat",[["recurring","Wiederkehrend"],["once","Einmalig"]], true)));
+  if(x.repeat === "once") form.appendChild(kField("Datum", kIn(x,"date",{type:"date"})));
+  form.appendChild(kField("Schicht", kSel(x,"shift",[["both","Ganzer Tag"],["frueh","Früh"],["abend","Abend"]])));
+  form.appendChild(kField("Erledigt bis (optional)", kIn(x,"dueTime",{type:"time"})));
+  form.appendChild(kField("Priorität", kSel(x,"priority",[["normal","Normal"],["high","Wichtig"]])));
+  if(x.repeat !== "once") form.appendChild(kField("An diesen Tagen", kDayPicker(x), true));
+  fc.appendChild(form);
+  fc.appendChild(kFormActions(d, async ()=>{
+    const title = (x.title || "").trim();
+    if(!title){ alert("Bitte einen Titel eingeben."); return; }
+    if(x.repeat === "once" && !x.date){ alert("Bitte ein Datum wählen."); return; }
+    if(x.repeat !== "once" && !sortDays(x.days).length){ alert("Bitte mindestens einen Tag wählen."); return; }
+    const rec = {
+      title, description:(x.description || "").trim(), repeat:x.repeat,
+      date: x.repeat === "once" ? x.date : null,
+      days: x.repeat === "once" ? null : sortDays(x.days),
+      shift:x.shift, dueTime: x.dueTime || null, priority:x.priority
+    };
+    if(d.id) await update(ref(db, `kitchen/tasks/${d.id}`), rec);
+    else await set(push(ref(db, "kitchen/tasks")), {...rec, active:true, createdAt:Date.now()});
+    state.kDraft = null; render();
+  }));
+  wrap.appendChild(fc);
+
+  const all = Object.entries(state.kitchen.tasks || {}).sort((a,b)=> a[1].title.localeCompare(b[1].title));
+  const lc = el("div",{class:"card"});
+  lc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, `Alle Aufgaben (${all.length})`));
+  if(!all.length) lc.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Noch keine Aufgaben angelegt."));
+  all.forEach(([id,t])=>{
+    const past = t.repeat === "once" && t.date && t.date < today;
+    lc.appendChild(kListRow({
+      title: t.title,
+      sub: kTaskWhen(t) + (past ? " · vorbei" : "") + (t.active === false ? " · pausiert" : ""),
+      paused: t.active === false || past,
+      onToggle: ()=> update(ref(db, `kitchen/tasks/${id}`), {active: t.active === false}),
+      onEdit: ()=> kStartEdit("task", id, Object.assign(kClone(K_TASK_DEFAULTS), kClone(t), {date:t.date || "", dueTime:t.dueTime || "", days:t.days || []})),
+      onDelete: ()=>{ if(confirm(`Aufgabe „${t.title}“ löschen?`)) remove(ref(db, `kitchen/tasks/${id}`)); }
+    }));
+  });
+  wrap.appendChild(lc);
+  return wrap;
+}
+
+// ---------- Rezepte verwalten ----------
+function renderKAdminRecipes(){
+  const wrap = el("div",{});
+  const d = kDraft("recipe", K_RECIPE_DEFAULTS); const x = d.data;
+  if(!Array.isArray(x.ingredients) || !x.ingredients.length) x.ingredients = [{amount:"", unit:"", name:""}];
+  if(!Array.isArray(x.steps) || !x.steps.length) x.steps = [""];
+  const existingCats = [...new Set(Object.values(state.kitchen.recipes || {}).map(r=> r.category).filter(Boolean))].sort();
+
+  const fc = el("div",{class:"card"});
+  fc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, d.id ? "Rezept bearbeiten" : "+ Neues Rezept"));
+  const form = el("div",{class:"k-form"});
+  form.appendChild(kField("Name", kIn(x,"name",{type:"text", placeholder:"z. B. Sesam-Soja-Sauce"})));
+  const catIn = kIn(x,"category",{type:"text", placeholder:"z. B. Saucen", list:"k-recipe-cats"});
+  const dl = el("datalist",{id:"k-recipe-cats"});
+  existingCats.forEach(c=> dl.appendChild(el("option",{value:c})));
+  form.appendChild(kField("Kategorie", el("div",{},[catIn, dl])));
+  form.appendChild(kField("Ergibt (optional)", kIn(x,"yield",{type:"text", placeholder:"z. B. 1 Liter / 20 Portionen"})));
+  fc.appendChild(form);
+
+  fc.appendChild(el("div",{style:"font-weight:650;font-size:14px;margin:18px 0 8px;"}, "Zutaten"));
+  const ingRows = el("div",{class:"k-rows"});
+  x.ingredients.forEach((ing,i)=>{
+    ingRows.appendChild(el("div",{class:"k-ing-row"},[
+      kIn(ing,"amount",{type:"text", inputmode:"decimal", placeholder:"Menge"}),
+      kIn(ing,"unit",{type:"text", placeholder:"Einheit"}),
+      kIn(ing,"name",{type:"text", placeholder:"Zutat, z. B. Sojasauce"}),
+      el("button",{type:"button", class:"del-btn", "aria-label":"Zutat entfernen", onclick:()=>{ x.ingredients.splice(i,1); render(); }},[ic("x")])
+    ]));
+  });
+  fc.appendChild(ingRows);
+  fc.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-top:8px;", onclick:()=>{ x.ingredients.push({amount:"", unit:"", name:""}); render(); }}, "+ Zutat"));
+  fc.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-top:4px;"}, "Mengen als Zahl (z. B. 250 oder 0,5), dann lassen sie sich am iPad hochrechnen."));
+
+  fc.appendChild(el("div",{style:"font-weight:650;font-size:14px;margin:18px 0 8px;"}, "Zubereitung"));
+  const stepRows = el("div",{class:"k-rows"});
+  x.steps.forEach((s,i)=>{
+    stepRows.appendChild(el("div",{class:"k-step-row"},[
+      el("span",{class:"k-step-num"}, String(i+1)),
+      kTa(x.steps, i, "Schritt beschreiben …", 2),
+      el("button",{type:"button", class:"del-btn", "aria-label":"Schritt entfernen", onclick:()=>{ x.steps.splice(i,1); render(); }},[ic("x")])
+    ]));
+  });
+  fc.appendChild(stepRows);
+  fc.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-top:8px;", onclick:()=>{ x.steps.push(""); render(); }}, "+ Schritt"));
+
+  fc.appendChild(el("div",{style:"margin-top:18px;"},[ kField("Hinweise (optional)", kTa(x,"notes","z. B. hält 3 Tage im Kühlschrank, mit Datum beschriften", 2)) ]));
+  fc.appendChild(kFormActions(d, async ()=>{
+    const name = (x.name || "").trim();
+    if(!name){ alert("Bitte einen Namen eingeben."); return; }
+    const rec = {
+      name, category: (x.category || "").trim() || "Sonstiges", yield: (x.yield || "").trim(),
+      ingredients: x.ingredients.map(i=> ({amount:String(i.amount||"").trim(), unit:String(i.unit||"").trim(), name:String(i.name||"").trim()})).filter(i=> i.name || i.amount),
+      steps: x.steps.map(s=> String(s||"").trim()).filter(Boolean),
+      notes: (x.notes || "").trim()
+    };
+    if(d.id) await update(ref(db, `kitchen/recipes/${d.id}`), rec);
+    else await set(push(ref(db, "kitchen/recipes")), {...rec, createdAt:Date.now()});
+    state.kDraft = null; render();
+  }));
+  wrap.appendChild(fc);
+
+  const all = Object.entries(state.kitchen.recipes || {});
+  const lc = el("div",{class:"card"});
+  lc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, `Alle Rezepte (${all.length})`));
+  if(!all.length) lc.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Noch keine Rezepte angelegt."));
+  all.sort((a,b)=> (a[1].category||"").localeCompare(b[1].category||"") || a[1].name.localeCompare(b[1].name)).forEach(([id,r])=>{
+    const nIng = (r.ingredients || []).length, nSteps = (r.steps || []).length;
+    lc.appendChild(kListRow({
+      title: r.name,
+      sub: `${r.category || "Sonstiges"} · ${nIng} Zutaten · ${nSteps} Schritte${r.yield ? ` · ergibt ${r.yield}` : ""}`,
+      onEdit: ()=> kStartEdit("recipe", id, Object.assign(kClone(K_RECIPE_DEFAULTS), kClone(r))),
+      onDelete: ()=>{ if(confirm(`Rezept „${r.name}“ löschen?`)) remove(ref(db, `kitchen/recipes/${id}`)); }
+    }));
+  });
+  wrap.appendChild(lc);
+  return wrap;
+}
+
+// ---------- Alarme verwalten ----------
+function renderKAdminAlarms(){
+  const wrap = el("div",{});
+  const d = kDraft("alarm", K_ALARM_DEFAULTS); const x = d.data;
+  if(!Array.isArray(x.times)) x.times = [];
+
+  const fc = el("div",{class:"card"});
+  fc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, d.id ? "Alarm bearbeiten" : "+ Neuer Alarm"));
+  const form = el("div",{class:"k-form"});
+  form.appendChild(kField("Titel", kIn(x,"title",{type:"text", placeholder:"z. B. Arbeitsflächen reinigen"}), true));
+  form.appendChild(kField("Text auf dem iPad (optional)", kTa(x,"text","z. B. Flächen desinfizieren, Böden fegen, Mülleimer prüfen", 2), true));
+  form.appendChild(kField("Wann?", kSel(x,"type",[["times","Feste Uhrzeiten"],["interval","Regelmäßig (alle X Minuten)"],["once","Einmalig"]], true)));
+
+  if(x.type === "interval"){
+    form.appendChild(kField("Abstand", kSel(x,"every",[["15","alle 15 Min."],["30","alle 30 Min."],["45","alle 45 Min."],["60","jede Stunde"],["90","alle 90 Min."],["120","alle 2 Std."],["180","alle 3 Std."],["240","alle 4 Std."]])));
+    form.appendChild(kField("Von", kIn(x,"from",{type:"time"})));
+    form.appendChild(kField("Bis", kIn(x,"to",{type:"time"})));
+  } else if(x.type === "once"){
+    form.appendChild(kField("Datum", kIn(x,"date",{type:"date"})));
+    form.appendChild(kField("Uhrzeit", kIn(x,"time",{type:"time"})));
+  }
+  if(x.type === "times"){
+    const timesWrap = el("div",{style:"display:flex;gap:8px;flex-wrap:wrap;align-items:center;"});
+    x.times.forEach((t,i)=>{
+      timesWrap.appendChild(el("div",{style:"display:flex;align-items:center;gap:2px;"},[
+        kIn(x.times, i, {type:"time", style:"width:120px;"}),
+        el("button",{type:"button", class:"del-btn", "aria-label":"Uhrzeit entfernen", onclick:()=>{ x.times.splice(i,1); render(); }},[ic("x")])
+      ]));
+    });
+    timesWrap.appendChild(el("button",{type:"button", class:"link-btn", onclick:()=>{ x.times.push(""); render(); }}, "+ Uhrzeit"));
+    form.appendChild(kField("Uhrzeiten", timesWrap, true));
+  }
+  if(x.type !== "once") form.appendChild(kField("An diesen Tagen", kDayPicker(x), true));
+
+  form.appendChild(kField("Ton", kSel(x,"sound", KITCHEN_SOUNDS)));
+  const vol = el("input",{type:"range", min:"0.1", max:"1", step:"0.1", style:"width:100%;accent-color:var(--brand);"});
+  vol.value = x.volume;
+  vol.addEventListener("input", ()=>{ x.volume = vol.value; });
+  form.appendChild(kField("Lautstärke", vol));
+  form.appendChild(el("div",{},[ el("button",{type:"button", class:"btn-cancel", style:"width:100%;min-height:40px;", onclick:()=> playKitchenSound(x.sound, parseFloat(x.volume))}, icl("volume","Ton testen")) ]));
+  const cb = el("input",{type:"checkbox", style:"width:18px;height:18px;"});
+  cb.checked = x.repeat !== false;
+  cb.addEventListener("change", ()=>{ x.repeat = cb.checked; });
+  form.appendChild(el("label",{style:"grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;"},[cb, el("span",{}, "Ton wiederholen, bis jemand auf „Erledigt“ tippt")]));
+  fc.appendChild(form);
+
+  fc.appendChild(kFormActions(d, async ()=>{
+    const title = (x.title || "").trim();
+    if(!title){ alert("Bitte einen Titel eingeben."); return; }
+    const days = sortDays(x.days);
+    let schedule;
+    if(x.type === "times"){
+      const times = [...new Set(x.times.filter(t=> /^\d{2}:\d{2}$/.test(t)))].sort();
+      if(!times.length){ alert("Bitte mindestens eine Uhrzeit eintragen."); return; }
+      if(!days.length){ alert("Bitte mindestens einen Tag wählen."); return; }
+      schedule = {type:"times", times, days};
+    } else if(x.type === "interval"){
+      if(!x.from || !x.to || hmToMin(x.from) >= hmToMin(x.to)){ alert("Bitte ein gültiges Zeitfenster eintragen (Von vor Bis)."); return; }
+      if(!days.length){ alert("Bitte mindestens einen Tag wählen."); return; }
+      schedule = {type:"interval", every:Number(x.every) || 60, from:x.from, to:x.to, days};
+    } else {
+      if(!x.date || !x.time){ alert("Bitte Datum und Uhrzeit eintragen."); return; }
+      schedule = {type:"once", date:x.date, time:x.time};
+    }
+    const rec = {title, text:(x.text || "").trim(), sound:x.sound, volume:parseFloat(x.volume) || 0.8, repeat:x.repeat !== false, schedule};
+    if(d.id) await update(ref(db, `kitchen/alarms/${d.id}`), {...rec, active:true});
+    else await set(push(ref(db, "kitchen/alarms")), {...rec, active:true, createdAt:Date.now()});
+    state.kDraft = null; render();
+  }));
+  wrap.appendChild(fc);
+
+  const all = Object.entries(state.kitchen.alarms || {}).sort((a,b)=> (a[1].title||"").localeCompare(b[1].title||""));
+  const lc = el("div",{class:"card"});
+  lc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, `Alle Alarme (${all.length})`));
+  if(!all.length) lc.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Noch keine Alarme angelegt."));
+  const now = new Date();
+  all.forEach(([id,a])=>{
+    const paused = a.active === false;
+    const next = paused ? null : nextAlarmFire(a, now, 8*24*60);
+    const status = paused ? "pausiert" : next ? `nächster: ${fmtFireTime(next)}` : "kein Termin mehr";
+    const s = a.schedule || {};
+    lc.appendChild(kListRow({
+      title: a.title || "Alarm",
+      sub: `${kAlarmSummary(a)} · ${(KITCHEN_SOUNDS.find(k=> k[0]===a.sound)||["","Glocke"])[1]} · ${status}`,
+      paused,
+      onToggle: ()=> update(ref(db, `kitchen/alarms/${id}`), {active: paused}),
+      onEdit: ()=> kStartEdit("alarm", id, Object.assign(kClone(K_ALARM_DEFAULTS), {
+        title:a.title || "", text:a.text || "", sound:a.sound || "glocke", volume:String(a.volume == null ? 0.8 : a.volume), repeat:a.repeat !== false,
+        type:s.type || "times", times:(s.times || []).slice(), days:(s.days || []).slice(), every:String(s.every || 60),
+        from:s.from || "11:00", to:s.to || "22:00", date:s.date || "", time:s.time || ""
+      })),
+      onDelete: ()=>{ if(confirm(`Alarm „${a.title}“ löschen?`)) remove(ref(db, `kitchen/alarms/${id}`)); }
+    }));
+  });
+  wrap.appendChild(lc);
+  return wrap;
+}
+
+// ---------- Protokoll ----------
+function renderKAdminLog(){
+  const wrap = el("div",{});
+  const logs = Object.entries(state.kitchen.alarmLog || {}).sort((a,b)=> (b[1].firedAt||0) - (a[1].firedAt||0));
+  const acked = logs.filter(([id,l])=> l.ackAt);
+  const card = el("div",{class:"card"});
+  const head = el("div",{style:"display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;"},[
+    el("h3",{style:"margin:0;font-size:15px;"}, "Alarm-Protokoll"),
+    logs.length ? el("button",{class:"link-btn", style:"color:var(--chili);", onclick:()=>{ if(confirm("Komplettes Alarm-Protokoll löschen?")) remove(ref(db, "kitchen/alarmLog")); }}, icl("trash","Protokoll leeren")) : null
+  ]);
+  card.appendChild(head);
+  if(acked.length){
+    const avg = acked.reduce((s,[id,l])=> s + (l.ackAt - l.firedAt), 0) / acked.length / 60000;
+    card.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);margin-bottom:12px;"}, `${acked.length} von ${logs.length} bestätigt · Ø Reaktionszeit ${avg.toLocaleString("de-DE",{maximumFractionDigits:1})} Min.`));
+  }
+  if(!logs.length) card.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Noch keine Alarme ausgelöst."));
+  logs.slice(0,100).forEach(([id,l])=>{
+    const fired = new Date(l.firedAt);
+    const mins = l.ackAt ? Math.max(0, Math.round((l.ackAt - l.firedAt)/60000)) : null;
+    card.appendChild(el("div",{class:"team-row", style:"flex-wrap:wrap;"},[
+      el("div",{style:"flex:1;min-width:160px;"},[
+        el("div",{class:"name"}, l.title || "Alarm"),
+        el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, `${fired.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})} · ${fmtTime(l.firedAt)} Uhr`)
+      ]),
+      l.ackAt
+        ? el("span",{class:"avail-pill yes"}, `${l.ackByName || "?"} · ${fmtTime(l.ackAt)} Uhr (${mins} Min.)`)
+        : el("span",{class:"avail-pill no", style:"color:var(--chili);"}, "nicht bestätigt")
+    ]));
+  });
+  wrap.appendChild(card);
+  return wrap;
+}
+
+// ---------- iPad-Konto ----------
+function renderKAdminAccount(){
+  const wrap = el("div",{});
+  const accs = kitchenAccounts();
+
+  if(accs.length){
+    const card = el("div",{class:"card"});
+    card.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "iPad-Konten"));
+    accs.forEach(([id,e])=>{
+      const pw = el("input",{type:"password", placeholder:"Neues Passwort", class:"select-emp", style:"width:170px;"});
+      const pwBtn = el("button",{class:"btn-cancel", style:"width:auto;padding:7px 12px;font-size:13px;border-radius:20px;"}, "Passwort ändern");
+      pwBtn.addEventListener("click", async ()=>{
+        if(!pw.value){ alert("Bitte ein neues Passwort eingeben."); return; }
+        await update(ref(db, `employees/${id}`), {password: simpleHash(pw.value)});
+        pw.value = ""; pwBtn.textContent = "Gespeichert ✓";
+        setTimeout(()=>{ pwBtn.textContent = "Passwort ändern"; }, 1500);
+      });
+      card.appendChild(el("div",{class:"team-row", style:"flex-wrap:wrap;gap:10px;"},[
+        el("span",{class:"name"}, icl("tablet", e.name)),
+        el("div",{style:"display:flex;align-items:center;gap:8px;flex-wrap:wrap;"},[
+          pw, pwBtn,
+          el("button",{class:"btn-danger", style:"width:auto;padding:6px 14px;font-size:13px;border-radius:20px;", onclick:()=>{
+            if(confirm(`iPad-Konto „${e.name}“ löschen?`)) remove(ref(db, `employees/${id}`));
+          }}, "Konto löschen")
+        ])
+      ]));
+    });
+    wrap.appendChild(card);
+  }
+
+  const card = el("div",{class:"card"});
+  card.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, accs.length ? "+ Weiteres iPad-Konto" : "+ iPad-Konto anlegen"));
+  const nameIn = el("input",{type:"text", placeholder:"z. B. Küche", class:"select-emp", style:"width:100%;"});
+  const pwIn = el("input",{type:"password", placeholder:"Passwort", class:"select-emp", style:"width:100%;"});
+  const btn = el("button",{class:"btn btn-primary", style:"padding:11px;"}, "Anlegen");
+  btn.addEventListener("click", async ()=>{
+    const name = nameIn.value.trim();
+    if(!name || !pwIn.value){ alert("Bitte Name und Passwort eingeben."); return; }
+    if(Object.values(state.employees).some(e=> e && e.name.toLowerCase() === name.toLowerCase())){ alert("Dieser Name ist schon vergeben."); return; }
+    await set(push(ref(db, "employees")), {name, password: simpleHash(pwIn.value), role:"kitchen"});
+    nameIn.value = ""; pwIn.value = "";
+  });
+  card.appendChild(el("div",{class:"k-form"},[ kField("Name (zum Anmelden)", nameIn), kField("Passwort", pwIn), btn ]));
+  wrap.appendChild(card);
+
+  const help = el("div",{class:"card"});
+  help.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "So richtest du das iPad ein"));
+  help.appendChild(el("ol",{class:"help-steps", style:"margin-bottom:0;"},[
+    el("li",{}, "Auf dem iPad die App in Safari öffnen und mit dem iPad-Konto anmelden."),
+    el("li",{}, "Teilen → „Zum Home-Bildschirm“, danach die App über das neue Symbol öffnen (Vollbild)."),
+    el("li",{}, "„Küchen-Modus starten“ antippen. Das ist nach jedem Neustart der App einmal nötig, sonst darf das iPad keinen Ton abspielen."),
+    el("li",{}, "iPad-Einstellungen: Anzeige & Helligkeit → Automatische Sperre → Nie. Lautstärke hoch, Stummschalten aus."),
+    el("li",{}, "Optional: Bedienungshilfen → Geführter Zugriff, damit niemand die App verlässt."),
+    el("li",{}, "iPad am Strom lassen. Alarme ertönen nur, solange die App offen ist.")
+  ]));
+  wrap.appendChild(help);
+  return wrap;
 }
 
 function fmtNum(v){
