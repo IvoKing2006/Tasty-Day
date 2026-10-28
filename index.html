@@ -3929,6 +3929,84 @@ function daysUntil(dateStr){
   return Math.round((target - today) / 86400000);
 }
 
+// ---------- Inventur-Tage (pro Zutat feste Wochentage) ----------
+// Alte Zutaten mit nur „inventoryTracked: true“ gelten als täglich.
+function inventurDays(it){
+  if(!it) return [];
+  if(Array.isArray(it.inventoryDays)) return sortDays(it.inventoryDays);
+  return it.inventoryTracked ? DAYS.map(d=> d.key) : [];
+}
+function isInventurDueToday(it){
+  return !!it && !it.archived && inventurDays(it).includes(todayDayKey());
+}
+function inventurDoneToday(it){ return !!it && it.lastInventurDate === toDateKey(new Date()); }
+function inventurDaysLabel(it){
+  const d = inventurDays(it);
+  return d.length ? `Inventur: ${daysSummary(d)}` : "";
+}
+// Tage-Auswahl ohne Neu-Zeichnen der Seite (Eingaben im Formular bleiben erhalten)
+function inventurDayPicker(initial){
+  const days = sortDays(initial);
+  const wrap = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;align-items:center;"});
+  const chips = {};
+  function sync(){ DAYS.forEach(d=> chips[d.key].classList.toggle("active", days.includes(d.key))); }
+  DAYS.forEach(d=>{
+    const b = el("button",{type:"button", class:"tab", style:"padding:6px 11px;"}, dayShort(d.key));
+    b.addEventListener("click", ()=>{ const i = days.indexOf(d.key); if(i >= 0) days.splice(i,1); else days.push(d.key); sync(); });
+    chips[d.key] = b; wrap.appendChild(b);
+  });
+  [["Täglich", DAYS.map(d=> d.key)], ["Keine", []]].forEach(([l, keys])=>{
+    wrap.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-left:4px;font-size:13px;", onclick:()=>{ days.splice(0, days.length, ...keys); sync(); }}, l));
+  });
+  sync();
+  return {node: wrap, get: ()=> sortDays(days)};
+}
+function saveInventurCount(id, value){
+  return update(ref(db, `inventory/${id}`), {ist: Math.max(0, value), lastInventurDate: toDateKey(new Date()), lastInventurAt: Date.now()});
+}
+// Karte „Heute zu zählen“ im Lager
+function renderInventurTodayCard(items){
+  const due = items.filter(([id,it])=> isInventurDueToday(it)).sort((a,b)=> a[1].name.localeCompare(b[1].name));
+  if(!due.length) return null;
+  const doneCount = due.filter(([id,it])=> inventurDoneToday(it)).length;
+  const card = el("div",{class:"card"});
+  card.appendChild(el("div",{style:"display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;"},[
+    el("h3",{style:`margin:0;font-size:15px;color:${doneCount===due.length?"var(--avocado)":"var(--mango)"};`},
+      icl("clipboard", doneCount === due.length ? `Inventur heute komplett (${due.length}/${due.length})` : `Heute zu zählen · ${doneCount} von ${due.length} gezählt`)),
+    doneCount < due.length ? el("button",{class:"btn btn-primary", style:"width:auto;padding:9px 16px;font-size:14px;", onclick:()=> openInventoryScanner("inventur")}, icl("camera","Inventur scannen")) : null
+  ]));
+  if(due.length) card.appendChild(el("div",{class:"k-progress-bar", style:"margin-bottom:12px;"},[ el("div",{style:`width:${Math.round(doneCount/due.length*100)}%;`}) ]));
+  // offene zuerst
+  due.sort((a,b)=> (inventurDoneToday(a[1])?1:0) - (inventurDoneToday(b[1])?1:0));
+  due.forEach(([id,it])=>{
+    const done = inventurDoneToday(it);
+    const row = el("div",{class:"stock-row", style:"flex-wrap:wrap;"});
+    row.appendChild(el("span",{class:"stock-dot", style:`background:${done?"var(--avocado)":"var(--mango)"};`}));
+    row.appendChild(el("div",{class:"stock-main", style:"flex:1;min-width:120px;"},[
+      el("div",{class:"stock-name"}, it.name),
+      (it.area || it.shelf) ? el("div",{style:"font-size:11.5px;color:var(--text-muted);"}, [it.area, it.shelf].filter(Boolean).join(" · ")) : null
+    ]));
+    const input = el("input",{type:"number", step:"0.01", min:"0", class:"stock-ist-input mono", style:"width:80px;", value: it.ist || 0});
+    const saveBtn = el("button",{class:"btn-cancel", style:"width:auto;padding:7px 12px;font-size:13px;border-radius:9px;"}, "Speichern");
+    saveBtn.addEventListener("click", ()=>{
+      const v = parseFloat(String(input.value).replace(",", "."));
+      if(isNaN(v)){ alert("Bitte eine Menge eingeben."); return; }
+      saveInventurCount(id, v);
+    });
+    const editGroup = el("div",{style:`display:${done?"none":"flex"};align-items:center;gap:6px;`},[ input, el("span",{style:"font-size:13px;color:var(--text-muted);"}, it.unit || ""), saveBtn ]);
+    if(done){
+      const info = el("span",{class:"mono", style:"font-size:12.5px;color:var(--avocado);font-weight:700;"},
+        icl("check", `${fmtNum(it.ist||0)} ${it.unit||""} · ${it.lastInventurAt ? fmtTime(it.lastInventurAt)+" Uhr" : "heute"}`));
+      const fix = el("button",{class:"link-btn", style:"font-size:12.5px;"}, "ändern");
+      fix.addEventListener("click", ()=>{ editGroup.style.display = "flex"; fix.style.display = "none"; input.focus(); });
+      row.appendChild(info); row.appendChild(fix);
+    }
+    row.appendChild(editGroup);
+    card.appendChild(row);
+  });
+  return card;
+}
+
 function renderInventory(){
   const section = el("div",{});
   section.appendChild(el("div",{class:"section-head"},[
@@ -3972,6 +4050,9 @@ function renderInventory(){
     areaFilterRow.appendChild(btn);
   });
   section.appendChild(areaFilterRow);
+
+  const inventurCard = renderInventurTodayCard(items);
+  if(inventurCard) section.appendChild(inventurCard);
 
   // total value summary
   const totalValue = items.reduce((s,[id,it])=> s + ((it.price||0) * (it.ist||0)), 0);
@@ -4062,8 +4143,8 @@ function renderInventory(){
   });
   if(existingCategories.length === 0) newCatInput.style.display = "block";
 
-  const inventurCheckbox = el("input",{type:"checkbox", style:"width:16px;height:16px;accent-color:var(--mango);cursor:pointer;"});
-  const inventurField = el("label",{style:"display:flex;align-items:center;gap:8px;cursor:pointer;padding-top:22px;"},[inventurCheckbox, el("span",{style:"font-size:13px;color:var(--text-muted);"},"In Inventur (Endbestand scannen) aufnehmen")]);
+  const inventurPicker = inventurDayPicker([]);
+  const inventurField = el("div",{style:"grid-column:1/-1;"},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Inventur-Tage (an diesen Tagen wird gezählt)"), inventurPicker.node]);
 
   const addBtn = el("button",{class:"btn btn-primary", style:"padding:11px;"}, "Hinzufügen");
   addBtn.addEventListener("click", async ()=>{
@@ -4072,7 +4153,10 @@ function renderInventory(){
     if(!category) category = "Sonstiges";
     if(!name) return;
     const soll = parseFloat(sollInput.value) || 0;
-    const record = {name, category, unit: unitInput.value.trim() || "Stück", soll, ist: soll, area: areaSelect.value, inventoryTracked: !!inventurCheckbox.checked};
+    const record = {name, category, unit: unitInput.value.trim() || "Stück", soll, ist: soll, area: areaSelect.value};
+    const invDays = inventurPicker.get();
+    record.inventoryDays = invDays;
+    record.inventoryTracked = invDays.length > 0;
     const packSize = parseFloat(packSizeInput.value);
     if(packSize > 0) record.packSize = packSize;
     if(soll > 0){
@@ -4170,6 +4254,7 @@ function renderInventory(){
         if(it.supplier) subBits.push(it.supplier);
         if(it.price) subBits.push(`Netto ${fmtMoney(it.price)} · Brutto ${fmtMoney(it.priceBrutto||it.price)}/${it.unit||"Stk"}`);
         if(it.deposit) subBits.push(`Pfand ${fmtMoney(it.deposit)}`);
+        if(inventurDaysLabel(it)) subBits.push(inventurDaysLabel(it));
         if(subBits.length) nameCol.appendChild(el("div",{style:"font-size:11.5px;color:var(--text-muted);"}, subBits.join(" · ")));
         row.appendChild(nameCol);
 
@@ -4341,9 +4426,8 @@ function renderInventory(){
             fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Lieferant"), eSupplier]));
             fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Lagerbereich"), eArea]));
             fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Regal / Kühlschrank"), eShelf]));
-            const eInventurCb = el("input",{type:"checkbox", style:"width:16px;height:16px;accent-color:var(--mango);cursor:pointer;"});
-            eInventurCb.checked = !!it.inventoryTracked;
-            fields.push(el("label",{style:"display:flex;align-items:center;gap:8px;cursor:pointer;padding-top:22px;"},[eInventurCb, el("span",{style:"font-size:13px;color:var(--text-muted);"},"In Inventur aufnehmen")]));
+            const eInventurPicker = inventurDayPicker(inventurDays(it));
+            fields.push(el("div",{style:"grid-column:1/-1;"},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Inventur-Tage"), eInventurPicker.node]));
             fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), eCat]));
             saveBtn.addEventListener("click", ()=>{
               const updates = {
@@ -4352,8 +4436,9 @@ function renderInventory(){
                 soll: parseFloat(eSoll.value) || 0,
                 category: eCat.value.trim() || "Sonstiges",
                 area: eArea.value,
-                inventoryTracked: !!eInventurCb.checked,
               };
+              updates.inventoryDays = eInventurPicker.get();
+              updates.inventoryTracked = updates.inventoryDays.length > 0;
               const packVal = parseFloat(ePack.value);
               updates.packSize = packVal > 0 ? packVal : null;
               const priceVal = parseFloat(ePrice.value);
@@ -4423,7 +4508,7 @@ function renderInventory(){
 }
 
 // ---------- inventory barcode scanner ----------
-function openInventoryScanner(){
+function openInventoryScanner(initialMode){
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
     alert("Kamera-Zugriff wird von diesem Browser nicht unterstützt.");
     return;
@@ -4442,15 +4527,14 @@ function openInventoryScanner(){
 
   // Inventur progress — persistiert pro Tag, nicht nur pro Sitzung
   const inventurProgress = el("div",{style:"display:none;font-size:13px;margin-bottom:10px;text-align:center;max-width:340px;"});
+  // nur Zutaten, deren Inventur-Tag heute ist
   function getOpenTrackedItems(){
-    const today = toDateKey(new Date());
     return Object.entries(state.inventory||{})
-      .filter(([id,it])=> it.inventoryTracked && !it.archived && it.lastInventurDate !== today)
+      .filter(([id,it])=> isInventurDueToday(it) && !inventurDoneToday(it))
       .map(([id,it])=> ({id, name:it.name}));
   }
   function getDoneTrackedCount(){
-    const today = toDateKey(new Date());
-    return Object.values(state.inventory||{}).filter(it=> it.inventoryTracked && !it.archived && it.lastInventurDate === today).length;
+    return Object.values(state.inventory||{}).filter(it=> isInventurDueToday(it) && inventurDoneToday(it)).length;
   }
   function updateInventurProgress(){
     const open = getOpenTrackedItems();
@@ -4458,7 +4542,7 @@ function openInventoryScanner(){
     const total = open.length + doneCount;
     inventurProgress.innerHTML = "";
     if(total === 0){
-      inventurProgress.appendChild(el("div",{style:"color:var(--text-muted);"}, "Keine Zutaten für die Inventur markiert. Bei „Bearbeiten“ eine Zutat dafür auswählen."));
+      inventurProgress.appendChild(el("div",{style:"color:var(--text-muted);"}, "Heute ist keine Inventur fällig. Die Tage legt der Chef bei jeder Zutat unter „Bearbeiten“ fest."));
       return;
     }
     if(open.length === 0){
@@ -4505,6 +4589,7 @@ function openInventoryScanner(){
   outBtn.addEventListener("click", ()=> setMode("out"));
   inBtn.addEventListener("click", ()=> setMode("in"));
   inventurBtn.addEventListener("click", ()=> setMode("inventur"));
+  if(initialMode === "inventur") setMode("inventur");
 
   const videoWrap = el("div",{style:"width:100%;max-width:340px;aspect-ratio:1;border-radius:16px;overflow:hidden;position:relative;border:2px solid var(--mango);background:#000;"});
   const video = el("video",{playsinline:"true", muted:"true", style:"width:100%;height:100%;object-fit:cover;"});
@@ -4595,7 +4680,7 @@ function openInventoryScanner(){
       const b = el("button",{class:"btn-primary", style:"padding:10px 14px;border-radius:9px;border:none;font-weight:700;flex:1;min-width:60px;"}, opt.label);
       b.addEventListener("click", async ()=>{
         const newIst = wholeUnits + opt.val;
-        await update(ref(db, `inventory/${itemId}`), {ist: newIst, lastInventurDate: toDateKey(new Date())});
+        await saveInventurCount(itemId, newIst);
         updateInventurProgress();
         statusText.innerHTML = "";
         statusText.appendChild(el("div",{style:"color:var(--mango);font-weight:700;"}, icl("check", `${item.name}: ${fmtNum(newIst)} ${item.unit||""} erfasst`)));
@@ -4624,13 +4709,14 @@ function openInventoryScanner(){
         const item = state.inventory[itemId];
         if(item){
           if(mode === "inventur"){
-            if(!item.inventoryTracked){
+            if(!isInventurDueToday(item)){
               statusText.innerHTML = "";
-              statusText.appendChild(el("div",{style:"color:var(--text-muted);"}, `${item.name} ist nicht Teil der Inventur.`));
+              const days = inventurDays(item);
+              statusText.appendChild(el("div",{style:"color:var(--text-muted);"}, days.length ? `${item.name} ist heute nicht dran (${daysSummary(days)}).` : `${item.name} ist nicht Teil der Inventur.`));
+            } else {
+              askInventurFractionThenResume(itemId, item);
               return;
             }
-            askInventurFractionThenResume(itemId, item);
-            return;
           } else if(mode === "in"){
             bumpIst(itemId, qty).then(()=>{
               statusText.innerHTML = "";
