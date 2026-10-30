@@ -676,6 +676,43 @@
   .swap-incoming{border-color:rgba(180,101,12,.35) !important;}
   .help-steps .ic{margin-left:4px;color:var(--brand);}
   .topbar-actions{display:flex;align-items:center;gap:6px;}
+  /* Lager */
+  .inv-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+  .inv-toolbar .inv-search{flex:1;min-width:200px;height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg-elevated);color:var(--text);font-size:15px;}
+  .inv-toolbar .btn,.inv-toolbar .btn-cancel{width:auto;min-height:44px;padding:0 16px;font-size:14px;}
+  .dash-tile.active{box-shadow:0 0 0 2px var(--brand), var(--shadow);}
+  .inv-row{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .inv-row:last-child{border-bottom:none;}
+  @media (hover:hover){ .month-group .inv-row:hover .inv-name{color:var(--brand);} }
+  .inv-main{flex:1;min-width:0;}
+  .inv-name{font-weight:600;font-size:15px;overflow-wrap:anywhere;}
+  .inv-sub{font-size:12.5px;color:var(--text-muted);margin-top:2px;}
+  .inv-bar{height:5px;border-radius:3px;background:var(--bg-elevated-2);margin-top:7px;overflow:hidden;max-width:260px;}
+  .inv-bar > div{height:100%;border-radius:3px;}
+  .inv-qty{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+  .inv-qty .mono{min-width:84px;text-align:center;font-size:13.5px;font-weight:600;}
+  .inv-modal{background:var(--bg-elevated);border-radius:20px;box-shadow:var(--shadow-lg);width:100%;max-width:580px;max-height:90dvh;overflow-y:auto;padding:22px;}
+  .inv-modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px;}
+  .inv-modal-head h2{margin:0;font-size:22px;letter-spacing:-0.02em;}
+  .inv-modal-sub{font-size:13.5px;color:var(--text-muted);margin-top:4px;}
+  .inv-group-title{font-size:13px;font-weight:650;color:var(--text-muted);margin:18px 0 8px;}
+  .inv-big{font-size:32px;font-weight:700;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;}
+  .inv-info{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .inv-info > span:first-child{color:var(--text-muted);}
+  .inv-info > span:last-child{text-align:right;}
+  .inv-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px;}
+  .inv-actions .btn,.inv-actions .btn-cancel{width:auto;min-height:42px;padding:0 16px;font-size:14px;}
+  .shop-check{width:28px;height:28px;border-radius:50%;border:2px solid var(--line-strong);background:var(--bg-elevated);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;padding:0;color:#fff;}
+  .shop-check.on{background:var(--avocado);border-color:var(--avocado);}
+  .shop-check .ic{width:16px;height:16px;}
+  .shop-row.checked .inv-main{opacity:.5;}
+  .shop-row.checked .inv-name{text-decoration:line-through;}
+  @media(max-width:600px){
+    .inv-row{gap:10px;}
+    .inv-qty .mono{min-width:64px;font-size:12.5px;}
+    .inv-modal{padding:18px;}
+    .inv-info{flex-wrap:wrap;}
+  }
   .offline-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--mango-soft);color:var(--mango);border-bottom:1px solid rgba(180,101,12,.25);font-size:14px;font-weight:600;line-height:1.4;}
   .offline-bar .ic{width:18px;height:18px;}
 
@@ -915,6 +952,9 @@ let state = {
   statsWeekOffset: 0,
   inventory: {},
   inventoryLog: {},
+  inventoryWaste: {},
+  inventoryCounts: {},
+  inv: {view:"stock", search:"", area:"Alle", filter:null, collapsed:{}, showArchived:false, detailId:null, detailTab:"stock", istDraft:null, form:null, areas:null, restock:null, waste:null, countDraft:{}, recount:{}, wasteMonth:0},
   revenue: {},
   expenses: {},
   financeView: "day",
@@ -947,8 +987,27 @@ let state = {
   kDraft: null,
 };
 
+// Beim Neuzeichnen Fokus, Cursor und Scrollposition von Fenstern erhalten
+function captureUiState(root){
+  const k = {focusId:null, selS:null, selE:null, scroll:{}};
+  const a = document.activeElement;
+  if(a && a.id && root.contains(a)){ k.focusId = a.id; try{ k.selS = a.selectionStart; k.selE = a.selectionEnd; }catch(e){} }
+  root.querySelectorAll("[data-scroll-key]").forEach(n=>{ k.scroll[n.dataset.scrollKey] = n.scrollTop; });
+  return k;
+}
+function restoreUiState(k){
+  Object.entries(k.scroll).forEach(([key,top])=>{ const n = document.querySelector(`[data-scroll-key="${key}"]`); if(n) n.scrollTop = top; });
+  if(k.focusId){
+    const n = document.getElementById(k.focusId);
+    if(n && document.activeElement !== n){
+      try{ n.focus({preventScroll:true}); }catch(e){}
+      try{ if(k.selS != null) n.setSelectionRange(k.selS, k.selE); }catch(e){}
+    }
+  }
+}
 function render(){
   const root = document.getElementById("app");
+  const keep = captureUiState(root);
   root.innerHTML = "";
   if(state.screen === "loading") root.appendChild(renderSplash());
   else if(state.screen === "login") root.appendChild(renderAuth("login"));
@@ -967,6 +1026,7 @@ function render(){
   } else {
     root.classList.remove("anim-in");
   }
+  restoreUiState(keep);
 }
 let lastAnimKey = "";
 
@@ -1436,6 +1496,8 @@ function startSessionListeners(){
   onValue(ref(db, "swapRequests"), (snap)=>{ state.swapRequests = snap.val() || {}; render(); });
   onValue(ref(db, "inventory"), (snap)=>{ state.inventory = snap.val() || {}; render(); });
   onValue(ref(db, "inventoryLog"), (snap)=>{ state.inventoryLog = snap.val() || {}; render(); });
+  onValue(ref(db, "inventoryWaste"), (snap)=>{ state.inventoryWaste = snap.val() || {}; render(); });
+  onValue(ref(db, "inventoryCounts"), (snap)=>{ state.inventoryCounts = snap.val() || {}; render(); });
   onValue(ref(db, "revenue"), (snap)=>{ state.revenue = snap.val() || {}; render(); });
   onValue(ref(db, "expenses"), (snap)=>{ state.expenses = snap.val() || {}; render(); });
   onValue(ref(db, "recipes"), (snap)=>{ state.recipes = snap.val() || {}; render(); });
@@ -3221,7 +3283,7 @@ function renderTeam(){
     resetButton("Nur Ankündigungen löschen", ()=> remove(ref(db, "announcements"))),
     resetButton("Nur Tauschanfragen löschen", ()=> remove(ref(db, "swapRequests"))),
     resetButton("Nur Passwort-Anfragen löschen", ()=> remove(ref(db, "passwordResets"))),
-    resetButton("Nur Lagerbestand löschen", ()=>{ remove(ref(db, "inventory")); remove(ref(db, "inventoryLog")); }),
+    resetButton("Nur Lagerbestand löschen", ()=>{ remove(ref(db, "inventory")); remove(ref(db, "inventoryLog")); remove(ref(db, "inventoryWaste")); remove(ref(db, "inventoryCounts")); }),
     resetButton("Nur Verbrauchshistorie zurücksetzen", ()=> remove(ref(db, "inventoryLog"))),
     resetButton("Nur Umsatz löschen", ()=> remove(ref(db, "revenue"))),
     resetButton("Nur Ausgaben löschen", ()=> remove(ref(db, "expenses"))),
@@ -3241,6 +3303,8 @@ function renderTeam(){
       remove(ref(db, "passwordResets"));
       remove(ref(db, "inventory"));
       remove(ref(db, "inventoryLog"));
+      remove(ref(db, "inventoryWaste"));
+      remove(ref(db, "inventoryCounts"));
       remove(ref(db, "revenue"));
       remove(ref(db, "expenses"));
       remove(ref(db, "pushSubs"));
@@ -3879,651 +3943,1023 @@ function calcNettoBrutto(value, type, vatRate){
 
 const INV_CODE_PREFIX = "TDINV:";
 const EXPIRY_WARN_DAYS = 3;
+const DEFAULT_STORAGE_AREAS = ["Lager hinten", "Lager vorne", "Küche"];
+const WASTE_REASONS = ["Abgelaufen", "Verdorben", "Runtergefallen / kaputt", "Zubereitungsfehler", "Sonstiges"];
+const INV_REACH_DAYS = 28;   // Zeitraum für den Durchschnittsverbrauch
+const INV_SOLL_DAYS = 7;     // Soll-Vorschlag: Bedarf für so viele Tage
+
+function r3(v){ return Math.round(v*1000)/1000; }
+function invNum(v){ const n = parseFloat(String(v == null ? "" : v).replace(",", ".")); return isNaN(n) ? NaN : n; }
+function canManageInventory(){ return !!state.currentUser && (state.currentUser.role === "chef" || state.currentUser.isAdmin === true); }
+function storageAreas(){
+  const raw = state.settings && state.settings.inventoryAreas;
+  const a = raw ? (Array.isArray(raw) ? raw : Object.values(raw)).filter(Boolean) : [];
+  return a.length ? a : DEFAULT_STORAGE_AREAS;
+}
+function invActiveItems(){ return Object.entries(state.inventory || {}).filter(([id,it])=> it && !it.archived); }
+function invUnit(it){ return it.unit || "Stück"; }
+function invQty(v, it){ return `${fmtNum(v)} ${it.unit || ""}`.trim(); }
+function invPlace(it){ return [it.area, it.shelf].filter(Boolean).join(" · "); }
+function invStatusColor(st){ return st === "red" ? "var(--chili)" : st === "yellow" ? "#E39A2A" : "var(--avocado)"; }
 
 function logInventoryConsumption(id, prevVal, newVal){
   const consumed = prevVal - newVal;
   if(consumed > 0){
-    set(push(ref(db, `inventoryLog/${id}`)), {date: toDateKey(new Date()), amount: consumed});
+    set(push(ref(db, `inventoryLog/${id}`)), {date: toDateKey(new Date()), amount: r3(consumed)});
   }
-}
-
-async function bumpIst(id, qty){
-  const item = state.inventory[id];
-  if(!item) return;
-  await update(ref(db, `inventory/${id}`), {ist:(item.ist||0)+qty});
-}
-
-async function addInventoryBatch(id, qty, expiryOrNull){
-  const item = state.inventory[id];
-  if(!item || qty <= 0) return;
-  const batchRef = push(ref(db, `inventory/${id}/batches`));
-  const updates = {};
-  updates[`inventory/${id}/batches/${batchRef.key}`] = {qty, expiry: expiryOrNull || null, addedAt: Date.now()};
-  updates[`inventory/${id}/ist`] = (item.ist||0) + qty;
-  await update(ref(db), updates);
-}
-
-async function consumeInventoryBatches(id, qty){
-  const item = state.inventory[id];
-  if(!item) return;
-  const prevIst = item.ist||0;
-  const batches = Object.entries(item.batches || {}).sort((a,b)=>{
-    const ea = a[1].expiry || "9999-99-99";
-    const eb = b[1].expiry || "9999-99-99";
-    return ea.localeCompare(eb);
-  });
-  let remaining = qty;
-  const updates = {};
-  for(const [bid, b] of batches){
-    if(remaining <= 0) break;
-    const take = Math.min(b.qty, remaining);
-    remaining -= take;
-    const newQty = b.qty - take;
-    if(newQty <= 0){
-      updates[`inventory/${id}/batches/${bid}`] = null;
-    } else {
-      updates[`inventory/${id}/batches/${bid}/qty`] = newQty;
-    }
-  }
-  // Ist-Menge sinkt immer um die volle angeforderte Menge, unabhängig davon,
-  // ob genug erfasste Chargen dafür vorhanden sind (nicht jede Ware hat ein MHD erfasst).
-  const newIst = Math.max(0, prevIst - qty);
-  updates[`inventory/${id}/ist`] = newIst;
-  await update(ref(db), updates);
-  logInventoryConsumption(id, prevIst, newIst);
 }
 
 function earliestBatchExpiry(item){
-  const batches = Object.values(item.batches || {}).filter(b=> b.expiry && b.qty > 0);
+  const batches = Object.values(item.batches || {}).filter(b=> b && b.expiry && b.qty > 0);
   if(batches.length === 0) return null;
   return batches.reduce((min,b)=> !min || b.expiry < min ? b.expiry : min, null);
 }
-
 function daysUntil(dateStr){
   const target = localDateFromKey(dateStr);
   const today = localDateFromKey(toDateKey(new Date()));
   return Math.round((target - today) / 86400000);
 }
+function invExpiringSoon(it){ const e = earliestBatchExpiry(it); return !!e && daysUntil(e) <= EXPIRY_WARN_DAYS; }
+function invExpiryInfo(exp){
+  const d = daysUntil(exp);
+  const text = d < 0 ? `abgelaufen seit ${-d} ${-d===1?"Tag":"Tagen"}` : d === 0 ? "läuft heute ab" : d === 1 ? "läuft morgen ab" : `MHD in ${d} Tagen`;
+  const color = d < 0 ? "var(--chili)" : d <= EXPIRY_WARN_DAYS ? "var(--mango)" : "var(--avocado)";
+  return {d, text, color};
+}
 
-// ---------- Inventur-Tage (pro Zutat feste Wochentage) ----------
+// ---------- Ist-Menge und MHD-Chargen immer passend halten ----------
+function invBatchesSorted(item){
+  return Object.entries(item.batches || {}).filter(([bid,b])=> b && b.qty > 0)
+    .sort((a,b)=> (a[1].expiry || "9999-99-99").localeCompare(b[1].expiry || "9999-99-99"));
+}
+// Liefert Firebase-Updates: neue Ist-Menge + Chargen so angepasst, dass die Summe stimmt.
+// Weniger → älteste MHD zuerst raus. Mehr → neue Charge (mit MHD, falls angegeben).
+function invSetIstUpdates(id, item, newIst, expiry){
+  newIst = r3(Math.max(0, newIst));
+  const oldIst = item.ist || 0;
+  const u = {};
+  u[`inventory/${id}/ist`] = newIst;
+  const batches = invBatchesSorted(item);
+  let sum = r3(batches.reduce((s,[bid,b])=> s + b.qty, 0));
+  const trim = (amount)=>{
+    let rest = amount;
+    for(const [bid,b] of batches){
+      if(rest <= 1e-9) break;
+      const have = u.hasOwnProperty(`inventory/${id}/batches/${bid}`) ? (u[`inventory/${id}/batches/${bid}`] ? u[`inventory/${id}/batches/${bid}`].qty : 0) : b.qty;
+      if(have <= 0) continue;
+      const take = Math.min(have, rest);
+      rest -= take;
+      const left = r3(have - take);
+      u[`inventory/${id}/batches/${bid}`] = left > 0 ? {...b, qty:left} : null;
+    }
+  };
+  const addBatch = (qty, exp)=>{
+    if(qty <= 1e-9) return;
+    const key = push(ref(db, `inventory/${id}/batches`)).key;
+    u[`inventory/${id}/batches/${key}`] = {qty: r3(qty), expiry: exp || null, addedAt: Date.now()};
+  };
+  if(newIst >= oldIst){
+    // erst Altbestand ohne Charge nachtragen bzw. Überhang kürzen, dann Zugang buchen
+    if(sum < oldIst) addBatch(oldIst - sum, null);
+    else if(sum > oldIst) trim(sum - oldIst);
+    addBatch(newIst - oldIst, expiry);
+  } else {
+    if(sum > newIst) trim(sum - newIst);
+    else if(sum < newIst) addBatch(newIst - sum, null);
+  }
+  if(newIst > oldIst) u[`inventory/${id}/shopChecked`] = null;
+  return u;
+}
+async function invChangeIst(id, newIst, opts){
+  opts = opts || {};
+  const item = state.inventory[id];
+  if(!item) return;
+  const prev = item.ist || 0;
+  const updates = invSetIstUpdates(id, item, newIst, opts.expiry);
+  const target = updates[`inventory/${id}/ist`];
+  const p = update(ref(db), updates);
+  if(opts.logConsumption !== false && prev > target) logInventoryConsumption(id, prev, target);
+  return p;
+}
+function invAdjust(id, delta){
+  const item = state.inventory[id];
+  if(!item) return;
+  invChangeIst(id, (item.ist || 0) + delta);
+}
+async function invSaveCount(id, counted){
+  const item = state.inventory[id];
+  if(!item) return;
+  const expected = item.ist || 0;
+  counted = r3(Math.max(0, counted));
+  const diff = r3(counted - expected);
+  const updates = invSetIstUpdates(id, item, counted, null);
+  updates[`inventory/${id}/lastInventurDate`] = toDateKey(new Date());
+  updates[`inventory/${id}/lastInventurAt`] = Date.now();
+  updates[`inventory/${id}/lastInventurDiff`] = diff;
+  await update(ref(db), updates);
+  if(Math.abs(diff) > 1e-9){
+    set(push(ref(db, "inventoryCounts")), {
+      itemId:id, name:item.name, unit:invUnit(item), expected, counted, diff,
+      value: item.price ? r3(diff * item.price) : null,
+      date: toDateKey(new Date()), at: Date.now(),
+      by: state.currentUser.id, byName: state.currentUser.name
+    });
+  }
+}
+async function invBookWaste(id, qty, reason, note, batchId){
+  const item = state.inventory[id];
+  if(!item) return;
+  qty = r3(Math.min(qty, item.ist || 0));
+  if(qty <= 0) return;
+  let updates;
+  const b = batchId && item.batches ? item.batches[batchId] : null;
+  if(b){
+    const take = Math.min(qty, b.qty);
+    qty = r3(take);
+    updates = {};
+    const left = r3(b.qty - take);
+    updates[`inventory/${id}/batches/${batchId}`] = left > 0 ? {...b, qty:left} : null;
+    updates[`inventory/${id}/ist`] = r3(Math.max(0, (item.ist || 0) - qty));
+  } else {
+    updates = invSetIstUpdates(id, item, (item.ist || 0) - qty, null);
+  }
+  await update(ref(db), updates);
+  await set(push(ref(db, "inventoryWaste")), {
+    itemId:id, name:item.name, unit:invUnit(item), qty, reason: reason || "Sonstiges", note: note || "",
+    value: item.price ? r3(qty * item.price) : null,
+    date: toDateKey(new Date()), at: Date.now(),
+    by: state.currentUser.id, byName: state.currentUser.name
+  });
+}
+
+// ---------- Verbrauch & Reichweite ----------
+// Verbrauch = gebuchte Entnahmen + Fehlmengen bei der Inventur (ohne Ausschuss)
+function invDailyUse(id){
+  const cutoff = toDateKey(new Date(Date.now() - (INV_REACH_DAYS-1)*86400000));
+  const cons = Object.values(state.inventoryLog[id] || {}).filter(l=> l && l.date >= cutoff);
+  const shrink = Object.values(state.inventoryCounts || {}).filter(c=> c && c.itemId === id && c.date >= cutoff && c.diff < 0);
+  const dates = [...cons.map(l=> l.date), ...shrink.map(c=> c.date)].sort();
+  if(!dates.length) return null;
+  const span = Math.min(INV_REACH_DAYS, -daysUntil(dates[0]) + 1);
+  if(span < 3) return null; // zu wenig Daten für eine Prognose
+  const total = cons.reduce((s,l)=> s + l.amount, 0) + shrink.reduce((s,c)=> s - c.diff, 0);
+  return total > 0 ? total / span : null;
+}
+function invReach(id, it){
+  const daily = invDailyUse(id);
+  if(!daily) return null;
+  let soll = daily * INV_SOLL_DAYS;
+  soll = it.packSize > 0 ? Math.ceil(soll / it.packSize - 1e-9) * it.packSize : Math.ceil(soll * 10) / 10;
+  return {daily, days: Math.floor((it.ist || 0) / daily), soll: r3(soll)};
+}
+
+// ---------- Inventur-Tage ----------
 // Alte Zutaten mit nur „inventoryTracked: true“ gelten als täglich.
 function inventurDays(it){
   if(!it) return [];
   if(Array.isArray(it.inventoryDays)) return sortDays(it.inventoryDays);
+  if(it.inventoryDays && typeof it.inventoryDays === "object") return sortDays(Object.values(it.inventoryDays));
   return it.inventoryTracked ? DAYS.map(d=> d.key) : [];
 }
-function isInventurDueToday(it){
-  return !!it && !it.archived && inventurDays(it).includes(todayDayKey());
-}
+function isInventurDueToday(it){ return !!it && !it.archived && inventurDays(it).includes(todayDayKey()); }
 function inventurDoneToday(it){ return !!it && it.lastInventurDate === toDateKey(new Date()); }
-function inventurDaysLabel(it){
-  const d = inventurDays(it);
-  return d.length ? `Inventur: ${daysSummary(d)}` : "";
+
+// ---------- Einkaufsliste ----------
+function invShoppingItems(){ return invActiveItems().filter(([id,it])=> itemStatus(it) !== "green"); }
+function invOrderSuggestion(it){
+  const missing = Math.max(0, (it.soll || 0) - (it.ist || 0));
+  const u = invUnit(it);
+  if(it.packSize > 0){
+    const packs = Math.max(1, Math.ceil(missing / it.packSize - 1e-9));
+    const units = r3(packs * it.packSize);
+    return {units, text: `${packs} ${packs===1?"Pack":"Packs"} à ${fmtNum(it.packSize)} ${u} (${fmtNum(units)} ${u})`};
+  }
+  return {units: r3(missing), text: `${fmtNum(missing)} ${u}`};
 }
-// Tage-Auswahl ohne Neu-Zeichnen der Seite (Eingaben im Formular bleiben erhalten)
-function inventurDayPicker(initial){
-  const days = sortDays(initial);
-  const wrap = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;align-items:center;"});
-  const chips = {};
-  function sync(){ DAYS.forEach(d=> chips[d.key].classList.toggle("active", days.includes(d.key))); }
-  DAYS.forEach(d=>{
-    const b = el("button",{type:"button", class:"tab", style:"padding:6px 11px;"}, dayShort(d.key));
-    b.addEventListener("click", ()=>{ const i = days.indexOf(d.key); if(i >= 0) days.splice(i,1); else days.push(d.key); sync(); });
-    chips[d.key] = b; wrap.appendChild(b);
+function invShoppingGroups(){
+  const groups = {};
+  invShoppingItems().forEach(([id,it])=>{
+    const sup = it.supplier || "Ohne Lieferant";
+    (groups[sup] = groups[sup] || []).push([id, it, invOrderSuggestion(it)]);
   });
-  [["Täglich", DAYS.map(d=> d.key)], ["Keine", []]].forEach(([l, keys])=>{
-    wrap.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-left:4px;font-size:13px;", onclick:()=>{ days.splice(0, days.length, ...keys); sync(); }}, l));
-  });
-  sync();
-  return {node: wrap, get: ()=> sortDays(days)};
+  return Object.entries(groups).sort((a,b)=>{
+    if(a[0] === "Ohne Lieferant") return 1;
+    if(b[0] === "Ohne Lieferant") return -1;
+    return a[0].localeCompare(b[0]);
+  }).map(([sup, rows])=> [sup, rows.sort((a,b)=> (a[1].shopChecked?1:0) - (b[1].shopChecked?1:0) || a[1].name.localeCompare(b[1].name))]);
 }
-function saveInventurCount(id, value){
-  return update(ref(db, `inventory/${id}`), {ist: Math.max(0, value), lastInventurDate: toDateKey(new Date()), lastInventurAt: Date.now()});
-}
-// Karte „Heute zu zählen“ im Lager
-function renderInventurTodayCard(items){
-  const due = items.filter(([id,it])=> isInventurDueToday(it)).sort((a,b)=> a[1].name.localeCompare(b[1].name));
-  if(!due.length) return null;
-  const doneCount = due.filter(([id,it])=> inventurDoneToday(it)).length;
-  const card = el("div",{class:"card"});
-  card.appendChild(el("div",{style:"display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;"},[
-    el("h3",{style:`margin:0;font-size:15px;color:${doneCount===due.length?"var(--avocado)":"var(--mango)"};`},
-      icl("clipboard", doneCount === due.length ? `Inventur heute komplett (${due.length}/${due.length})` : `Heute zu zählen · ${doneCount} von ${due.length} gezählt`)),
-    doneCount < due.length ? el("button",{class:"btn btn-primary", style:"width:auto;padding:9px 16px;font-size:14px;", onclick:()=> openInventoryScanner("inventur")}, icl("camera","Inventur scannen")) : null
-  ]));
-  if(due.length) card.appendChild(el("div",{class:"k-progress-bar", style:"margin-bottom:12px;"},[ el("div",{style:`width:${Math.round(doneCount/due.length*100)}%;`}) ]));
-  // offene zuerst
-  due.sort((a,b)=> (inventurDoneToday(a[1])?1:0) - (inventurDoneToday(b[1])?1:0));
-  due.forEach(([id,it])=>{
-    const done = inventurDoneToday(it);
-    const row = el("div",{class:"stock-row", style:"flex-wrap:wrap;"});
-    row.appendChild(el("span",{class:"stock-dot", style:`background:${done?"var(--avocado)":"var(--mango)"};`}));
-    row.appendChild(el("div",{class:"stock-main", style:"flex:1;min-width:120px;"},[
-      el("div",{class:"stock-name"}, it.name),
-      (it.area || it.shelf) ? el("div",{style:"font-size:11.5px;color:var(--text-muted);"}, [it.area, it.shelf].filter(Boolean).join(" · ")) : null
-    ]));
-    const input = el("input",{type:"number", step:"0.01", min:"0", class:"stock-ist-input mono", style:"width:80px;", value: it.ist || 0});
-    const saveBtn = el("button",{class:"btn-cancel", style:"width:auto;padding:7px 12px;font-size:13px;border-radius:9px;"}, "Speichern");
-    saveBtn.addEventListener("click", ()=>{
-      const v = parseFloat(String(input.value).replace(",", "."));
-      if(isNaN(v)){ alert("Bitte eine Menge eingeben."); return; }
-      saveInventurCount(id, v);
-    });
-    const editGroup = el("div",{style:`display:${done?"none":"flex"};align-items:center;gap:6px;`},[ input, el("span",{style:"font-size:13px;color:var(--text-muted);"}, it.unit || ""), saveBtn ]);
-    if(done){
-      const info = el("span",{class:"mono", style:"font-size:12.5px;color:var(--avocado);font-weight:700;"},
-        icl("check", `${fmtNum(it.ist||0)} ${it.unit||""} · ${it.lastInventurAt ? fmtTime(it.lastInventurAt)+" Uhr" : "heute"}`));
-      const fix = el("button",{class:"link-btn", style:"font-size:12.5px;"}, "ändern");
-      fix.addEventListener("click", ()=>{ editGroup.style.display = "flex"; fix.style.display = "none"; input.focus(); });
-      row.appendChild(info); row.appendChild(fix);
-    }
-    row.appendChild(editGroup);
-    card.appendChild(row);
+function invShoppingText(){
+  const lines = [`Einkaufsliste Tasty Day – ${new Date().toLocaleDateString("de-DE")}`];
+  invShoppingGroups().forEach(([sup, rows])=>{
+    const open = rows.filter(r=> !r[1].shopChecked);
+    if(!open.length) return;
+    lines.push("", sup);
+    open.forEach(([id,it,sug])=> lines.push(`- ${it.name}: ${sug.text}`));
   });
-  return card;
+  return lines.join("\n");
+}
+function invCopyText(text){
+  if(navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+  const ta = el("textarea",{style:"position:fixed;opacity:0;"}, text);
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); }catch(e){}
+  ta.remove();
+  return Promise.resolve();
 }
 
+// ---------- Öffnen der Fenster ----------
+function invOpenRestock(id, suggestedUnits){
+  const it = state.inventory[id];
+  if(!it) return;
+  const pack = it.packSize > 0;
+  state.inv.restock = {
+    id, mode: pack ? "pack" : "unit",
+    amount: pack ? String(suggestedUnits ? Math.max(1, Math.ceil(suggestedUnits / it.packSize - 1e-9)) : 1) : (suggestedUnits ? String(fmtNum(suggestedUnits)).replace(/\./g,"") : ""),
+    expiry:"", price:"", book:true
+  };
+  render();
+}
+function invOpenWaste(id, batchId){
+  const it = id ? state.inventory[id] : null;
+  const b = it && batchId && it.batches ? it.batches[batchId] : null;
+  state.inv.waste = {
+    id: id || "", batchId: b ? batchId : null,
+    qty: b ? String(b.qty).replace(".", ",") : "",
+    reason: "Abgelaufen",
+    note:""
+  };
+  render();
+}
+function invOpenForm(id){
+  const it = id ? state.inventory[id] : null;
+  const areas = storageAreas();
+  state.inv.form = it ? {id, data:{
+    name: it.name || "", category: it.category || "", unit: it.unit || "", soll: it.soll != null ? String(it.soll) : "",
+    packSize: it.packSize ? String(it.packSize) : "", area: it.area || "", shelf: it.shelf || "",
+    supplier: it.supplier || "", price: it.price ? String(it.price) : "", priceType:"netto", vatRate: String(it.vatRate || 7),
+    deposit: it.deposit ? String(it.deposit) : "", days: inventurDays(it)
+  }} : {id:null, data:{
+    name:"", category:"", unit:"Stück", soll:"", ist:"", packSize:"",
+    area: areas.includes(state.inv.area) ? state.inv.area : (areas[0] || ""), shelf:"",
+    supplier:"", price:"", priceType:"netto", vatRate:"7", deposit:"", expiry:"", days:[]
+  }};
+  render();
+}
+
+// =====================================================================
+// Lager – Hauptansicht
+// =====================================================================
 function renderInventory(){
+  const ui = state.inv;
   const section = el("div",{});
-  section.appendChild(el("div",{class:"section-head"},[
-    el("div",{},[
-      el("h2",{class:"section-title"}, "Lagerbestand"),
-      null
-    ])
-  ]));
+  section.appendChild(el("div",{class:"section-head"},[ el("div",{},[ el("h2",{class:"section-title"}, "Lagerbestand") ]) ]));
 
-  const STORAGE_AREAS = ["Lager hinten", "Lager vorne", "Küche"];
-
-  const allItems = Object.entries(state.inventory || {}).map(([id,it])=> [id, {...it, status: itemStatus(it)}]);
-  const items = allItems.filter(([id,it])=> !it.archived);
-  const archivedItems = allItems.filter(([id,it])=> it.archived);
-
-  // top action row: search, scan, print labels
-  const actionRow = el("div",{style:"display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;"});
-  const searchInput = el("input",{type:"text", placeholder:"Zutat suchen…", style:"flex:1;min-width:180px;padding:11px 14px;border-radius:9px;border:1px solid var(--line);background:var(--bg-elevated);color:var(--text);font-size:14px;"});
-  const scanBtn = el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 18px;"}, icl("camera","Scannen"));
-  const printBtn = el("button",{class:"btn-cancel", style:"width:auto;padding:11px 18px;"}, icl("printer","Etiketten"));
-  scanBtn.addEventListener("click", ()=> openInventoryScanner());
-  printBtn.addEventListener("click", ()=> openInventoryLabelsOverlay(items));
-  actionRow.appendChild(searchInput);
-  actionRow.appendChild(scanBtn);
-  actionRow.appendChild(printBtn);
-  section.appendChild(actionRow);
-
-  // area filter
-  let activeArea = "Alle";
-  const areaFilterRow = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"});
-  ["Alle", ...STORAGE_AREAS].forEach(area=>{
-    const btn = el("button",{
-      class:`tab ${area==="Alle"?"active":""}`,
-      onclick:()=>{
-        activeArea = area;
-        areaFilterRow.querySelectorAll("button").forEach(b=> b.classList.remove("active"));
-        btn.classList.add("active");
-        renderList(searchInput.value);
-      }
-    }, area);
-    areaFilterRow.appendChild(btn);
-  });
-  section.appendChild(areaFilterRow);
-
-  const inventurCard = renderInventurTodayCard(items);
-  if(inventurCard) section.appendChild(inventurCard);
-
-  // total value summary
-  const totalValue = items.reduce((s,[id,it])=> s + ((it.price||0) * (it.ist||0)), 0);
-  if(items.some(([id,it])=> it.price)){
-    section.appendChild(el("div",{style:"display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated-2);border-radius:10px;padding:12px 16px;margin-bottom:12px;"},[
-      el("span",{style:"font-size:13px;color:var(--text-muted);"}, "Gesamter Lagerwert (netto)"),
-      el("span",{class:"mono", style:"font-size:16px;font-weight:700;color:var(--mango);"}, fmtMoney(totalValue))
+  const shopOpen = invShoppingItems().filter(([id,it])=> !it.shopChecked).length;
+  const dueOpen = invActiveItems().filter(([id,it])=> isInventurDueToday(it) && !inventurDoneToday(it)).length;
+  const tabsRow = el("div",{class:"tabs", style:"margin-bottom:16px;"});
+  [["stock","package","Bestand",0],["shop","cart","Einkaufsliste",shopOpen],["inventur","clipboard","Inventur",dueOpen],["waste","trash","Ausschuss",0]].forEach(([k,icn,l,n])=>{
+    tabsRow.appendChild(el("button",{class:`tab ${ui.view===k?"active":""}`, onclick:()=>{ ui.view = k; render(); window.scrollTo({top:0}); }},[
+      ic(icn,"ic-lead"), l, n ? el("span",{class:"sn-badge", style:"margin-left:6px;"}, String(n)) : null
     ]));
-  }
-
-  const totalDeposit = items.reduce((s,[id,it])=> s + ((it.deposit||0) * (it.ist||0)), 0);
-  if(items.some(([id,it])=> it.deposit)){
-    section.appendChild(el("div",{style:"display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated-2);border-radius:10px;padding:12px 16px;margin-bottom:16px;"},[
-      el("span",{style:"font-size:13px;color:var(--text-muted);"}, "Gebundenes Pfand"),
-      el("span",{class:"mono", style:"font-size:16px;font-weight:700;color:var(--avocado);"}, fmtMoney(totalDeposit))
-    ]));
-  }
-
-  // auto shopping list — only red items
-  const needsRestock = items.filter(([id,it])=> it.status === "red");
-  if(needsRestock.length > 0){
-    const shopCard = el("div",{class:"card"});
-    shopCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;color:var(--chili);"}, icl("cart","Einkaufsliste – kritisch")));
-    needsRestock.forEach(([id, it])=>{
-      const missing = Math.max(0, (it.soll||0) - (it.ist||0));
-      shopCard.appendChild(el("div",{class:"stock-row"},[
-        el("span",{class:"stock-dot red"}),
-        el("span",{class:"stock-name"}, it.name),
-        el("span",{class:"mono", style:"font-size:13px;color:var(--chili);font-weight:700;"}, `${fmtNum(it.ist||0)} / ${fmtNum(it.soll||0)} ${it.unit||""}`),
-        el("span",{class:"mono", style:"font-size:12.5px;color:var(--text-muted);"}, `${fmtNum(missing)} ${it.unit||""} fehlen`)
-      ]));
-    });
-    section.appendChild(shopCard);
-  }
-
-  // expiry warning — batches expiring within EXPIRY_WARN_DAYS
-  const expiringSoon = items
-    .map(([id,it])=> ({id, it, expiry: earliestBatchExpiry(it)}))
-    .filter(x=> x.expiry && daysUntil(x.expiry) <= EXPIRY_WARN_DAYS)
-    .sort((a,b)=> a.expiry.localeCompare(b.expiry));
-  if(expiringSoon.length > 0){
-    const expCard = el("div",{class:"card"});
-    expCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;color:var(--mango);"}, icl("clock", `Läuft bald ab (${expiringSoon.length})`)));
-    expiringSoon.forEach(({id, it, expiry})=>{
-      const days = daysUntil(expiry);
-      const batchQty = Object.values(it.batches||{}).filter(b=>b.expiry===expiry).reduce((s,b)=>s+b.qty,0);
-      const label = days < 0 ? `abgelaufen vor ${Math.abs(days)} Tag(en)` : days===0 ? "läuft heute ab" : `noch ${days} Tag(e)`;
-      expCard.appendChild(el("div",{class:"stock-row"},[
-        el("span",{class:"stock-dot", style:`background:${days<0?"var(--chili)":"var(--mango)"};`}),
-        el("span",{class:"stock-name"}, it.name),
-        el("span",{class:"mono", style:"font-size:13px;color:var(--text-muted);"}, `${fmtNum(batchQty)} ${it.unit||""}`),
-        el("span",{class:"mono", style:`font-size:12.5px;font-weight:700;color:${days<0?"var(--chili)":"var(--mango)"};`}, label)
-      ]));
-    });
-    section.appendChild(expCard);
-  }
-
-  // add new item
-  const addCard = el("div",{class:"card"});
-  addCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "+ Zutat hinzufügen"));
-
-  const existingCategories = [...new Set(items.map(([id,it])=> it.category).filter(Boolean))];
-  const nameInput = el("input",{type:"text", placeholder:"z. B. Cola 0,33l", class:"select-emp", style:"width:100%;"});
-  const unitInput = el("input",{type:"text", placeholder:"z. B. Stück, kg, Liter", class:"select-emp", style:"width:100%;"});
-  const sollInput = el("input",{type:"number", step:"0.1", min:"0", placeholder:"z. B. 48", class:"select-emp", style:"width:100%;"});
-  const packSizeInput = el("input",{type:"number", step:"1", min:"0", placeholder:"z. B. 24 (leer = keine Packs)", class:"select-emp", style:"width:100%;"});
-  const priceInput = el("input",{type:"number", step:"0.01", min:"0", placeholder:"z. B. 0,45 (optional)", class:"select-emp", style:"width:100%;"});
-  const priceTypeSelect = el("select",{class:"select-emp", style:"width:100%;"},[
-    el("option",{value:"netto"}, "eingegeben als Netto"),
-    el("option",{value:"brutto"}, "eingegeben als Brutto"),
-  ]);
-  const vatSelect = el("select",{class:"select-emp", style:"width:100%;"},[
-    el("option",{value:"7"}, "7 % (Lebensmittel)"),
-    el("option",{value:"19"}, "19 % (Getränke, Verpackung etc.)"),
-  ]);
-  const supplierInput = el("input",{type:"text", placeholder:"z. B. Metro (optional)", class:"select-emp", style:"width:100%;"});
-  const depositInput = el("input",{type:"number", step:"0.01", min:"0", placeholder:"z. B. 0,25 (optional)", class:"select-emp", style:"width:100%;"});
-  const areaSelect = el("select",{class:"select-emp", style:"width:100%;"});
-  STORAGE_AREAS.forEach(a=> areaSelect.appendChild(el("option",{value:a}, a)));
-  const shelfInput = el("input",{type:"text", placeholder:"z. B. Regal 3, Kühlschrank links (optional)", class:"select-emp", style:"width:100%;"});
-  const initExpiryInput = el("input",{type:"date", class:"select-emp", style:"width:100%;"});
-  const catSelect = el("select",{class:"select-emp", style:"width:100%;"});
-  existingCategories.forEach(c=> catSelect.appendChild(el("option",{value:c}, c)));
-  catSelect.appendChild(el("option",{value:"__new__"}, "+ Neue Kategorie…"));
-  const newCatInput = el("input",{type:"text", placeholder:"Neue Kategorie", class:"select-emp", style:"width:100%;display:none;"});
-  catSelect.addEventListener("change", ()=>{
-    newCatInput.style.display = catSelect.value === "__new__" ? "block" : "none";
   });
-  if(existingCategories.length === 0) newCatInput.style.display = "block";
+  section.appendChild(tabsRow);
 
-  const inventurPicker = inventurDayPicker([]);
-  const inventurField = el("div",{style:"grid-column:1/-1;"},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Inventur-Tage (an diesen Tagen wird gezählt)"), inventurPicker.node]);
+  if(ui.view === "shop") section.appendChild(renderInvShopping());
+  else if(ui.view === "inventur") section.appendChild(renderInvInventur());
+  else if(ui.view === "waste") section.appendChild(renderInvWaste());
+  else section.appendChild(renderInvStock());
 
-  const addBtn = el("button",{class:"btn btn-primary", style:"padding:11px;"}, "Hinzufügen");
-  addBtn.addEventListener("click", async ()=>{
-    const name = nameInput.value.trim();
-    let category = catSelect.value === "__new__" ? newCatInput.value.trim() : catSelect.value;
-    if(!category) category = "Sonstiges";
-    if(!name) return;
-    const soll = parseFloat(sollInput.value) || 0;
-    const record = {name, category, unit: unitInput.value.trim() || "Stück", soll, ist: soll, area: areaSelect.value};
-    const invDays = inventurPicker.get();
-    record.inventoryDays = invDays;
-    record.inventoryTracked = invDays.length > 0;
-    const packSize = parseFloat(packSizeInput.value);
-    if(packSize > 0) record.packSize = packSize;
-    if(soll > 0){
-      record.batches = {};
-      const bKey = push(ref(db, "inventory/tmp/batches")).key;
-      record.batches[bKey] = {qty: soll, expiry: initExpiryInput.value || null, addedAt: Date.now()};
-    }
-    const price = parseFloat(priceInput.value);
-    if(price > 0){
-      const vatRate = parseFloat(vatSelect.value);
-      const {netto, brutto} = calcNettoBrutto(price, priceTypeSelect.value, vatRate);
-      record.price = netto;
-      record.priceBrutto = brutto;
-      record.vatRate = vatRate;
-    }
-    if(supplierInput.value.trim()) record.supplier = supplierInput.value.trim();
-    if(shelfInput.value.trim()) record.shelf = shelfInput.value.trim();
-    const deposit = parseFloat(depositInput.value);
-    if(deposit > 0) record.deposit = deposit;
-    const newRef = push(ref(db, "inventory"));
-    await set(newRef, record);
-    nameInput.value = ""; unitInput.value = ""; sollInput.value = ""; newCatInput.value = "";
-    packSizeInput.value = ""; priceInput.value = ""; supplierInput.value = ""; shelfInput.value = ""; initExpiryInput.value = ""; depositInput.value = "";
-  });
-  addCard.appendChild(el("div",{class:"time-form"},[
-    el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Name"), nameInput]),
-    el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Einheit"), unitInput]),
-    el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Soll-Menge"), sollInput]),
-    el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Stück pro Packung"), packSizeInput]),
-    el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Preis (€)"), priceInput]),
-    el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Preis-Art"), priceTypeSelect]),
-    el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"MwSt-Satz"), vatSelect]),
-    el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Pfand pro Einheit (€, optional)"), depositInput]),
-    el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Lieferant"), supplierInput]),
-    el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Lagerbereich"), areaSelect]),
-    el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Regal / Kühlschrank"), shelfInput]),
-    el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"MHD (optional)"), initExpiryInput]),
-    inventurField,
-    el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), catSelect]),
-    el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Neue Kategorie"), newCatInput]),
-    addBtn
-  ]));
-  section.appendChild(addCard);
-
-  if(items.length === 0 && archivedItems.length === 0){
-    section.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},[ic("package")]),"Noch keine Zutaten angelegt."]));
-    return section;
-  }
-
-  // grouped by category, filtered by search
-  const searchVal0 = "";
-  const listWrap = el("div",{});
-  section.appendChild(listWrap);
-
-  function renderList(filterText){
-    listWrap.innerHTML = "";
-    const filtered = items.filter(([id,it])=>
-      it.name.toLowerCase().includes(filterText.toLowerCase()) &&
-      (activeArea === "Alle" || it.area === activeArea)
-    );
-    if(filtered.length === 0){
-      listWrap.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},[ic("search")]),"Keine Zutat gefunden."]));
-      return;
-    }
-    const groups = {};
-    filtered.forEach(([id, it])=>{
-      const cat = it.category || "Sonstiges";
-      if(!groups[cat]) groups[cat] = [];
-      groups[cat].push([id, it]);
-    });
-
-    Object.keys(groups).sort().forEach(cat=>{
-      const catItems = groups[cat].sort((a,b)=> a[1].name.localeCompare(b[1].name));
-      const criticalCount = catItems.filter(([id,it])=> it.status==="red").length;
-      const catValue = catItems.reduce((s,[id,it])=> s + ((it.price||0)*(it.ist||0)), 0);
-      const details = el("details",{class:"month-group card", style:"padding:16px 20px;"});
-      details.open = true;
-      const arrow = el("span",{class:"chev open"},[ic("chevronRight")]);
-      details.addEventListener("toggle", ()=>{ arrow.classList.toggle("open", details.open); });
-      const summaryRight = [`${catItems.length} Zutaten`];
-      if(criticalCount>0) summaryRight.push(`${criticalCount} kritisch`);
-      if(catValue>0) summaryRight.push(fmtMoney(catValue));
-      details.appendChild(el("summary",{},[
-        el("div",{style:"display:flex;align-items:center;"},[arrow, el("span",{}, cat)]),
-        el("span",{class:"mono", style:`font-size:13px;font-weight:400;color:${criticalCount>0?"var(--chili)":"var(--text-muted)"};`}, summaryRight.join(" · "))
-      ]));
-      const list = el("div",{style:"padding:10px 0 2px;"});
-      catItems.forEach(([id, it])=>{
-        const row = el("div",{class:"stock-row", style:"flex-wrap:wrap;"});
-        row.appendChild(el("span",{class:`stock-dot ${it.status}`}));
-        const nameCol = el("div",{class:"stock-main", style:"flex:1;min-width:100px;"});
-        nameCol.appendChild(el("div",{class:"stock-name"}, it.name));
-        const subBits = [];
-        if(it.area) subBits.push(it.shelf ? `${it.area} · ${it.shelf}` : it.area);
-        if(it.supplier) subBits.push(it.supplier);
-        if(it.price) subBits.push(`Netto ${fmtMoney(it.price)} · Brutto ${fmtMoney(it.priceBrutto||it.price)}/${it.unit||"Stk"}`);
-        if(it.deposit) subBits.push(`Pfand ${fmtMoney(it.deposit)}`);
-        if(inventurDaysLabel(it)) subBits.push(inventurDaysLabel(it));
-        if(subBits.length) nameCol.appendChild(el("div",{style:"font-size:11.5px;color:var(--text-muted);"}, subBits.join(" · ")));
-        row.appendChild(nameCol);
-
-        const minusBtn = el("button",{class:"stock-adjust"}, "−");
-        const istInput = el("input",{type:"number", step:"0.1", value: it.ist||0, class:"stock-ist-input mono"});
-        const plusBtn = el("button",{class:"stock-adjust"}, "+");
-        const sollLabel = el("span",{class:"mono", style:"font-size:13px;color:var(--text-muted);white-space:nowrap;"}, `/ ${fmtNum(it.soll||0)} ${it.unit||""}`);
-
-        function saveIst(newVal, prevVal){
-          const v = Math.max(0, newVal);
-          update(ref(db, `inventory/${id}`), {ist: v});
-          logInventoryConsumption(id, prevVal, v);
-        }
-        minusBtn.addEventListener("click", ()=>{
-          const cur = parseFloat(istInput.value)||0;
-          istInput.value = Math.max(0, cur-1);
-          saveIst(cur-1, cur);
-        });
-        plusBtn.addEventListener("click", ()=>{
-          const cur = parseFloat(istInput.value)||0;
-          istInput.value = cur+1;
-          saveIst(cur+1, cur);
-        });
-        istInput.addEventListener("change", ()=>{
-          const prevVal = it.ist||0;
-          saveIst(parseFloat(istInput.value)||0, prevVal);
-        });
-
-        const istGroup = el("div",{style:"display:flex;align-items:center;gap:6px;flex-wrap:wrap;"},[minusBtn, istInput, plusBtn, sollLabel]);
-        row.appendChild(istGroup);
-
-        if(it.packSize > 0){
-          const packBtn = el("button",{class:"btn-cancel", style:"width:auto;padding:6px 12px;font-size:12.5px;border-radius:20px;white-space:nowrap;"}, `+1 Pack (${fmtNum(it.packSize)})`);
-          packBtn.addEventListener("click", ()=>{
-            const cur = parseFloat(istInput.value)||0;
-            const newVal = cur + it.packSize;
-            istInput.value = newVal;
-            saveIst(newVal, cur);
-          });
-          row.appendChild(packBtn);
-        }
-
-        const editBtn = el("button",{class:"link-btn", style:"font-size:12.5px;"}, icl("pencil","Bearbeiten"));
-        row.appendChild(editBtn);
-
-        const logEntries = Object.values(state.inventoryLog[id] || {});
-        const consumeBtn = el("button",{class:"link-btn", style:"font-size:12.5px;"}, icl("chart","Verbrauch"));
-        row.appendChild(consumeBtn);
-
-        const batchEntries = Object.entries(it.batches || {}).filter(([bid,b])=> b.qty > 0);
-        let mhdBox = null;
-        if(batchEntries.length > 0){
-          const mhdBtn = el("button",{class:"link-btn", style:"font-size:12.5px;color:var(--mango);"}, icl("calendar","MHD"));
-          row.appendChild(mhdBtn);
-          mhdBox = el("div",{style:"display:none;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:-2px 0 8px;"});
-          let mhdOpen = false;
-          mhdBtn.addEventListener("click", ()=>{
-            mhdOpen = !mhdOpen;
-            if(mhdOpen){
-              mhdBox.innerHTML = "";
-              batchEntries.sort((a,b)=> (a[1].expiry||"9999").localeCompare(b[1].expiry||"9999")).forEach(([bid, b])=>{
-                const days = b.expiry ? daysUntil(b.expiry) : null;
-                const color = days===null ? "var(--text-muted)" : days<0 ? "var(--chili)" : days<=EXPIRY_WARN_DAYS ? "var(--mango)" : "var(--avocado)";
-                const label = b.expiry ? `MHD ${localDateFromKey(b.expiry).toLocaleDateString("de-DE")} (${days<0?"abgelaufen":days+" Tg."})` : "kein Datum hinterlegt";
-                mhdBox.appendChild(el("div",{style:"display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line);"},[
-                  el("span",{}, `${fmtNum(b.qty)} ${it.unit||""}`),
-                  el("span",{style:`color:${color};font-weight:700;`}, label)
-                ]));
-              });
-            }
-            mhdBox.style.display = mhdOpen ? "block" : "none";
-          });
-        }
-
-        const archiveBtn = el("button",{class:"link-btn", style:"font-size:12.5px;color:var(--text-muted);"}, icl("archive","Archivieren"));
-        archiveBtn.addEventListener("click", ()=>{
-          if(confirm(`"${it.name}" archivieren? Sie verschwindet aus der aktiven Liste, bleibt aber inkl. Verbrauchshistorie erhalten und kann jederzeit reaktiviert werden.`)){
-            update(ref(db, `inventory/${id}`), {archived:true});
-          }
-        });
-        row.appendChild(archiveBtn);
-        list.appendChild(row);
-        if(mhdBox) list.appendChild(mhdBox);
-
-        const chartBox = el("div",{style:"display:none;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:-2px 0 8px;"});
-        let chartOpen = false;
-        if(consumeBtn) consumeBtn.addEventListener("click", ()=>{
-          chartOpen = !chartOpen;
-          if(chartOpen){
-            chartBox.innerHTML = "";
-            const weekdayLabels = ["Mo","Di","Mi","Do","Fr","Sa","So"];
-            const sums = [0,0,0,0,0,0,0];
-            logEntries.forEach(le=>{
-              const d = localDateFromKey(le.date);
-              const idx = (d.getDay()+6)%7;
-              sums[idx] += le.amount;
-            });
-            const max = Math.max(1, ...sums);
-            if(logEntries.length === 0){
-              chartBox.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Noch keine Verbrauchsdaten — wird automatisch erfasst, sobald die Ist-Menge verringert wird."));
-            } else {
-              const maxIdx = sums.indexOf(Math.max(...sums));
-              chartBox.appendChild(el("div",{style:"font-size:12.5px;color:var(--text-muted);margin-bottom:10px;"}, `Verbraucht meist am ${weekdayLabels[maxIdx]}`));
-              weekdayLabels.forEach((wl,i)=>{
-                const pct = sums[i]>0 ? Math.max(4, Math.round((sums[i]/max)*100)) : 0;
-                chartBox.appendChild(el("div",{style:"display:flex;align-items:center;gap:8px;margin-bottom:5px;"},[
-                  el("span",{style:"width:22px;font-size:12.5px;color:var(--text-muted);flex-shrink:0;"}, wl),
-                  el("div",{class:"bar-track", style:"height:16px;"},[
-                    sums[i]>0 ? el("div",{class:"bar-fill", style:`width:${pct}%;height:100%;`},[
-                      el("span",{style:"font-size:11.5px;"}, fmtNum(sums[i]))
-                    ]) : null
-                  ])
-                ]));
-              });
-              const resetLogBtn = el("button",{class:"link-btn", style:"margin-top:8px;color:var(--chili);font-size:12.5px;"}, icl("refresh","Verbrauchshistorie zurücksetzen"));
-              resetLogBtn.addEventListener("click", async ()=>{
-                if(!confirm(`Verbrauchshistorie für „${it.name}“ wirklich zurücksetzen? Die Wochentag-Auswertung beginnt danach wieder bei null.`)) return;
-                await remove(ref(db, `inventoryLog/${id}`));
-                chartBox.innerHTML = "";
-                chartBox.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Verbrauchshistorie wurde zurückgesetzt."));
-              });
-              chartBox.appendChild(resetLogBtn);
-            }
-          }
-          chartBox.style.display = chartOpen ? "block" : "none";
-        });
-        if(consumeBtn) list.appendChild(chartBox);
-
-        // edit form
-        const editBox = el("div",{style:"display:none;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px;margin:-2px 0 8px;"});
-        let editOpen = false;
-        editBtn.addEventListener("click", ()=>{
-          editOpen = !editOpen;
-          if(editOpen){
-            editBox.innerHTML = "";
-            const eName = el("input",{type:"text", value:it.name, class:"select-emp", style:"width:100%;"});
-            const ePrice = el("input",{type:"number", step:"0.01", min:"0", value:it.price||"", placeholder:"optional", class:"select-emp", style:"width:100%;"});
-            const ePriceType = el("select",{class:"select-emp", style:"width:100%;"},[
-              el("option",{value:"netto"}, "eingegeben als Netto"),
-              el("option",{value:"brutto"}, "eingegeben als Brutto"),
-            ]);
-            const eVat = el("select",{class:"select-emp", style:"width:100%;"},[
-              el("option",{value:"7"}, "7 % (Lebensmittel)"),
-              el("option",{value:"19"}, "19 % (Getränke, Verpackung etc.)"),
-            ]);
-            eVat.value = String(it.vatRate || 7);
-            const eSupplier = el("input",{type:"text", value:it.supplier||"", placeholder:"optional", class:"select-emp", style:"width:100%;"});
-            const eArea = el("select",{class:"select-emp", style:"width:100%;"});
-            STORAGE_AREAS.forEach(a=> eArea.appendChild(el("option",{value:a}, a)));
-            eArea.value = it.area || STORAGE_AREAS[0];
-            const eShelf = el("input",{type:"text", value:it.shelf||"", placeholder:"z. B. Regal 3 (optional)", class:"select-emp", style:"width:100%;"});
-            const eCat = el("input",{type:"text", value:it.category||"", class:"select-emp", style:"width:100%;"});
-            const saveBtn = el("button",{class:"btn btn-primary", style:"padding:10px;"}, "Speichern");
-            const fields = [
-              el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Name"), eName]),
-            ];
-
-            const eUnit = el("input",{type:"text", value:it.unit||"", class:"select-emp", style:"width:100%;"});
-            const eSoll = el("input",{type:"number", step:"0.1", min:"0", value:it.soll||0, class:"select-emp", style:"width:100%;"});
-            const ePack = el("input",{type:"number", step:"1", min:"0", value:it.packSize||"", placeholder:"leer = keine Packs", class:"select-emp", style:"width:100%;"});
-            fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Einheit"), eUnit]));
-            fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Soll-Menge"), eSoll]));
-            fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Stück pro Packung"), ePack]));
-            fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Preis"), ePrice]));
-            fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Preis-Art"), ePriceType]));
-            fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"MwSt-Satz"), eVat]));
-            const eDeposit = el("input",{type:"number", step:"0.01", min:"0", value:it.deposit||"", placeholder:"optional", class:"select-emp", style:"width:100%;"});
-            fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Pfand pro Einheit (€)"), eDeposit]));
-            fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Lieferant"), eSupplier]));
-            fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Lagerbereich"), eArea]));
-            fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Regal / Kühlschrank"), eShelf]));
-            const eInventurPicker = inventurDayPicker(inventurDays(it));
-            fields.push(el("div",{style:"grid-column:1/-1;"},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Inventur-Tage"), eInventurPicker.node]));
-            fields.push(el("div",{},[el("label",{style:"display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;"},"Kategorie"), eCat]));
-            saveBtn.addEventListener("click", ()=>{
-              const updates = {
-                name: eName.value.trim() || it.name,
-                unit: eUnit.value.trim() || "Stück",
-                soll: parseFloat(eSoll.value) || 0,
-                category: eCat.value.trim() || "Sonstiges",
-                area: eArea.value,
-              };
-              updates.inventoryDays = eInventurPicker.get();
-              updates.inventoryTracked = updates.inventoryDays.length > 0;
-              const packVal = parseFloat(ePack.value);
-              updates.packSize = packVal > 0 ? packVal : null;
-              const priceVal = parseFloat(ePrice.value);
-              if(priceVal > 0){
-                const vatRate = parseFloat(eVat.value);
-                const {netto, brutto} = calcNettoBrutto(priceVal, ePriceType.value, vatRate);
-                updates.price = netto;
-                updates.priceBrutto = brutto;
-                updates.vatRate = vatRate;
-              } else {
-                updates.price = null;
-                updates.priceBrutto = null;
-                updates.vatRate = null;
-              }
-              updates.supplier = eSupplier.value.trim() || null;
-              const depositVal = parseFloat(eDeposit.value);
-              updates.deposit = depositVal > 0 ? depositVal : null;
-              updates.shelf = eShelf.value.trim() || null;
-              update(ref(db, `inventory/${id}`), updates);
-              editOpen = false;
-              editBox.style.display = "none";
-            });
-            fields.push(saveBtn);
-            editBox.appendChild(el("div",{class:"time-form"}, fields));
-          }
-          editBox.style.display = editOpen ? "block" : "none";
-        });
-        list.appendChild(editBox);
-      });
-      details.appendChild(list);
-      listWrap.appendChild(details);
-    });
-  }
-
-  renderList(searchVal0);
-  searchInput.addEventListener("input", ()=> renderList(searchInput.value));
-
-  if(archivedItems.length > 0){
-    const archDetails = el("details",{class:"month-group card", style:"padding:16px 20px;"});
-    const archArrow = el("span",{class:"chev"},[ic("chevronRight")]);
-    archDetails.addEventListener("toggle", ()=>{ archArrow.classList.toggle("open", archDetails.open); });
-    archDetails.appendChild(el("summary",{},[
-      el("div",{style:"display:flex;align-items:center;"},[archArrow, el("span",{}, icl("archive","Archivierte Zutaten"))]),
-      el("span",{class:"mono", style:"font-size:13px;color:var(--text-muted);font-weight:400;"}, `${archivedItems.length}`)
-    ]));
-    const archList = el("div",{style:"padding:10px 0 2px;"});
-    archivedItems.sort((a,b)=> a[1].name.localeCompare(b[1].name)).forEach(([id, it])=>{
-      const row = el("div",{class:"stock-row"});
-      row.appendChild(el("span",{class:"stock-name", style:"opacity:.6;"}, `${it.name} — ${it.category||""}`));
-      const restoreBtn = el("button",{class:"link-btn", style:"font-size:12.5px;"}, icl("undo","Reaktivieren"));
-      restoreBtn.addEventListener("click", ()=> update(ref(db, `inventory/${id}`), {archived:false}));
-      row.appendChild(restoreBtn);
-      const deleteForeverBtn = el("button",{class:"del-btn", onclick:()=>{
-        if(confirm(`"${it.name}" endgültig löschen? Das kann nicht rückgängig gemacht werden.`)){
-          remove(ref(db, `inventory/${id}`));
-          remove(ref(db, `inventoryLog/${id}`));
-        }
-      }},[ic("x")]);
-      row.appendChild(deleteForeverBtn);
-      archList.appendChild(row);
-    });
-    archDetails.appendChild(archList);
-    section.appendChild(archDetails);
-  }
-
+  if(ui.detailId){ const d = renderInvDetail(); if(d) section.appendChild(d); }
+  if(ui.form) section.appendChild(renderInvForm());
+  if(ui.areas) section.appendChild(renderInvAreas());
+  if(ui.restock){ const r = renderInvRestock(); if(r) section.appendChild(r); }
+  if(ui.waste) section.appendChild(renderInvWasteForm());
   return section;
 }
 
-// ---------- inventory barcode scanner ----------
+// ---------- Bestand ----------
+function renderInvStock(){
+  const ui = state.inv;
+  const chef = canManageInventory();
+  const wrap = el("div",{});
+  const items = invActiveItems().map(([id,it])=> [id, it, itemStatus(it)]);
+
+  // Werkzeugleiste
+  const tb = el("div",{class:"inv-toolbar"});
+  const search = el("input",{type:"search", id:"inv-search", class:"inv-search", placeholder:"Zutat, Kategorie oder Lieferant suchen…", value: ui.search});
+  search.addEventListener("input", ()=>{ ui.search = search.value; render(); });
+  tb.appendChild(search);
+  tb.appendChild(el("button",{class:"btn btn-primary", onclick:()=> openInventoryScanner()}, icl("camera","Scannen")));
+  if(chef){
+    tb.appendChild(el("button",{class:"btn btn-primary", onclick:()=> invOpenForm(null)}, icl("plus","Zutat")));
+    tb.appendChild(el("button",{class:"btn-cancel", onclick:()=> openInventoryLabelsOverlay(items.map(([id,it])=> [id,it]))}, icl("printer","Etiketten")));
+    tb.appendChild(el("button",{class:"btn-cancel", onclick:()=>{ ui.areas = {rows: storageAreas().map(a=> ({orig:a, name:a})), newName:""}; render(); }}, icl("mapPin","Bereiche")));
+  }
+  wrap.appendChild(tb);
+
+  // Kacheln (Klick = Filter)
+  const red = items.filter(x=> x[2]==="red").length;
+  const yellow = items.filter(x=> x[2]==="yellow").length;
+  const expiring = items.filter(([id,it])=> invExpiringSoon(it)).length;
+  const grid = el("div",{class:"dash-grid"});
+  function tile(icon, value, label, filterKey, warn){
+    const active = filterKey && ui.filter === filterKey;
+    const t = el("div",{class:`dash-tile ${warn ? "warn" : "good"} ${active ? "active" : ""}`, style: filterKey ? "" : "cursor:default;"});
+    if(filterKey) t.addEventListener("click", ()=>{ ui.filter = ui.filter === filterKey ? null : filterKey; render(); });
+    t.appendChild(el("span",{class:"dash-icon"},[ic(icon)]));
+    t.appendChild(el("div",{class:"dash-value"}, value));
+    t.appendChild(el("div",{class:"dash-label"}, label));
+    return t;
+  }
+  if(chef){
+    const value = items.reduce((s,[id,it])=> s + (it.price||0)*(it.ist||0), 0);
+    const deposit = items.reduce((s,[id,it])=> s + (it.deposit||0)*(it.ist||0), 0);
+    grid.appendChild(tile("euro", fmtMoney(value), "Lagerwert (netto)", null, false));
+    grid.appendChild(tile("coins", fmtMoney(deposit), "Gebundenes Pfand", null, false));
+  } else {
+    grid.appendChild(tile("trendDown", String(yellow), "Knapp", "low", yellow > 0));
+  }
+  grid.appendChild(tile("alert", String(red), "Kritisch", "critical", red > 0));
+  grid.appendChild(tile("clock", String(expiring), `MHD in ${EXPIRY_WARN_DAYS} Tagen`, "expiring", expiring > 0));
+  wrap.appendChild(grid);
+
+  // Bereiche
+  const areas = storageAreas();
+  const hasNoArea = items.some(([id,it])=> !it.area || !areas.includes(it.area));
+  const areaOpts = ["Alle", ...areas, ...(hasNoArea ? ["Ohne Bereich"] : [])];
+  if(!areaOpts.includes(ui.area)) ui.area = "Alle";
+  const areaRow = el("div",{class:"tabs", style:"margin-bottom:14px;"});
+  areaOpts.forEach(a=> areaRow.appendChild(el("button",{class:`tab ${ui.area===a?"active":""}`, onclick:()=>{ ui.area = a; render(); }}, a)));
+  wrap.appendChild(areaRow);
+
+  const filterLabels = {critical:"Kritisch", low:"Knapp", expiring:"MHD läuft bald ab"};
+  if(ui.filter){
+    wrap.appendChild(el("div",{style:"margin:-4px 0 14px;"},[
+      el("button",{class:"tab active", onclick:()=>{ ui.filter = null; render(); }},[ `Filter: ${filterLabels[ui.filter]}`, ic("x") ])
+    ]));
+  }
+
+  // Liste
+  const q = ui.search.trim().toLowerCase();
+  const filtered = items.filter(([id,it,st])=>{
+    if(q && ![it.name, it.category, it.supplier].some(v=> (v||"").toLowerCase().includes(q))) return false;
+    if(ui.area === "Ohne Bereich"){ if(it.area && areas.includes(it.area)) return false; }
+    else if(ui.area !== "Alle" && it.area !== ui.area) return false;
+    if(ui.filter === "critical" && st !== "red") return false;
+    if(ui.filter === "low" && st !== "yellow") return false;
+    if(ui.filter === "expiring" && !invExpiringSoon(it)) return false;
+    return true;
+  });
+
+  if(!items.length){
+    wrap.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},[ic("package")]), chef ? "Noch keine Zutaten angelegt. Leg die erste über „+ Zutat“ an." : "Noch keine Zutaten angelegt."]));
+  } else if(!filtered.length){
+    wrap.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},[ic("search")]), "Keine Zutat gefunden."]));
+  } else {
+    const groups = {};
+    filtered.forEach(x=>{ const cat = x[1].category || "Sonstiges"; (groups[cat] = groups[cat] || []).push(x); });
+    Object.keys(groups).sort().forEach(cat=>{
+      const rows = groups[cat].sort((a,b)=> a[1].name.localeCompare(b[1].name));
+      const crit = rows.filter(x=> x[2]==="red").length;
+      const details = el("details",{class:"month-group card", style:"padding:6px 20px;"});
+      details.open = !ui.collapsed[cat];
+      const arrow = el("span",{class:`chev ${details.open ? "open" : ""}`},[ic("chevronRight")]);
+      details.addEventListener("toggle", ()=>{ arrow.classList.toggle("open", details.open); ui.collapsed[cat] = !details.open; });
+      details.appendChild(el("summary",{},[
+        el("div",{style:"display:flex;align-items:center;"},[arrow, el("span",{}, cat)]),
+        el("span",{class:"mono", style:`font-size:13px;font-weight:400;color:${crit?"var(--chili)":"var(--text-muted)"};`}, crit ? `${rows.length} · ${crit} kritisch` : String(rows.length))
+      ]));
+      const list = el("div",{style:"padding:0 0 6px;"});
+      rows.forEach(([id,it,st])=> list.appendChild(renderInvRow(id, it, st)));
+      details.appendChild(list);
+      wrap.appendChild(details);
+    });
+  }
+
+  // Archiv (nur Chef)
+  const archived = Object.entries(state.inventory || {}).filter(([id,it])=> it && it.archived);
+  if(chef && archived.length){
+    const det = el("details",{class:"month-group card", style:"padding:6px 20px;"});
+    det.open = !!ui.showArchived;
+    const arrow = el("span",{class:`chev ${det.open ? "open" : ""}`},[ic("chevronRight")]);
+    det.addEventListener("toggle", ()=>{ arrow.classList.toggle("open", det.open); ui.showArchived = det.open; });
+    det.appendChild(el("summary",{},[
+      el("div",{style:"display:flex;align-items:center;"},[arrow, el("span",{}, icl("archive","Archivierte Zutaten"))]),
+      el("span",{class:"mono", style:"font-size:13px;color:var(--text-muted);font-weight:400;"}, String(archived.length))
+    ]));
+    const list = el("div",{style:"padding:4px 0 8px;"});
+    archived.sort((a,b)=> a[1].name.localeCompare(b[1].name)).forEach(([id,it])=>{
+      list.appendChild(el("div",{class:"stock-row"},[
+        el("span",{class:"stock-name", style:"opacity:.6;"}, `${it.name} — ${it.category||"Sonstiges"}`),
+        el("button",{class:"link-btn", style:"font-size:12.5px;", onclick:()=> update(ref(db, `inventory/${id}`), {archived:false})}, icl("undo","Reaktivieren")),
+        el("button",{class:"del-btn", "aria-label":"Endgültig löschen", onclick:()=>{
+          if(confirm(`„${it.name}“ endgültig löschen? Das kann nicht rückgängig gemacht werden.`)){
+            remove(ref(db, `inventory/${id}`));
+            remove(ref(db, `inventoryLog/${id}`));
+          }
+        }},[ic("x")])
+      ]));
+    });
+    det.appendChild(list);
+    wrap.appendChild(det);
+  }
+  return wrap;
+}
+
+function renderInvRow(id, it, st){
+  const row = el("div",{class:"inv-row"});
+  row.addEventListener("click", ()=>{ state.inv.detailId = id; state.inv.detailTab = "stock"; state.inv.istDraft = null; render(); });
+  row.appendChild(el("span",{class:`stock-dot ${st}`}));
+  const main = el("div",{class:"inv-main"});
+  main.appendChild(el("div",{class:"inv-name"}, it.name));
+  const sub = el("div",{class:"inv-sub"});
+  const place = invPlace(it);
+  if(place) sub.appendChild(document.createTextNode(place));
+  const exp = earliestBatchExpiry(it);
+  if(exp){
+    const info = invExpiryInfo(exp);
+    if(info.d <= EXPIRY_WARN_DAYS){
+      if(place) sub.appendChild(document.createTextNode(" · "));
+      sub.appendChild(el("span",{style:`color:${info.color};font-weight:650;`}, info.text));
+    }
+  }
+  if(sub.childNodes.length) main.appendChild(sub);
+  if((it.soll||0) > 0){
+    const pct = Math.min(100, Math.round((it.ist||0) / it.soll * 100));
+    main.appendChild(el("div",{class:"inv-bar"},[ el("div",{style:`width:${pct}%;background:${invStatusColor(st)};`}) ]));
+  }
+  row.appendChild(main);
+  const stop = (fn)=> (e)=>{ e.stopPropagation(); fn(); };
+  row.appendChild(el("div",{class:"inv-qty"},[
+    el("button",{class:"stock-adjust", "aria-label":"Eins weniger", onclick: stop(()=> invAdjust(id, -1))}, "−"),
+    el("span",{class:"mono"}, (it.soll||0) > 0 ? `${fmtNum(it.ist||0)} / ${fmtNum(it.soll)} ${it.unit||""}` : invQty(it.ist||0, it)),
+    el("button",{class:"stock-adjust", "aria-label":"Eins mehr", onclick: stop(()=> invAdjust(id, 1))}, "+")
+  ]));
+  return row;
+}
+
+// ---------- Fenster-Grundgerüst ----------
+function invModal(title, sub, onClose, key, z){
+  const ov = el("div",{class:"modal-backdrop", style:`z-index:${z||96};`});
+  ov.addEventListener("click", (e)=>{ if(e.target === ov) onClose(); });
+  const box = el("div",{class:"inv-modal", "data-scroll-key": key});
+  box.appendChild(el("div",{class:"inv-modal-head"},[
+    el("div",{},[ el("h2",{}, title), sub ? el("div",{class:"inv-modal-sub"}, sub) : null ]),
+    el("button",{class:"icon-btn", "aria-label":"Schließen", onclick: onClose},[ic("x")])
+  ]));
+  ov.appendChild(box);
+  return {ov, box};
+}
+function invInfoRow(label, value){ return el("div",{class:"inv-info"},[ el("span",{}, label), el("span",{}, value) ]); }
+
+// ---------- Detailansicht einer Zutat ----------
+function renderInvDetail(){
+  const ui = state.inv;
+  const id = ui.detailId;
+  const it = state.inventory[id];
+  if(!it){ ui.detailId = null; return null; }
+  const chef = canManageInventory();
+  const st = itemStatus(it);
+  const close = ()=>{ ui.detailId = null; ui.istDraft = null; render(); };
+  const {ov, box} = invModal(it.name, [it.category || "Sonstiges", invPlace(it)].filter(Boolean).join(" · "), close, "inv-detail", 96);
+
+  const tabs = el("div",{class:"tabs", style:"margin-bottom:16px;"});
+  [["stock","Bestand"],["mhd","MHD"],["use","Verbrauch"]].forEach(([k,l])=>{
+    tabs.appendChild(el("button",{class:`tab ${ui.detailTab===k?"active":""}`, onclick:()=>{ ui.detailTab = k; render(); }}, l));
+  });
+  box.appendChild(tabs);
+
+  if(ui.detailTab === "mhd"){
+    const batches = invBatchesSorted(it);
+    if(!batches.length) box.appendChild(el("div",{style:"font-size:14px;color:var(--text-muted);"}, "Keine Chargen erfasst."));
+    batches.forEach(([bid,b])=>{
+      const info = b.expiry ? invExpiryInfo(b.expiry) : null;
+      const row = el("div",{class:"inv-info", style:"align-items:center;"});
+      row.appendChild(el("span",{style:"color:var(--text);font-weight:600;"}, invQty(b.qty, it)));
+      const right = el("div",{style:"display:flex;align-items:center;gap:10px;"});
+      right.appendChild(el("span",{style:`color:${info ? info.color : "var(--text-muted)"};font-weight:${info?650:400};font-size:13.5px;`},
+        info ? `${localDateFromKey(b.expiry).toLocaleDateString("de-DE")} · ${info.text}` : "ohne MHD"));
+      if(info && info.d <= EXPIRY_WARN_DAYS){
+        right.appendChild(el("button",{class:"btn-cancel", style:"width:auto;min-height:34px;padding:0 12px;font-size:13px;", onclick:()=> invOpenWaste(id, bid)}, "Ausschuss"));
+      }
+      row.appendChild(right);
+      box.appendChild(row);
+    });
+    box.appendChild(el("p",{style:"font-size:13px;color:var(--text-muted);margin:14px 0 0;"}, "Neue Ware mit MHD über „Wareneingang“ erfassen. Bei Entnahmen wird immer die Ware mit dem frühesten MHD zuerst abgezogen."));
+  } else if(ui.detailTab === "use"){
+    const logs = Object.values(state.inventoryLog[id] || {});
+    const labels = ["Mo","Di","Mi","Do","Fr","Sa","So"];
+    const sums = [0,0,0,0,0,0,0];
+    logs.forEach(l=>{ const d = localDateFromKey(l.date); sums[(d.getDay()+6)%7] += l.amount; });
+    const reach = invReach(id, it);
+    if(reach) box.appendChild(el("div",{style:"font-size:14px;margin-bottom:12px;"}, `Im Schnitt ca. ${fmtNum(r3(reach.daily))} ${invUnit(it)} pro Tag (letzte ${INV_REACH_DAYS} Tage).`));
+    if(!logs.length){
+      box.appendChild(el("div",{style:"font-size:14px;color:var(--text-muted);"}, "Noch keine Entnahmen gebucht. Jede Entnahme (− Knopf, Scanner) wird hier nach Wochentag ausgewertet."));
+    } else {
+      const max = Math.max(1, ...sums);
+      box.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);margin-bottom:10px;"}, `Entnahmen nach Wochentag – am meisten am ${labels[sums.indexOf(Math.max(...sums))]}`));
+      labels.forEach((wl,i)=>{
+        const pct = sums[i] > 0 ? Math.max(4, Math.round(sums[i]/max*100)) : 0;
+        box.appendChild(el("div",{class:"bar-row", style:"margin-bottom:6px;"},[
+          el("span",{style:"width:26px;font-size:13px;color:var(--text-muted);flex-shrink:0;"}, wl),
+          el("div",{class:"bar-track", style:"height:20px;"},[ sums[i] > 0 ? el("div",{class:"bar-fill", style:`width:${pct}%;`},[ el("span",{}, fmtNum(r3(sums[i]))) ]) : null ])
+        ]));
+      });
+      if(chef){
+        box.appendChild(el("button",{class:"link-btn", style:"margin-top:10px;color:var(--chili);font-size:13px;", onclick: async ()=>{
+          if(!confirm(`Verbrauchshistorie für „${it.name}“ zurücksetzen?`)) return;
+          await remove(ref(db, `inventoryLog/${id}`));
+        }}, icl("refresh","Verbrauchshistorie zurücksetzen")));
+      }
+    }
+    const waste = Object.values(state.inventoryWaste || {}).filter(w=> w && w.itemId === id).sort((a,b)=> b.at - a.at).slice(0,5);
+    if(waste.length){
+      box.appendChild(el("div",{class:"inv-group-title"}, "Letzter Ausschuss"));
+      waste.forEach(w=> box.appendChild(invInfoRow(`${localDateFromKey(w.date).toLocaleDateString("de-DE")} · ${w.reason}`, invQty(w.qty, it))));
+    }
+  } else {
+    // Bestand
+    box.appendChild(el("div",{style:"display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;"},[
+      el("span",{class:"inv-big"}, invQty(it.ist||0, it)),
+      (it.soll||0) > 0 ? el("span",{style:"color:var(--text-muted);font-size:15px;"}, `von ${invQty(it.soll, it)} Soll`) : null,
+      el("span",{class:"stock-dot " + st, style:"margin-left:4px;"})
+    ]));
+    const adj = el("div",{style:"display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 6px;"});
+    adj.appendChild(el("button",{class:"stock-adjust", "aria-label":"Eins weniger", onclick:()=> invAdjust(id, -1)}, "−"));
+    if(ui.istDraft == null) ui.istDraft = "";
+    const inp = kIn(ui, "istDraft", {type:"text", inputmode:"decimal", id:"inv-d-ist", placeholder: fmtNum(it.ist||0), style:"width:100px;text-align:center;"});
+    adj.appendChild(inp);
+    adj.appendChild(el("button",{class:"stock-adjust", "aria-label":"Eins mehr", onclick:()=> invAdjust(id, 1)}, "+"));
+    adj.appendChild(el("button",{class:"btn-cancel", style:"width:auto;min-height:38px;padding:0 14px;font-size:13.5px;", onclick:()=>{
+      const v = invNum(ui.istDraft);
+      if(isNaN(v)){ alert("Bitte eine Menge eingeben."); return; }
+      invChangeIst(id, v); ui.istDraft = ""; render();
+    }}, "Menge setzen"));
+    box.appendChild(adj);
+    box.appendChild(el("div",{style:"font-size:12.5px;color:var(--text-muted);margin-bottom:6px;"}, "− und + buchen eine Entnahme bzw. einen Zugang ohne MHD. Für neue Lieferungen besser „Wareneingang“ nutzen."));
+
+    const reach = invReach(id, it);
+    const reachBox = el("div",{style:"background:var(--bg-elevated-2);border-radius:12px;padding:12px 14px;margin:12px 0;font-size:14px;"});
+    if(reach){
+      reachBox.appendChild(el("div",{style:"font-weight:650;"}, reach.days < 1 ? "Reicht nicht mehr für einen Tag" : `Reicht noch ca. ${reach.days} ${reach.days===1?"Tag":"Tage"}`));
+      reachBox.appendChild(el("div",{style:"color:var(--text-muted);margin-top:2px;"}, `Verbrauch ca. ${fmtNum(r3(reach.daily))} ${invUnit(it)} pro Tag · Vorschlag Soll für ${INV_SOLL_DAYS} Tage: ${invQty(reach.soll, it)}`));
+      if(chef && reach.soll !== (it.soll||0)){
+        reachBox.appendChild(el("button",{class:"link-btn", style:"margin-top:6px;font-size:13.5px;", onclick:()=> update(ref(db, `inventory/${id}`), {soll: reach.soll})}, `Soll auf ${invQty(reach.soll, it)} setzen`));
+      }
+    } else {
+      reachBox.appendChild(el("div",{style:"color:var(--text-muted);"}, "Noch zu wenig Verbrauchsdaten für eine Prognose (mind. 3 Tage)."));
+    }
+    box.appendChild(reachBox);
+
+    if(it.area) box.appendChild(invInfoRow("Lagerbereich", it.area));
+    if(it.shelf) box.appendChild(invInfoRow("Regal / Kühlschrank", it.shelf));
+    if(it.supplier) box.appendChild(invInfoRow("Lieferant", it.supplier));
+    if(it.packSize) box.appendChild(invInfoRow("Packung", `${fmtNum(it.packSize)} ${invUnit(it)}`));
+    const iDays = inventurDays(it);
+    box.appendChild(invInfoRow("Inventur", iDays.length ? daysSummary(iDays) : "keine"));
+    if(chef && it.price){
+      box.appendChild(invInfoRow("Preis", `${fmtMoney(it.price)} netto · ${fmtMoney(it.priceBrutto || it.price)} brutto (${it.vatRate||7} %) pro ${invUnit(it)}`));
+      box.appendChild(invInfoRow("Wert im Lager", fmtMoney((it.price||0)*(it.ist||0))));
+    }
+    if(chef && it.deposit) box.appendChild(invInfoRow("Pfand", `${fmtMoney(it.deposit)} pro ${invUnit(it)}`));
+  }
+
+  const acts = el("div",{class:"inv-actions"});
+  acts.appendChild(el("button",{class:"btn btn-primary", onclick:()=> invOpenRestock(id, itemStatus(it) !== "green" ? invOrderSuggestion(it).units : 0)}, icl("truck","Wareneingang")));
+  acts.appendChild(el("button",{class:"btn-cancel", onclick:()=> invOpenWaste(id, null)}, icl("trash","Ausschuss")));
+  if(chef){
+    acts.appendChild(el("button",{class:"btn-cancel", onclick:()=> invOpenForm(id)}, icl("pencil","Bearbeiten")));
+    acts.appendChild(el("button",{class:"btn-cancel", onclick:()=>{
+      if(confirm(`„${it.name}“ archivieren? Sie verschwindet aus der Liste, bleibt aber mit Verlauf erhalten und kann reaktiviert werden.`)){
+        update(ref(db, `inventory/${id}`), {archived:true}); ui.detailId = null; render();
+      }
+    }}, icl("archive","Archivieren")));
+  }
+  box.appendChild(acts);
+  return ov;
+}
+
+// ---------- Zutat anlegen / bearbeiten (nur Chef) ----------
+function renderInvForm(){
+  const ui = state.inv;
+  const f = ui.form;
+  const x = f.data;
+  const close = ()=>{ ui.form = null; render(); };
+  const {ov, box} = invModal(f.id ? "Zutat bearbeiten" : "Neue Zutat", null, close, "inv-form", 97);
+  const all = invActiveItems().map(([id,it])=> it);
+  const cats = [...new Set(all.map(it=> it.category).filter(Boolean))].sort();
+  const sups = [...new Set(all.map(it=> it.supplier).filter(Boolean))].sort();
+
+  const g = (title)=> box.appendChild(el("div",{class:"inv-group-title"}, title));
+  const grid = ()=>{ const d = el("div",{class:"k-form"}); box.appendChild(d); return d; };
+
+  g("Basis");
+  let fg = grid();
+  fg.appendChild(kField("Name", kIn(x,"name",{type:"text", id:"inv-f-name", placeholder:"z. B. Lachs"}), true));
+  const catIn = kIn(x,"category",{type:"text", id:"inv-f-cat", placeholder:"z. B. Fisch", list:"inv-cat-list"});
+  const catList = el("datalist",{id:"inv-cat-list"}); cats.forEach(c=> catList.appendChild(el("option",{value:c})));
+  fg.appendChild(kField("Kategorie", el("div",{},[catIn, catList])));
+  fg.appendChild(kField("Einheit", kIn(x,"unit",{type:"text", id:"inv-f-unit", placeholder:"Stück, kg, Liter"})));
+  fg.appendChild(kField("Soll-Menge", kIn(x,"soll",{type:"text", inputmode:"decimal", id:"inv-f-soll", placeholder:"z. B. 20"})));
+  fg.appendChild(kField("Menge pro Packung", kIn(x,"packSize",{type:"text", inputmode:"decimal", id:"inv-f-pack", placeholder:"leer = keine Packs"})));
+  if(!f.id){
+    fg.appendChild(kField("Aktueller Bestand", kIn(x,"ist",{type:"text", inputmode:"decimal", id:"inv-f-ist", placeholder:"leer = wie Soll"})));
+    fg.appendChild(kField("MHD (optional)", kIn(x,"expiry",{type:"date", id:"inv-f-exp"})));
+  }
+
+  g("Ort");
+  fg = grid();
+  const areas = storageAreas();
+  const areaOpts = areas.map(a=> [a,a]);
+  if(x.area && !areas.includes(x.area)) areaOpts.push([x.area, x.area]);
+  areaOpts.push(["", "Ohne Bereich"]);
+  fg.appendChild(kField("Lagerbereich", kSel(x,"area", areaOpts)));
+  fg.appendChild(kField("Regal / Kühlschrank", kIn(x,"shelf",{type:"text", id:"inv-f-shelf", placeholder:"z. B. Kühlschrank links"})));
+
+  g("Einkauf");
+  fg = grid();
+  const supIn = kIn(x,"supplier",{type:"text", id:"inv-f-sup", placeholder:"z. B. Metro", list:"inv-sup-list"});
+  const supList = el("datalist",{id:"inv-sup-list"}); sups.forEach(s=> supList.appendChild(el("option",{value:s})));
+  fg.appendChild(kField("Lieferant", el("div",{},[supIn, supList])));
+  fg.appendChild(kField(`Preis pro ${x.unit || "Einheit"} (€)`, kIn(x,"price",{type:"text", inputmode:"decimal", id:"inv-f-price", placeholder:"optional"})));
+  fg.appendChild(kField("Preis ist", kSel(x,"priceType",[["netto","Netto"],["brutto","Brutto"]])));
+  fg.appendChild(kField("MwSt", kSel(x,"vatRate",[["7","7 % (Lebensmittel)"],["19","19 % (Getränke, Verpackung …)"]])));
+  fg.appendChild(kField("Pfand pro Einheit (€)", kIn(x,"deposit",{type:"text", inputmode:"decimal", id:"inv-f-dep", placeholder:"optional"})));
+
+  g("Inventur – an diesen Tagen wird gezählt");
+  box.appendChild(kDayPicker(x));
+
+  const save = el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 22px;margin-top:20px;"}, f.id ? "Änderungen speichern" : "Zutat anlegen");
+  save.addEventListener("click", async ()=>{
+    const name = (x.name || "").trim();
+    if(!name){ alert("Bitte einen Namen eingeben."); return; }
+    if(!f.id && invActiveItems().some(([id,it])=> it.name.toLowerCase() === name.toLowerCase()) && !confirm(`Es gibt schon eine Zutat „${name}“. Trotzdem anlegen?`)) return;
+    const soll = invNum(x.soll);
+    const pack = invNum(x.packSize);
+    const price = invNum(x.price);
+    const dep = invNum(x.deposit);
+    const days = sortDays(x.days);
+    const rec = {
+      name, category: (x.category || "").trim() || "Sonstiges", unit: (x.unit || "").trim() || "Stück",
+      soll: soll > 0 ? soll : 0, packSize: pack > 0 ? pack : null,
+      area: x.area || null, shelf: (x.shelf || "").trim() || null, supplier: (x.supplier || "").trim() || null,
+      deposit: dep > 0 ? dep : null, inventoryDays: days, inventoryTracked: days.length > 0
+    };
+    if(price > 0){
+      const vat = parseFloat(x.vatRate) || 7;
+      const {netto, brutto} = calcNettoBrutto(price, x.priceType, vat);
+      rec.price = netto; rec.priceBrutto = brutto; rec.vatRate = vat;
+    } else { rec.price = null; rec.priceBrutto = null; rec.vatRate = null; }
+    if(f.id){
+      await update(ref(db, `inventory/${f.id}`), rec);
+    } else {
+      const istIn = invNum(x.ist);
+      const ist = istIn >= 0 ? istIn : rec.soll;
+      const newRef = push(ref(db, "inventory"));
+      const full = {...rec, ist};
+      Object.keys(full).forEach(k=>{ if(full[k] === null) delete full[k]; });
+      if(ist > 0){
+        const bKey = push(ref(db, `inventory/${newRef.key}/batches`)).key;
+        full.batches = {[bKey]: {qty: ist, expiry: x.expiry || null, addedAt: Date.now()}};
+      }
+      await set(newRef, full);
+    }
+    ui.form = null; render();
+  });
+  box.appendChild(save);
+  return ov;
+}
+
+// ---------- Lagerbereiche verwalten (nur Chef) ----------
+function renderInvAreas(){
+  const ui = state.inv;
+  const a = ui.areas;
+  const close = ()=>{ ui.areas = null; render(); };
+  const {ov, box} = invModal("Lagerbereiche", "Umbenennen ändert den Bereich bei allen Zutaten mit.", close, "inv-areas", 97);
+  a.rows.forEach((r,i)=>{
+    box.appendChild(el("div",{style:"display:flex;gap:8px;align-items:center;margin-bottom:8px;"},[
+      kIn(r, "name", {type:"text", id:`inv-a-${i}`}),
+      el("button",{class:"del-btn", "aria-label":"Bereich entfernen", onclick:()=>{ a.rows.splice(i,1); render(); }},[ic("trash")])
+    ]));
+  });
+  box.appendChild(el("div",{style:"display:flex;gap:8px;align-items:center;margin-top:12px;"},[
+    kIn(a, "newName", {type:"text", id:"inv-a-new", placeholder:"Neuer Bereich, z. B. Tiefkühler"}),
+    el("button",{class:"btn-cancel", style:"width:auto;min-height:40px;padding:0 14px;white-space:nowrap;", onclick:()=>{
+      const n = (a.newName || "").trim();
+      if(!n) return;
+      a.rows.push({orig:null, name:n}); a.newName = ""; render();
+    }}, "Hinzufügen")
+  ]));
+  const save = el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 22px;margin-top:20px;"}, "Speichern");
+  save.addEventListener("click", async ()=>{
+    const names = a.rows.map(r=> (r.name || "").trim()).filter(Boolean);
+    if(new Set(names.map(n=> n.toLowerCase())).size !== names.length){ alert("Jeder Bereich darf nur einmal vorkommen."); return; }
+    if(!names.length){ alert("Mindestens ein Bereich wird gebraucht."); return; }
+    const old = storageAreas();
+    const removed = old.filter(o=> !a.rows.some(r=> r.orig === o));
+    const removedWithItems = removed.filter(o=> invActiveItems().some(([id,it])=> it.area === o));
+    if(removedWithItems.length && !confirm(`Zutaten in „${removedWithItems.join("“, „")}“ landen unter „Ohne Bereich“. Weiter?`)) return;
+    const updates = {"settings/inventoryAreas": names};
+    Object.entries(state.inventory || {}).forEach(([id,it])=>{
+      if(!it || !it.area) return;
+      const r = a.rows.find(r=> r.orig === it.area);
+      if(r && r.name.trim() && r.name.trim() !== it.area) updates[`inventory/${id}/area`] = r.name.trim();
+      else if(!r && removed.includes(it.area)) updates[`inventory/${id}/area`] = null;
+    });
+    await update(ref(db), updates);
+    ui.areas = null; render();
+  });
+  box.appendChild(save);
+  return ov;
+}
+
+// ---------- Wareneingang ----------
+function renderInvRestock(){
+  const ui = state.inv;
+  const r = ui.restock;
+  const it = state.inventory[r.id];
+  if(!it){ ui.restock = null; return null; }
+  const chef = canManageInventory();
+  const close = ()=>{ ui.restock = null; render(); };
+  const {ov, box} = invModal("Wareneingang", it.name, close, "inv-restock", 98);
+  const fg = el("div",{class:"k-form"});
+  if(it.packSize > 0){
+    fg.appendChild(kField("Erfassen in", kSel(r, "mode", [["pack", `Packs (à ${fmtNum(it.packSize)} ${invUnit(it)})`],["unit", invUnit(it)]], true)));
+  }
+  const amountIn = kIn(r, "amount", {type:"text", inputmode:"decimal", id:"inv-r-amount", placeholder:"Menge"});
+  fg.appendChild(kField(r.mode === "pack" ? "Anzahl Packs" : `Menge (${invUnit(it)})`, amountIn));
+  fg.appendChild(kField("MHD (optional)", kIn(r, "expiry", {type:"date", id:"inv-r-exp"})));
+  if(chef){
+    fg.appendChild(kField("Einkaufspreis gesamt (€, optional)", kIn(r, "price", {type:"text", inputmode:"decimal", id:"inv-r-price", placeholder:"z. B. 54,90"})));
+  }
+  box.appendChild(fg);
+  const hint = el("div",{style:"font-size:14px;margin-top:12px;color:var(--text-muted);"});
+  const updateHint = ()=>{
+    const n = invNum(r.amount);
+    const units = r.mode === "pack" ? n * (it.packSize||1) : n;
+    hint.textContent = n > 0 ? `Neuer Bestand: ${invQty(r3((it.ist||0) + units), it)}` : "";
+  };
+  amountIn.addEventListener("input", updateHint);
+  updateHint();
+  box.appendChild(hint);
+  if(chef){
+    const cb = el("input",{type:"checkbox", style:"width:18px;height:18px;"});
+    cb.checked = r.book !== false;
+    cb.addEventListener("change", ()=>{ r.book = cb.checked; });
+    box.appendChild(el("label",{style:"display:flex;align-items:center;gap:8px;font-size:14px;margin-top:12px;cursor:pointer;"},[cb, el("span",{}, "Preis als Ausgabe „Wareneinkauf“ in Finanzen buchen")]));
+  }
+  const save = el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 22px;margin-top:18px;"}, "Eingang buchen");
+  save.addEventListener("click", async ()=>{
+    const n = invNum(r.amount);
+    if(!(n > 0)){ alert("Bitte eine Menge eingeben."); return; }
+    const units = r3(r.mode === "pack" ? n * (it.packSize||1) : n);
+    const cur = state.inventory[r.id];
+    const price = invNum(r.price);
+    const book = chef && r.book !== false && price > 0;
+    ui.restock = null; render();
+    await invChangeIst(r.id, (cur.ist || 0) + units, {expiry: r.expiry || null});
+    if(book){
+      await set(push(ref(db, "expenses")), {date: toDateKey(new Date()), amount: price, category:"Wareneinkauf", note: `${cur.name} (${invQty(units, cur)})`});
+    }
+  });
+  box.appendChild(save);
+  return ov;
+}
+
+// ---------- Ausschuss buchen ----------
+function renderInvWasteForm(){
+  const ui = state.inv;
+  const w = ui.waste;
+  const close = ()=>{ ui.waste = null; render(); };
+  const it = w.id ? state.inventory[w.id] : null;
+  const {ov, box} = invModal("Ausschuss buchen", it && w.batchId ? `${it.name} · Charge mit MHD ${it.batches && it.batches[w.batchId] && it.batches[w.batchId].expiry ? localDateFromKey(it.batches[w.batchId].expiry).toLocaleDateString("de-DE") : "–"}` : null, close, "inv-waste", 98);
+  const fg = el("div",{class:"k-form"});
+  if(!w.batchId){
+    const opts = [["", "Zutat wählen…"], ...invActiveItems().sort((a,b)=> a[1].name.localeCompare(b[1].name)).map(([id,i])=> [id, `${i.name} (${invQty(i.ist||0, i)})`])];
+    fg.appendChild(kField("Zutat", kSel(w, "id", opts, true), true));
+  }
+  fg.appendChild(kField(it ? `Menge (${invUnit(it)})` : "Menge", kIn(w, "qty", {type:"text", inputmode:"decimal", id:"inv-w-qty", placeholder:"z. B. 1,5"})));
+  fg.appendChild(kField("Grund", kSel(w, "reason", WASTE_REASONS.map(x=> [x,x]))));
+  fg.appendChild(kField("Notiz (optional)", kIn(w, "note", {type:"text", id:"inv-w-note", placeholder:"z. B. Kühlschrank war offen"}), true));
+  box.appendChild(fg);
+  const save = el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 22px;margin-top:18px;"}, "Ausschuss buchen");
+  save.addEventListener("click", async ()=>{
+    const cur = w.id ? state.inventory[w.id] : null;
+    if(!cur){ alert("Bitte eine Zutat wählen."); return; }
+    const q = invNum(w.qty);
+    if(!(q > 0)){ alert("Bitte eine Menge eingeben."); return; }
+    if(q > (cur.ist || 0) + 1e-9 && !confirm(`Es sind nur ${invQty(cur.ist||0, cur)} im Bestand. Nur diese Menge als Ausschuss buchen?`)) return;
+    const data = {...w};
+    ui.waste = null; render();
+    await invBookWaste(data.id, q, data.reason, (data.note || "").trim(), data.batchId);
+  });
+  box.appendChild(save);
+  return ov;
+}
+
+// ---------- Einkaufsliste ----------
+function renderInvShopping(){
+  const chef = canManageInventory();
+  const wrap = el("div",{});
+  const groups = invShoppingGroups();
+  if(!groups.length){
+    wrap.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},[ic("check")]), "Alles auf Lager – nichts nachzukaufen."]));
+    return wrap;
+  }
+  const allRows = groups.flatMap(g=> g[1]);
+  const openRows = allRows.filter(r=> !r[1].shopChecked);
+  const head = el("div",{class:"card", style:"display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"});
+  const headText = el("div",{},[
+    el("div",{style:"font-weight:650;font-size:15px;"}, `${openRows.length} von ${allRows.length} noch zu besorgen`),
+    el("div",{style:"font-size:13px;color:var(--text-muted);margin-top:2px;"}, "Kritische und knappe Zutaten, Menge bis zum Soll – auf ganze Packs aufgerundet.")
+  ]);
+  if(chef){
+    const total = openRows.reduce((s,[id,it,sug])=> s + (it.price||0)*sug.units, 0);
+    if(total > 0) headText.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);margin-top:2px;"}, `Geschätzt ca. ${fmtMoney(total)} netto`));
+  }
+  head.appendChild(headText);
+  const copyBtn = el("button",{class:"btn-cancel", style:"width:auto;min-height:40px;padding:0 14px;"}, icl("clipboard","Kopieren"));
+  copyBtn.addEventListener("click", ()=> invCopyText(invShoppingText()).then(()=>{ copyBtn.textContent = "Kopiert ✓"; setTimeout(()=> render(), 1500); }));
+  const shareBtn = el("button",{class:"btn btn-primary", style:"width:auto;min-height:40px;padding:0 14px;"}, icl("share","Teilen"));
+  shareBtn.addEventListener("click", ()=>{
+    const text = invShoppingText();
+    if(navigator.share) navigator.share({title:"Einkaufsliste", text}).catch(()=>{});
+    else window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+  });
+  head.appendChild(el("div",{style:"display:flex;gap:8px;"},[copyBtn, shareBtn]));
+  wrap.appendChild(head);
+
+  groups.forEach(([sup, rows])=>{
+    const card = el("div",{class:"card"});
+    const supTotal = rows.filter(r=> !r[1].shopChecked).reduce((s,[id,it,sug])=> s + (it.price||0)*sug.units, 0);
+    card.appendChild(el("div",{style:"display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;"},[
+      el("h3",{style:"margin:0;font-size:15px;display:flex;align-items:center;gap:2px;"}, icl("truck", sup)),
+      chef && supTotal > 0 ? el("span",{class:"mono", style:"font-size:13px;color:var(--text-muted);"}, `ca. ${fmtMoney(supTotal)}`) : null
+    ]));
+    rows.forEach(([id,it,sug])=>{
+      const checked = !!it.shopChecked;
+      const st = itemStatus(it);
+      const row = el("div",{class:`inv-row shop-row ${checked ? "checked" : ""}`, style:"cursor:default;"});
+      const box = el("button",{class:`shop-check ${checked ? "on" : ""}`, "aria-label": checked ? "Abhaken rückgängig" : "Abhaken", onclick:()=>{
+        update(ref(db, `inventory/${id}`), {shopChecked: checked ? null : Date.now()});
+      }}, checked ? [ic("check")] : []);
+      row.appendChild(box);
+      const main = el("div",{class:"inv-main"});
+      main.appendChild(el("div",{class:"inv-name"},[ el("span",{class:`stock-dot ${st}`, style:"display:inline-block;margin-right:8px;vertical-align:1px;"}), it.name ]));
+      main.appendChild(el("div",{style:"font-size:14px;font-weight:650;margin-top:3px;"}, sug.text));
+      const reach = invReach(id, it);
+      main.appendChild(el("div",{class:"inv-sub"}, `Ist ${invQty(it.ist||0, it)} von ${invQty(it.soll||0, it)}${reach ? ` · reicht noch ca. ${reach.days} ${reach.days===1?"Tag":"Tage"}` : ""}${chef && it.price ? ` · ca. ${fmtMoney(it.price*sug.units)}` : ""}`));
+      row.appendChild(main);
+      row.appendChild(el("button",{class:"btn-cancel", style:"width:auto;min-height:38px;padding:0 12px;font-size:13.5px;flex-shrink:0;", onclick:()=> invOpenRestock(id, sug.units)}, icl("truck","Eingang")));
+      card.appendChild(row);
+    });
+    wrap.appendChild(card);
+  });
+  if(allRows.some(r=> r[1].shopChecked)){
+    wrap.appendChild(el("button",{class:"link-btn", onclick:()=>{
+      const u = {};
+      allRows.forEach(([id,it])=>{ if(it.shopChecked) u[`inventory/${id}/shopChecked`] = null; });
+      update(ref(db), u);
+    }}, icl("undo","Alle Haken entfernen")));
+  }
+  return wrap;
+}
+
+// ---------- Inventur ----------
+function renderInvInventur(){
+  const ui = state.inv;
+  const chef = canManageInventory();
+  const wrap = el("div",{});
+  const due = invActiveItems().filter(([id,it])=> isInventurDueToday(it)).sort((a,b)=> a[1].name.localeCompare(b[1].name));
+  const card = el("div",{class:"card"});
+  if(!due.length){
+    card.appendChild(el("div",{style:"font-weight:650;margin-bottom:4px;"}, "Heute steht keine Inventur an."));
+    card.appendChild(el("div",{style:"font-size:14px;color:var(--text-muted);"}, chef ? "Die Zähl-Tage legst du pro Zutat unter „Bearbeiten“ fest." : "Die Zähl-Tage legt der Chef pro Zutat fest."));
+    wrap.appendChild(card);
+  } else {
+    const doneCount = due.filter(([id,it])=> inventurDoneToday(it)).length;
+    card.appendChild(el("div",{style:"display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;"},[
+      el("h3",{style:`margin:0;font-size:15px;color:${doneCount===due.length?"var(--avocado)":"var(--text)"};`},
+        doneCount === due.length ? icl("check", `Heute komplett gezählt (${due.length}/${due.length})`) : `Heute zu zählen · ${doneCount} von ${due.length}`),
+      doneCount < due.length ? el("button",{class:"btn btn-primary", style:"width:auto;padding:9px 16px;font-size:14px;", onclick:()=> openInventoryScanner("inventur")}, icl("camera","Mit Scanner zählen")) : null
+    ]));
+    card.appendChild(el("div",{class:"k-progress-bar", style:"margin-bottom:8px;"},[ el("div",{style:`width:${Math.round(doneCount/due.length*100)}%;`}) ]));
+    due.sort((a,b)=> (inventurDoneToday(a[1])?1:0) - (inventurDoneToday(b[1])?1:0));
+    due.forEach(([id,it])=>{
+      const done = inventurDoneToday(it);
+      const editing = !done || ui.recount[id];
+      const row = el("div",{class:"inv-row", style:"cursor:default;flex-wrap:wrap;"});
+      row.appendChild(el("span",{class:"stock-dot", style:`background:${done?"var(--avocado)":"var(--mango)"};`}));
+      const main = el("div",{class:"inv-main"},[ el("div",{class:"inv-name"}, it.name) ]);
+      const sub = [invPlace(it), editing ? `erwartet ${invQty(it.ist||0, it)}` : null].filter(Boolean).join(" · ");
+      if(sub) main.appendChild(el("div",{class:"inv-sub"}, sub));
+      row.appendChild(main);
+      if(editing){
+        const inp = kIn(ui.countDraft, id, {type:"text", inputmode:"decimal", id:`inv-c-${id}`, placeholder:"gezählt", style:"width:96px;text-align:center;"});
+        const saveBtn = el("button",{class:"btn btn-primary", style:"width:auto;min-height:38px;padding:0 14px;font-size:13.5px;"}, "Speichern");
+        saveBtn.addEventListener("click", ()=>{
+          const v = invNum(ui.countDraft[id]);
+          if(isNaN(v)){ alert("Bitte die gezählte Menge eingeben."); return; }
+          delete ui.countDraft[id]; delete ui.recount[id];
+          invSaveCount(id, v);
+        });
+        row.appendChild(el("div",{style:"display:flex;align-items:center;gap:6px;"},[ inp, el("span",{style:"font-size:13px;color:var(--text-muted);"}, it.unit || ""), saveBtn ]));
+      } else {
+        const diff = it.lastInventurDiff || 0;
+        row.appendChild(el("div",{style:"display:flex;align-items:center;gap:10px;flex-wrap:wrap;"},[
+          el("span",{class:"mono", style:"font-size:13px;color:var(--avocado);font-weight:650;"}, icl("check", `${invQty(it.ist||0, it)} · ${it.lastInventurAt ? fmtTime(it.lastInventurAt) + " Uhr" : "heute"}`)),
+          Math.abs(diff) > 1e-9 ? el("span",{class:"mono", style:`font-size:12.5px;font-weight:650;color:${diff<0?"var(--chili)":"var(--avocado)"};`}, `${diff>0?"+":""}${fmtNum(diff)}`) : null,
+          el("button",{class:"link-btn", style:"font-size:12.5px;", onclick:()=>{ ui.recount[id] = true; render(); }}, "ändern")
+        ]));
+      }
+      card.appendChild(row);
+    });
+    wrap.appendChild(card);
+  }
+
+  // Abweichungen
+  const cutoff = toDateKey(new Date(Date.now() - 29*86400000));
+  const diffs = Object.entries(state.inventoryCounts || {}).filter(([cid,c])=> c && c.date >= cutoff).sort((a,b)=> b[1].at - a[1].at);
+  const dc = el("div",{class:"card"});
+  dc.appendChild(el("h3",{style:"margin:0 0 4px;font-size:15px;"}, "Abweichungen der letzten 30 Tage"));
+  dc.appendChild(el("p",{style:"font-size:13px;color:var(--text-muted);margin:0 0 12px;"}, "Gezählt vs. erwartet. Minus heißt: weniger da als im System – z. B. Entnahmen, die nicht gebucht wurden, oder Schwund."));
+  if(!diffs.length){
+    dc.appendChild(el("div",{style:"font-size:14px;color:var(--text-muted);"}, "Keine Abweichungen."));
+  } else {
+    if(chef){
+      const minus = diffs.reduce((s,[cid,c])=> s + (c.value && c.value < 0 ? -c.value : 0), 0);
+      if(minus > 0) dc.appendChild(el("div",{style:"font-size:14px;margin-bottom:10px;"},[ "Fehlmengen-Wert: ", el("strong",{style:"color:var(--chili);"}, fmtMoney(minus)) ]));
+    }
+    diffs.slice(0,60).forEach(([cid,c])=>{
+      dc.appendChild(el("div",{class:"inv-info", style:"align-items:center;"},[
+        el("span",{},[ el("span",{style:"color:var(--text);font-weight:600;"}, c.name), ` · ${localDateFromKey(c.date).toLocaleDateString("de-DE",{day:"2-digit", month:"2-digit"})} · ${c.byName || ""}` ]),
+        el("span",{class:"mono", style:"text-align:right;"},[
+          `${fmtNum(c.expected)} → ${fmtNum(c.counted)} ${c.unit||""} `,
+          el("strong",{style:`color:${c.diff<0?"var(--chili)":"var(--avocado)"};`}, `${c.diff>0?"+":""}${fmtNum(c.diff)}`),
+          chef && c.value ? el("span",{style:"color:var(--text-muted);"}, ` · ${fmtMoney(c.value)}`) : null
+        ])
+      ]));
+    });
+  }
+  wrap.appendChild(dc);
+  return wrap;
+}
+
+// ---------- Ausschuss-Übersicht ----------
+function renderInvWaste(){
+  const ui = state.inv;
+  const chef = canManageInventory();
+  const wrap = el("div",{});
+  wrap.appendChild(el("div",{style:"margin-bottom:14px;"},[
+    el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 20px;", onclick:()=> invOpenWaste(null, null)}, icl("plus","Ausschuss buchen"))
+  ]));
+  const base = new Date(); base.setMonth(base.getMonth() + ui.wasteMonth, 1);
+  const mk = toMonthKey(base);
+  wrap.appendChild(el("div",{class:"week-nav", style:"margin-bottom:14px;"},[
+    el("button",{onclick:()=>{ ui.wasteMonth--; render(); }},"‹"),
+    el("span",{class:"week-label"}, monthLabel(mk)),
+    el("button",{onclick:()=>{ ui.wasteMonth++; render(); }},"›")
+  ]));
+  const entries = Object.entries(state.inventoryWaste || {}).filter(([wid,w])=> w && (w.date||"").slice(0,7) === mk).sort((a,b)=> b[1].at - a[1].at);
+  if(!entries.length){
+    wrap.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},[ic("trash")]), "In diesem Monat kein Ausschuss gebucht."]));
+    return wrap;
+  }
+  const sum = el("div",{class:"card"});
+  const total = entries.reduce((s,[wid,w])=> s + (w.value||0), 0);
+  sum.appendChild(el("div",{style:"display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px;"},[
+    el("h3",{style:"margin:0;font-size:15px;"}, `${entries.length} ${entries.length===1?"Eintrag":"Einträge"}`),
+    chef ? el("span",{class:"mono", style:"font-size:20px;font-weight:700;color:var(--chili);"}, fmtMoney(total)) : null
+  ]));
+  const byReason = {};
+  entries.forEach(([wid,w])=>{ const r = byReason[w.reason] = byReason[w.reason] || {n:0, v:0}; r.n++; r.v += w.value||0; });
+  Object.entries(byReason).sort((a,b)=> b[1].v - a[1].v || b[1].n - a[1].n).forEach(([reason, r])=>{
+    sum.appendChild(invInfoRow(reason, `${r.n}×${chef && r.v ? ` · ${fmtMoney(r.v)}` : ""}`));
+  });
+  if(chef && total === 0) sum.appendChild(el("div",{style:"font-size:12.5px;color:var(--text-muted);margin-top:8px;"}, "Für den Warenwert braucht die Zutat einen Preis."));
+  wrap.appendChild(sum);
+
+  const list = el("div",{class:"card"});
+  entries.forEach(([wid,w])=>{
+    const row = el("div",{class:"inv-info", style:"align-items:center;"});
+    row.appendChild(el("span",{},[
+      el("span",{style:"color:var(--text);font-weight:600;"}, w.name),
+      ` · ${fmtNum(w.qty)} ${w.unit||""} · ${w.reason}`,
+      el("div",{style:"font-size:12.5px;margin-top:2px;"}, `${localDateFromKey(w.date).toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})} · ${w.byName || ""}${w.note ? ` · „${w.note}“` : ""}`)
+    ]));
+    const right = el("div",{style:"display:flex;align-items:center;gap:6px;"});
+    if(chef && w.value) right.appendChild(el("span",{class:"mono", style:"color:var(--chili);font-weight:650;"}, fmtMoney(w.value)));
+    if(chef) right.appendChild(el("button",{class:"del-btn", "aria-label":"Eintrag löschen", onclick:()=>{
+      if(confirm("Eintrag löschen? Der Bestand wird dabei nicht zurückgebucht.")) remove(ref(db, `inventoryWaste/${wid}`));
+    }},[ic("x")]));
+    row.appendChild(right);
+    list.appendChild(row);
+  });
+  wrap.appendChild(list);
+  return wrap;
+}
+
+// ---------- Scanner ----------
 function openInventoryScanner(initialMode){
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
     alert("Kamera-Zugriff wird von diesem Browser nicht unterstützt.");
@@ -4533,97 +4969,72 @@ function openInventoryScanner(initialMode){
 
   const modeRow = el("div",{style:"display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;"});
   let mode = "out";
-  const outBtn = el("button",{class:"tab active", style:"background:var(--chili);color:#fff;"}, "− Entnahme");
-  const inBtn = el("button",{class:"tab", style:"background:var(--bg-elevated);color:var(--text-muted);"}, "+ Auffüllen");
-  const inventurBtn = el("button",{class:"tab", style:"background:var(--bg-elevated);color:var(--text-muted);"}, icl("clipboard","Inventur"));
+  const outBtn = el("button",{class:"tab"}, "− Entnahme");
+  const inBtn = el("button",{class:"tab"}, "+ Wareneingang");
+  const inventurBtn = el("button",{class:"tab"}, icl("clipboard","Inventur"));
+  modeRow.appendChild(outBtn); modeRow.appendChild(inBtn); modeRow.appendChild(inventurBtn);
   overlay.appendChild(modeRow);
-  modeRow.appendChild(outBtn);
-  modeRow.appendChild(inBtn);
-  modeRow.appendChild(inventurBtn);
 
-  // Inventur progress — persistiert pro Tag, nicht nur pro Sitzung
-  const inventurProgress = el("div",{style:"display:none;font-size:13px;margin-bottom:10px;text-align:center;max-width:340px;"});
-  // nur Zutaten, deren Inventur-Tag heute ist
-  function getOpenTrackedItems(){
-    return Object.entries(state.inventory||{})
-      .filter(([id,it])=> isInventurDueToday(it) && !inventurDoneToday(it))
-      .map(([id,it])=> ({id, name:it.name}));
-  }
-  function getDoneTrackedCount(){
-    return Object.values(state.inventory||{}).filter(it=> isInventurDueToday(it) && inventurDoneToday(it)).length;
-  }
+  const inventurProgress = el("div",{style:"display:none;font-size:13px;margin-bottom:10px;text-align:center;max-width:340px;color:var(--text);"});
   function updateInventurProgress(){
-    const open = getOpenTrackedItems();
-    const doneCount = getDoneTrackedCount();
-    const total = open.length + doneCount;
+    const due = invActiveItems().filter(([id,it])=> isInventurDueToday(it));
+    const open = due.filter(([id,it])=> !inventurDoneToday(it));
     inventurProgress.innerHTML = "";
-    if(total === 0){
-      inventurProgress.appendChild(el("div",{style:"color:var(--text-muted);"}, "Heute ist keine Inventur fällig. Die Tage legt der Chef bei jeder Zutat unter „Bearbeiten“ fest."));
+    if(!due.length){
+      inventurProgress.appendChild(el("div",{style:"color:#bbb;"}, "Heute ist keine Inventur fällig."));
       return;
     }
-    if(open.length === 0){
-      inventurProgress.appendChild(el("div",{style:"color:var(--avocado);font-weight:700;"}, icl("check", `Heutige Inventur komplett (${total}/${total})`)));
+    if(!open.length){
+      inventurProgress.appendChild(el("div",{style:"color:var(--avocado);font-weight:700;"}, icl("check", `Heutige Inventur komplett (${due.length}/${due.length})`)));
       return;
     }
-    inventurProgress.appendChild(el("div",{style:"color:var(--mango);font-weight:700;margin-bottom:6px;"}, `Noch zu scannen (${open.length} von ${total}):`));
+    inventurProgress.appendChild(el("div",{style:"color:var(--mango);font-weight:700;margin-bottom:6px;"}, `Noch zu zählen (${open.length} von ${due.length}):`));
     inventurProgress.appendChild(el("div",{style:"display:flex;flex-wrap:wrap;gap:5px;justify-content:center;"},
-      open.map(o=> el("span",{style:"background:var(--bg-elevated-2);border:1px solid var(--line);border-radius:12px;padding:3px 9px;font-size:12.5px;"}, o.name))
+      open.map(([id,it])=> el("span",{style:"background:var(--bg-elevated-2);border:1px solid var(--line);border-radius:12px;padding:3px 9px;font-size:12.5px;"}, it.name))
     ));
   }
-  updateInventurProgress();
   overlay.appendChild(inventurProgress);
 
-  // quantity selector — only relevant for Auffüllen
   let qty = 1;
-  const qtyRow = el("div",{style:"display:none;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;"});
-  const qtyLabel = el("span",{style:"font-size:13px;color:var(--text-muted);margin-right:4px;"}, "Menge:");
-  qtyRow.appendChild(qtyLabel);
+  const qtyRow = el("div",{style:"display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;"});
+  qtyRow.appendChild(el("span",{style:"font-size:13px;color:#bbb;margin-right:4px;"}, "Menge:"));
   const qtyButtons = [];
-  [1,2,3,4,5,6].forEach(n=>{
-    const b = el("button",{class:"tab", style:`background:${n===1?"var(--avocado)":"var(--bg-elevated)"};color:${n===1?"var(--avocado-ink)":"var(--text-muted)"};padding:6px 12px;`}, String(n));
-    b.addEventListener("click", ()=>{
-      qty = n;
-      qtyButtons.forEach(bb=>{ bb.style.background="var(--bg-elevated)"; bb.style.color="var(--text-muted)"; });
-      b.style.background="var(--avocado)"; b.style.color="var(--avocado-ink)";
-    });
-    qtyButtons.push(b);
-    qtyRow.appendChild(b);
+  [1,2,3,4,5,6,10].forEach(n=>{
+    const b = el("button",{class:`tab ${n===1?"active":""}`, style:"padding:6px 12px;"}, String(n));
+    b.addEventListener("click", ()=>{ qty = n; qtyButtons.forEach(bb=> bb.classList.remove("active")); b.classList.add("active"); });
+    qtyButtons.push(b); qtyRow.appendChild(b);
   });
   overlay.appendChild(qtyRow);
 
   function setMode(m){
     mode = m;
-    outBtn.style.background="var(--bg-elevated)"; outBtn.style.color="var(--text-muted)";
-    inBtn.style.background="var(--bg-elevated)"; inBtn.style.color="var(--text-muted)";
-    inventurBtn.style.background="var(--bg-elevated)"; inventurBtn.style.color="var(--text-muted)";
-    qtyRow.style.display = "none";
-    inventurProgress.style.display = "none";
-    if(m==="out"){ outBtn.style.background="var(--chili)"; outBtn.style.color="#fff"; }
-    else if(m==="in"){ inBtn.style.background="var(--avocado)"; inBtn.style.color="var(--avocado-ink)"; qtyRow.style.display="flex"; }
-    else { inventurBtn.style.background="var(--mango)"; inventurBtn.style.color="var(--mango-ink)"; inventurProgress.style.display="block"; }
+    [[outBtn,"out","var(--chili)"],[inBtn,"in","var(--avocado)"],[inventurBtn,"inventur","var(--mango)"]].forEach(([b,k,c])=>{
+      b.style.background = k === m ? c : "var(--bg-elevated)";
+      b.style.color = k === m ? "#fff" : "var(--text-muted)";
+      b.style.borderColor = k === m ? c : "var(--line)";
+    });
+    qtyRow.style.display = m === "inventur" ? "none" : "flex";
+    inventurProgress.style.display = m === "inventur" ? "block" : "none";
+    if(m === "inventur") updateInventurProgress();
   }
   outBtn.addEventListener("click", ()=> setMode("out"));
   inBtn.addEventListener("click", ()=> setMode("in"));
   inventurBtn.addEventListener("click", ()=> setMode("inventur"));
-  if(initialMode === "inventur") setMode("inventur");
+  setMode(initialMode === "inventur" ? "inventur" : "out");
 
   const videoWrap = el("div",{style:"width:100%;max-width:340px;aspect-ratio:1;border-radius:16px;overflow:hidden;position:relative;border:2px solid var(--mango);background:#000;"});
   const video = el("video",{playsinline:"true", muted:"true", style:"width:100%;height:100%;object-fit:cover;"});
   videoWrap.appendChild(video);
-  const statusText = el("div",{style:"color:var(--text);margin-top:18px;font-size:14px;text-align:center;min-height:20px;"}, "Kamera wird gestartet…");
-  const expiryBox = el("div",{style:"display:none;background:var(--bg-elevated);border-radius:12px;padding:16px;margin-top:16px;width:100%;max-width:340px;text-align:center;"});
-  const closeBtn = el("button",{class:"btn-cancel", style:"margin-top:22px;width:auto;padding:10px 24px;background:var(--bg-elevated);"}, "Fertig");
-
+  const statusText = el("div",{style:"color:#fff;margin-top:18px;font-size:14px;text-align:center;min-height:20px;"}, "Kamera wird gestartet…");
+  const askBox = el("div",{style:"display:none;background:var(--bg-elevated);color:var(--text);border-radius:12px;padding:16px;margin-top:16px;width:100%;max-width:340px;text-align:center;"});
+  const closeBtn = el("button",{class:"btn-cancel", style:"margin-top:22px;width:auto;padding:10px 24px;"}, "Fertig");
   overlay.appendChild(videoWrap);
   overlay.appendChild(statusText);
-  overlay.appendChild(expiryBox);
+  overlay.appendChild(askBox);
   overlay.appendChild(closeBtn);
   document.body.appendChild(overlay);
 
-  let stream = null;
-  let scanning = true;
-  let paused = false;
-  let lastCode = null, lastTime = 0;
+  let stream = null, scanning = true, paused = false, lastCode = null, lastTime = 0;
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
@@ -4636,78 +5047,74 @@ function openInventoryScanner(initialMode){
 
   navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}})
     .then(s=>{
-      stream = s;
-      video.srcObject = s;
-      video.play();
+      stream = s; video.srcObject = s; video.play();
       statusText.textContent = "Halte den Etikett-Code vor die Kamera";
       requestAnimationFrame(tick);
     })
-    .catch(err=>{
-      statusText.textContent = "Kamera-Zugriff nicht möglich: " + err.message;
-    });
+    .catch(err=>{ statusText.textContent = "Kamera-Zugriff nicht möglich: " + err.message; });
 
-  function askExpiryThenResume(itemId, itemName, addedQty){
-    paused = true;
-    expiryBox.style.display = "block";
-    expiryBox.innerHTML = "";
-    expiryBox.appendChild(el("div",{style:"font-size:14px;color:var(--text-muted);margin-bottom:10px;"}, `MHD für ${addedQty}× ${itemName} (optional)`));
-    const dateInput = el("input",{type:"date", style:"padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:14px;margin-bottom:12px;width:100%;"});
-    expiryBox.appendChild(dateInput);
-    const btnRow = el("div",{style:"display:flex;gap:10px;"});
-    const saveDateBtn = el("button",{class:"btn btn-primary", style:"padding:9px;"}, "Speichern");
-    const skipBtn = el("button",{class:"btn-cancel", style:"padding:9px;"}, "Überspringen");
-    saveDateBtn.addEventListener("click", async ()=>{
-      const batchRef = push(ref(db, `inventory/${itemId}/batches`));
-      await set(batchRef, {qty: addedQty, expiry: dateInput.value || null, addedAt: Date.now()});
-      resumeScanning();
-    });
-    skipBtn.addEventListener("click", async ()=>{
-      const batchRef = push(ref(db, `inventory/${itemId}/batches`));
-      await set(batchRef, {qty: addedQty, expiry: null, addedAt: Date.now()});
-      resumeScanning();
-    });
-    btnRow.appendChild(saveDateBtn);
-    btnRow.appendChild(skipBtn);
-    expiryBox.appendChild(btnRow);
+  function showStatus(text, color){
+    statusText.innerHTML = "";
+    statusText.appendChild(el("div",{style:`color:${color};font-weight:700;`}, icl("check", text)));
   }
-
   function resumeScanning(){
-    expiryBox.style.display = "none";
+    askBox.style.display = "none";
     paused = false;
-    statusText.textContent = mode==="inventur" ? "Nächste Zutat scannen…" : "Halte den nächsten Code vor die Kamera";
     requestAnimationFrame(tick);
   }
 
-  function askInventurFractionThenResume(itemId, item){
+  // Wareneingang: MHD abfragen, dann buchen
+  function askExpiry(itemId, item, addedQty){
     paused = true;
-    expiryBox.style.display = "block";
-    expiryBox.innerHTML = "";
-    const wholeUnits = Math.floor(item.ist||0);
-    expiryBox.appendChild(el("div",{style:"font-size:14px;color:var(--text-muted);margin-bottom:4px;"}, `${item.name}`));
-    expiryBox.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);margin-bottom:10px;"}, `${wholeUnits} volle ${item.unit||"Stk"} sind erfasst. Wie viel ist von der angebrochenen Einheit noch übrig?`));
-    const btnRow = el("div",{style:"display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px;"});
-    [
-      {label:"0", val:0},
-      {label:"¼", val:0.25},
-      {label:"½", val:0.5},
-      {label:"¾", val:0.75},
-      {label:"1 (voll)", val:1},
-    ].forEach(opt=>{
-      const b = el("button",{class:"btn-primary", style:"padding:10px 14px;border-radius:9px;border:none;font-weight:700;flex:1;min-width:60px;"}, opt.label);
-      b.addEventListener("click", async ()=>{
-        const newIst = wholeUnits + opt.val;
-        await saveInventurCount(itemId, newIst);
-        updateInventurProgress();
-        statusText.innerHTML = "";
-        statusText.appendChild(el("div",{style:"color:var(--mango);font-weight:700;"}, icl("check", `${item.name}: ${fmtNum(newIst)} ${item.unit||""} erfasst`)));
-        resumeScanning();
-      });
-      btnRow.appendChild(b);
+    askBox.style.display = "block";
+    askBox.innerHTML = "";
+    askBox.appendChild(el("div",{style:"font-size:14px;margin-bottom:10px;"}, `MHD für ${fmtNum(addedQty)} ${invUnit(item)} ${item.name} (optional)`));
+    const dateInput = el("input",{type:"date", class:"select-emp", style:"width:100%;margin-bottom:12px;"});
+    askBox.appendChild(dateInput);
+    const book = async (exp)=>{
+      const cur = state.inventory[itemId];
+      await invChangeIst(itemId, (cur.ist || 0) + addedQty, {expiry: exp || null});
+      showStatus(`${cur.name}: +${fmtNum(addedQty)} → ${invQty(state.inventory[itemId].ist || 0, cur)}`, "var(--avocado)");
+      resumeScanning();
+    };
+    askBox.appendChild(el("div",{style:"display:flex;gap:10px;"},[
+      el("button",{class:"btn btn-primary", style:"padding:9px;", onclick:()=> book(dateInput.value)}, "Speichern"),
+      el("button",{class:"btn-cancel", style:"padding:9px;width:100%;", onclick:()=> book(null)}, "Ohne MHD")
+    ]));
+  }
+
+  // Inventur: gezählte Menge eingeben (mit ¼-Schritten für angebrochene Packungen)
+  function askCount(itemId, item){
+    paused = true;
+    askBox.style.display = "block";
+    askBox.innerHTML = "";
+    askBox.appendChild(el("div",{style:"font-size:15px;font-weight:650;margin-bottom:2px;"}, item.name));
+    askBox.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);margin-bottom:10px;"}, `Laut System: ${invQty(item.ist||0, item)}`));
+    const input = el("input",{type:"text", inputmode:"decimal", class:"select-emp", placeholder:`gezählt (${invUnit(item)})`, style:"width:100%;text-align:center;font-size:18px;margin-bottom:8px;"});
+    askBox.appendChild(input);
+    const fr = el("div",{style:"display:flex;gap:6px;justify-content:center;margin-bottom:12px;flex-wrap:wrap;"});
+    [["+0",0],["+¼",0.25],["+½",0.5],["+¾",0.75]].forEach(([l,v])=>{
+      fr.appendChild(el("button",{class:"tab", onclick:()=>{
+        const n = invNum(input.value);
+        input.value = String(r3(Math.floor(isNaN(n) ? 0 : n) + v)).replace(".", ",");
+      }}, l));
     });
-    expiryBox.appendChild(btnRow);
-    const skipBtn = el("button",{class:"btn-cancel", style:"padding:9px;width:100%;"}, "Überspringen");
-    skipBtn.addEventListener("click", ()=> resumeScanning());
-    expiryBox.appendChild(skipBtn);
+    askBox.appendChild(fr);
+    askBox.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin:-6px 0 12px;"}, "Ganze Einheiten eintippen, angebrochene mit ¼ ½ ¾ ergänzen."));
+    askBox.appendChild(el("div",{style:"display:flex;gap:10px;"},[
+      el("button",{class:"btn btn-primary", style:"padding:9px;", onclick: async ()=>{
+        const v = invNum(input.value);
+        if(isNaN(v)){ alert("Bitte die gezählte Menge eingeben."); return; }
+        const expected = state.inventory[itemId].ist || 0;
+        await invSaveCount(itemId, v);
+        updateInventurProgress();
+        const diff = r3(v - expected);
+        showStatus(`${item.name}: ${invQty(v, item)}${Math.abs(diff) > 1e-9 ? ` (${diff>0?"+":""}${fmtNum(diff)})` : " – passt"}`, "var(--mango)");
+        resumeScanning();
+      }}, "Speichern"),
+      el("button",{class:"btn-cancel", style:"padding:9px;width:100%;", onclick: resumeScanning}, "Überspringen")
+    ]));
+    setTimeout(()=> input.focus(), 50);
   }
 
   function tick(){
@@ -4723,32 +5130,19 @@ function openInventoryScanner(initialMode){
         lastCode = code.data; lastTime = now;
         const itemId = code.data.slice(INV_CODE_PREFIX.length);
         const item = state.inventory[itemId];
-        if(item){
-          if(mode === "inventur"){
-            if(!isInventurDueToday(item)){
-              statusText.innerHTML = "";
-              const days = inventurDays(item);
-              statusText.appendChild(el("div",{style:"color:var(--text-muted);"}, days.length ? `${item.name} ist heute nicht dran (${daysSummary(days)}).` : `${item.name} ist nicht Teil der Inventur.`));
-            } else {
-              askInventurFractionThenResume(itemId, item);
-              return;
-            }
-          } else if(mode === "in"){
-            bumpIst(itemId, qty).then(()=>{
-              statusText.innerHTML = "";
-              statusText.appendChild(el("div",{style:"color:var(--avocado);font-weight:700;"}, icl("check", `${item.name}: +${qty} ${item.unit||""}`)));
-              askExpiryThenResume(itemId, item.name, qty);
-            });
-            return;
-          } else {
-            consumeInventoryBatches(itemId, 1).then(()=>{
-              const newVal = Math.max(0, (item.ist||0)-1);
-              statusText.innerHTML = "";
-              statusText.appendChild(el("div",{style:"color:var(--chili);font-weight:700;"}, icl("check", `${item.name}: ${fmtNum(newVal)} ${item.unit||""}`)));
-            });
-          }
-        } else {
+        if(!item || item.archived){
           statusText.textContent = "Unbekannter Code — Zutat nicht gefunden.";
+        } else if(mode === "inventur"){
+          if(!isInventurDueToday(item)){
+            const days = inventurDays(item);
+            statusText.textContent = days.length ? `${item.name} ist heute nicht dran (${daysSummary(days)}).` : `${item.name} ist nicht Teil der Inventur.`;
+          } else { askCount(itemId, item); return; }
+        } else if(mode === "in"){
+          askExpiry(itemId, item, qty); return;
+        } else {
+          const target = Math.max(0, (item.ist||0) - qty);
+          invChangeIst(itemId, target);
+          showStatus(`${item.name}: −${qty} → ${invQty(target, item)}`, "var(--chili)");
         }
       }
     }
