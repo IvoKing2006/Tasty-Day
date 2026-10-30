@@ -676,6 +676,8 @@
   .swap-incoming{border-color:rgba(180,101,12,.35) !important;}
   .help-steps .ic{margin-left:4px;color:var(--brand);}
   .topbar-actions{display:flex;align-items:center;gap:6px;}
+  .offline-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--mango-soft);color:var(--mango);border-bottom:1px solid rgba(180,101,12,.25);font-size:14px;font-weight:600;line-height:1.4;}
+  .offline-bar .ic{width:18px;height:18px;}
 
   /* =========================================================
      Handy-Optimierung (Safe-Area, Touch, Skalierung)
@@ -1371,6 +1373,17 @@ function renderForgot(){
 }
 
 // ---------- listeners ----------
+// Verbindungsstatus: Hinweis erst nach 3 Sek. ohne Verbindung (Firebase meldet beim Start kurz "offline")
+let offlineTimer = null;
+onValue(ref(db, ".info/connected"), (snap)=>{
+  if(snap.val() === true){
+    if(offlineTimer){ clearTimeout(offlineTimer); offlineTimer = null; }
+    if(state.offline){ state.offline = false; render(); }
+  } else if(!offlineTimer){
+    offlineTimer = setTimeout(()=>{ offlineTimer = null; state.offline = true; render(); }, 3000);
+  }
+});
+
 onValue(ref(db, "employees"), (snap)=>{
   state.employees = snap.val() || {};
   tryAutoLogin();
@@ -1851,6 +1864,9 @@ function renderApp(){
   shell.appendChild(renderSidenav(groups));
   const mainCol = el("div",{class:"shell-main"});
   mainCol.appendChild(renderTopbar());
+  if(state.offline) mainCol.appendChild(el("div",{class:"offline-bar", role:"status"},[
+    ic("alert"), el("span",{}, "Offline – Änderungen werden gespeichert, sobald du wieder Internet hast. App nicht schließen.")
+  ]));
   const sub = renderSubnav(groups);
   if(sub) mainCol.appendChild(sub);
   const main = el("main",{});
@@ -2058,7 +2074,7 @@ function renderAvailability(chefView){
   const head = el("div",{class:"section-head"},[
     el("div",{},[
       el("h2",{class:"section-title"}, chefView ? "Verfügbarkeiten des Teams" : "Deine Verfügbarkeit"),
-      el("p",{class:"section-sub"}, chefView ? "Grundlage für den Wochenplan." : "Standardmäßig „Kann nicht“ — ändere die Tage, an denen du kannst.")
+      null
     ]),
     renderWeekNav()
   ]);
@@ -2213,7 +2229,7 @@ function renderSchedule(editable){
   const head = el("div",{class:"section-head"},[
     el("div",{},[
       el("h2",{class:"section-title"}, editable ? "Wochenplan erstellen" : "Wochenplan"),
-      el("p",{class:"section-sub"}, editable ? "Feste Schichten zuweisen oder eine Extra-Schicht hinzufügen." : "Wer arbeitet wann — für alle sichtbar.")
+      editable ? el("p",{class:"section-sub"}, "Feste Schichten zuweisen oder eine Extra-Schicht hinzufügen.") : null
     ]),
     renderWeekNav()
   ]);
@@ -2468,7 +2484,7 @@ function renderTimes(chefView){
   section.appendChild(el("div",{class:"section-head"},[
     el("div",{},[
       el("h2",{class:"section-title"}, chefView ? "Arbeitszeiten — Team" : "Meine Arbeitszeiten"),
-      el("p",{class:"section-sub"}, chefView ? "Alle erfassten Ist-Zeiten (nur Ansicht)." : "Zeiten eintragen, Stunden werden automatisch im Viertel-Takt berechnet.")
+      null
     ])
   ]));
 
@@ -3054,7 +3070,7 @@ function renderTeam(){
   section.appendChild(el("div",{class:"section-head"},[
     el("div",{},[
       el("h2",{class:"section-title"}, "Team verwalten"),
-      el("p",{class:"section-sub"}, "Mitarbeiter-Übersicht, Konten löschen, Passwort-Codes vergeben.")
+      null
     ])
   ]));
 
@@ -3337,7 +3353,7 @@ function renderSwaps(){
   section.appendChild(el("div",{class:"section-head"},[
     el("div",{},[
       el("h2",{class:"section-title"}, "Tauschanfragen"),
-      el("p",{class:"section-sub"}, "Genehmige oder lehne Schichttausch-Wünsche ab. Bei Genehmigung wird der Wochenplan automatisch aktualisiert.")
+      null
     ])
   ]));
 
@@ -3619,7 +3635,7 @@ function renderFinance(){
   section.appendChild(el("div",{class:"section-head"},[
     el("div",{},[
       el("h2",{class:"section-title"}, "Finanzen"),
-      el("p",{class:"section-sub"}, "Umsatz, Ausgaben und Personalkosten im Überblick.")
+      null
     ])
   ]));
 
@@ -4012,7 +4028,7 @@ function renderInventory(){
   section.appendChild(el("div",{class:"section-head"},[
     el("div",{},[
       el("h2",{class:"section-title"}, "Lagerbestand"),
-      el("p",{class:"section-sub"}, "Soll/Ist pflegen, in Packs denken, per Scan aktualisieren.")
+      null
     ])
   ]));
 
@@ -5108,6 +5124,9 @@ function renderKitchen(){
     el("button",{class:"icon-btn", title:"Küchen-Modus beenden", "aria-label":"Küchen-Modus beenden", onclick:()=>{ state.kExit = true; state.kExitError = ""; render(); }},[ic("logout")])
   ]));
   shell.appendChild(top);
+  if(state.offline) shell.appendChild(el("div",{class:"offline-bar", role:"status"},[
+    ic("alert"), el("span",{}, "Offline – Änderungen werden gespeichert, sobald du wieder Internet hast. App nicht schließen.")
+  ]));
 
   const tabs = el("div",{class:"k-tabs"});
   [["tasks","clipboard","Aufgaben"],["recipes","bowl","Rezepte"]].forEach(([k,icn,l])=>{
