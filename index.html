@@ -1079,10 +1079,54 @@ function simpleHash(str){
   return hash.toString(36);
 }
 function genCode(){ return String(Math.floor(1000 + Math.random()*9000)); }
-function employeeWage(id){
+// ---------- Stundenlohn mit Verlauf ----------
+// employees/{id}/wageHistory/{ab-Datum} = {wage}. Jede Stunde wird mit dem Lohn
+// berechnet, der an ihrem Tag galt. Ohne Verlauf gilt hourlyWage für alle Tage.
+const WAGE_BASE_KEY = "0000-01-01"; // „Anfangslohn“ = galt vor der ersten Änderung
+function wageHistoryList(id){
   const e = state.employees[id];
-  return (e && typeof e.hourlyWage === "number" && e.hourlyWage > 0) ? e.hourlyWage : 0;
+  const h = (e && e.wageHistory) || {};
+  return Object.entries(h)
+    .map(([from, v])=> ({from, wage: Number(v && v.wage) || 0}))
+    .sort((a,b)=> a.from.localeCompare(b.from));
 }
+function employeeWageAt(id, dateKey){
+  const e = state.employees[id];
+  if(!e) return 0;
+  const list = wageHistoryList(id);
+  if(!list.length) return (typeof e.hourlyWage === "number" && e.hourlyWage > 0) ? e.hourlyWage : 0;
+  let w = 0;
+  list.forEach(x=>{ if(x.from <= dateKey) w = x.wage; });
+  return w > 0 ? w : 0;
+}
+function employeeWage(id){ return employeeWageAt(id, toDateKey(new Date())); }
+function entryPay(empId, entry){ return entry.hours * employeeWageAt(empId, entry.date) + (entry.tip || 0); }
+// Neuen Lohn ab einem Datum setzen – ältere Stunden behalten ihren alten Lohn
+// hourlyWage = heute gültiger Lohn (für Anzeige/Kompatibilität)
+function wageForToday(hist){
+  const today = toDateKey(new Date());
+  let w = 0;
+  Object.keys(hist).sort().forEach(k=>{ if(k <= today) w = Number(hist[k] && hist[k].wage) || 0; });
+  return w;
+}
+async function setEmployeeWage(id, wage, fromDate){
+  const e = state.employees[id] || {};
+  const hist = Object.assign({}, e.wageHistory || {});
+  if(!e.wageHistory){
+    // bisheriger Lohn gilt für alles vor der Änderung
+    const old = (typeof e.hourlyWage === "number" && e.hourlyWage > 0) ? e.hourlyWage : 0;
+    hist[WAGE_BASE_KEY] = {wage: old};
+  }
+  hist[fromDate] = {wage};
+  await update(ref(db, `employees/${id}`), {wageHistory: hist, hourlyWage: wageForToday(hist)});
+}
+async function removeWageStep(id, fromDate){
+  const e = state.employees[id] || {};
+  const hist = Object.assign({}, e.wageHistory || {});
+  delete hist[fromDate];
+  await update(ref(db, `employees/${id}`), {wageHistory: hist, hourlyWage: wageForToday(hist)});
+}
+function fmtWageFrom(from){ return from === WAGE_BASE_KEY ? "Anfangslohn" : `ab ${localDateFromKey(from).toLocaleDateString("de-DE")}`; }
 function fmtMoney(v){
   return v.toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2}) + " €";
 }
@@ -1110,27 +1154,29 @@ function localDateFromKey(dateStr){
   const [y,m,d] = dateStr.split("-").map(Number);
   return new Date(y, m-1, d);
 }
-function renderGroupedTimeList(entries, wage, onDelete){
+function renderGroupedTimeList(entries, empId, onDelete){
   const wrap = el("div",{});
   const totalHours = entries.reduce((s,[id,e])=> s+e.hours, 0);
   const paidHours = entries.filter(([id,e])=> e.paid).reduce((s,[id,e])=> s+e.hours, 0);
   const openHours = totalHours - paidHours;
-  const totalTip = entries.reduce((s,[id,e])=> s+(e.tip||0), 0);
-  const paidTip = entries.filter(([id,e])=> e.paid).reduce((s,[id,e])=> s+(e.tip||0), 0);
-  const openTip = totalTip - paidTip;
+  // Geld pro Eintrag mit dem Lohn, der an dem Tag galt
+  const totalMoney = entries.reduce((s,[id,e])=> s+entryPay(empId, e), 0);
+  const paidMoney = entries.filter(([id,e])=> e.paid).reduce((s,[id,e])=> s+entryPay(empId, e), 0);
+  const openMoney = totalMoney - paidMoney;
+  const hasWage = entries.some(([id,e])=> employeeWageAt(empId, e.date) > 0);
 
   function statBox(label, hrs, money, color){
     const box = el("div",{style:"flex:1;min-width:110px;background:var(--bg-elevated-2);border-radius:10px;padding:12px 14px;"});
     box.appendChild(el("div",{style:"font-size:12.5px;color:var(--text-muted);margin-bottom:4px;"}, label));
     box.appendChild(el("div",{class:"mono", style:`font-size:16px;font-weight:700;color:${color};`}, `${fmtHours(hrs)} Std.`));
-    if(wage > 0 || money > 0) box.appendChild(el("div",{class:"mono", style:"font-size:12.5px;color:var(--text-muted);margin-top:2px;"}, fmtMoney(money)));
+    if(hasWage || money > 0) box.appendChild(el("div",{class:"mono", style:"font-size:12.5px;color:var(--text-muted);margin-top:2px;"}, fmtMoney(money)));
     return box;
   }
   if(entries.length > 0){
     const summary = el("div",{style:"display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;"});
-    summary.appendChild(statBox("Gesamt", totalHours, totalHours*wage + totalTip, "var(--text)"));
-    summary.appendChild(statBox("Ausgezahlt", paidHours, paidHours*wage + paidTip, "var(--avocado)"));
-    summary.appendChild(statBox("Offen", openHours, openHours*wage + openTip, "var(--mango)"));
+    summary.appendChild(statBox("Gesamt", totalHours, totalMoney, "var(--text)"));
+    summary.appendChild(statBox("Ausgezahlt", paidHours, paidMoney, "var(--avocado)"));
+    summary.appendChild(statBox("Offen", openHours, openMoney, "var(--mango)"));
     wrap.appendChild(summary);
   } else {
     wrap.appendChild(el("div",{class:"empty-state"},[el("div",{class:"big"},[ic("clock")]),"Noch keine Zeiten erfasst."]));
@@ -1164,7 +1210,7 @@ function renderGroupedTimeList(entries, wage, onDelete){
       if(entry.paid) rightSide.push(el("span",{style:"color:var(--avocado);font-size:14px;font-weight:700;"}, [ic("check")]));
       rightSide.push(el("span",{class:"hrs"}, `${fmtHours(entry.hours)} Std.`));
       if(entry.tip) rightSide.push(el("span",{class:"mono", style:"font-size:12.5px;color:var(--mango);"}, icl("coins", fmtMoney(entry.tip))));
-      if(wage > 0 || entry.tip) rightSide.push(el("span",{class:"mono", style:"font-size:13px;color:var(--text-muted);"}, fmtMoney(entry.hours*wage + (entry.tip||0))));
+      if(employeeWageAt(empId, entry.date) > 0 || entry.tip) rightSide.push(el("span",{class:"mono", style:"font-size:13px;color:var(--text-muted);"}, fmtMoney(entryPay(empId, entry))));
       if(onDelete) rightSide.push(el("button",{class:"del-btn", onclick:()=> onDelete(id)},[ic("x")]));
       list.appendChild(el("div",{class:"time-row"},[
         el("span",{}, `${dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})} · ${entry.start}–${entry.end}`),
@@ -2585,7 +2631,7 @@ function renderTimes(chefView){
     card.appendChild(el("div",{class:"time-form"}, formFields));
 
     const myEntries = Object.entries(state.timeEntries[state.currentUser.id] || {}).sort((a,b)=> b[1].date.localeCompare(a[1].date));
-    card.appendChild(renderGroupedTimeList(myEntries, wage, (id)=> remove(ref(db, `timeEntries/${state.currentUser.id}/${id}`))));
+    card.appendChild(renderGroupedTimeList(myEntries, state.currentUser.id, (id)=> remove(ref(db, `timeEntries/${state.currentUser.id}/${id}`))));
     section.appendChild(card);
 
     const myPayouts = Object.entries(state.payouts[state.currentUser.id] || {}).sort((a,b)=> b[1].createdAt - a[1].createdAt);
@@ -2681,14 +2727,40 @@ function renderTimes(chefView){
   const wageCard = el("div",{class:"card"});
   wageCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, `${emp.name} — Stundenlohn`));
   const wageInput = el("input",{type:"number", step:"0.01", min:"0", placeholder:"z. B. 13.50", value: wage>0?wage:"", style:"width:140px;padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:14px;"});
+  const wageFromInput = el("input",{type:"date", value: toDateKey(new Date()), style:"padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:14px;"});
   const wageSaveBtn = el("button",{class:"btn btn-primary", style:"width:auto;padding:9px 18px;"}, "Speichern");
-  wageSaveBtn.addEventListener("click", ()=>{
-    const val = parseFloat(wageInput.value);
-    update(ref(db, `employees/${empId}`), {hourlyWage: isNaN(val) ? 0 : val});
+  wageSaveBtn.addEventListener("click", async ()=>{
+    const val = parseFloat(String(wageInput.value).replace(",", "."));
+    if(isNaN(val) || val < 0){ alert("Bitte einen gültigen Stundenlohn eingeben."); return; }
+    if(!wageFromInput.value){ alert("Bitte ein Datum für „gültig ab“ wählen."); return; }
+    await setEmployeeWage(empId, val, wageFromInput.value);
   });
   wageCard.appendChild(el("div",{style:"display:flex;align-items:center;gap:10px;flex-wrap:wrap;"},[
-    wageInput, el("span",{style:"color:var(--text-muted);font-size:14px;"},"€ / Stunde"), wageSaveBtn
+    wageInput, el("span",{style:"color:var(--text-muted);font-size:14px;"},"€ / Stunde"),
+    el("span",{style:"color:var(--text-muted);font-size:14px;"},"gültig ab"), wageFromInput, wageSaveBtn
   ]));
+  wageCard.appendChild(el("div",{style:"font-size:12.5px;color:var(--text-muted);margin-top:8px;"}, "Stunden vor diesem Datum werden weiter mit dem alten Lohn berechnet."));
+  // Lohnverlauf
+  const hist = wageHistoryList(empId);
+  if(hist.length){
+    const histBox = el("div",{style:"margin-top:14px;"});
+    histBox.appendChild(el("div",{style:"font-size:13px;font-weight:650;margin-bottom:6px;"}, "Lohnverlauf"));
+    const todayKey = toDateKey(new Date());
+    const currentFrom = hist.filter(y=> y.from <= todayKey).map(y=> y.from).pop();
+    hist.slice().reverse().forEach(x=>{
+      const current = x.from === currentFrom;
+      histBox.appendChild(el("div",{class:"team-row", style:"margin-bottom:6px;"},[
+        el("span",{style:"font-size:14px;"}, [fmtWageFrom(x.from), x.from > toDateKey(new Date()) ? " (geplant)" : current ? " (aktuell)" : ""].join("")),
+        el("div",{style:"display:flex;align-items:center;gap:8px;"},[
+          el("span",{class:"mono", style:"font-weight:700;"}, `${fmtMoney(x.wage)} / Std.`),
+          x.from === WAGE_BASE_KEY ? null : el("button",{class:"del-btn", title:"Lohnänderung löschen", "aria-label":"Lohnänderung löschen", onclick:()=>{
+            if(confirm(`Lohnänderung ${fmtWageFrom(x.from)} (${fmtMoney(x.wage)}) löschen?`)) removeWageStep(empId, x.from);
+          }},[ic("x")])
+        ])
+      ]));
+    });
+    wageCard.appendChild(histBox);
+  }
   section.appendChild(wageCard);
 
   // unpaid entries with selectable checkboxes
@@ -2747,13 +2819,13 @@ function renderTimes(chefView){
       const chosen = unpaidEntries.filter(([id])=> selected.has(id));
       const hoursSum = chosen.reduce((s,[id,e])=> s+e.hours, 0);
       const tipSum = chosen.reduce((s,[id,e])=> s+(e.tip||0), 0);
-      const amountSum = hoursSum * wage + tipSum;
+      const amountSum = chosen.reduce((s,[id,e])=> s+entryPay(empId, e), 0);
       summaryText.innerHTML = "";
       const detailParts = [`${chosen.length} Schicht(en) ausgewählt`, `${fmtHours(hoursSum)} Std.`];
       if(tipSum > 0) detailParts.push(`+ ${fmtMoney(tipSum)} Trinkgeld`);
       summaryText.appendChild(el("div",{class:"mono", style:"font-size:14px;color:var(--text-muted);"}, detailParts.join(" · ")));
-      summaryText.appendChild(el("div",{style:"font-size:20px;font-weight:700;color:var(--mango);margin-top:2px;"}, (wage>0 || tipSum>0) ? fmtMoney(amountSum) : "Stundenlohn fehlt"));
-      payBtn.disabled = chosen.length === 0 || (wage <= 0 && tipSum <= 0);
+      summaryText.appendChild(el("div",{style:"font-size:20px;font-weight:700;color:var(--mango);margin-top:2px;"}, amountSum > 0 ? fmtMoney(amountSum) : "Stundenlohn fehlt"));
+      payBtn.disabled = chosen.length === 0 || amountSum <= 0;
       payBtn.style.opacity = payBtn.disabled ? ".5" : "1";
     }
     updateSummary();
@@ -2763,7 +2835,7 @@ function renderTimes(chefView){
       if(chosen.length === 0) return;
       const hoursSum = chosen.reduce((s,[id,e])=> s+e.hours, 0);
       const tipSum = chosen.reduce((s,[id,e])=> s+(e.tip||0), 0);
-      const amountSum = hoursSum * wage + tipSum;
+      const amountSum = chosen.reduce((s,[id,e])=> s+entryPay(empId, e), 0);
       if(!confirm(`${fmtMoney(amountSum)} (${chosen.length} Schicht(en)) für ${emp.name} als ausgezahlt markieren?`)) return;
       const payoutRef = push(ref(db, `payouts/${empId}`));
       const payoutId = payoutRef.key;
@@ -2823,7 +2895,7 @@ function renderTimes(chefView){
   // full entry list
   const card = el("div",{class:"card"});
   card.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Alle Einträge"));
-  card.appendChild(renderGroupedTimeList(allEntries, wage, null));
+  card.appendChild(renderGroupedTimeList(allEntries, empId, null));
   section.appendChild(card);
   return section;
 }
@@ -3216,16 +3288,20 @@ function renderTeam(){
         style:"width:110px;padding:7px 10px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;"
       });
       const wageSaveBtn = el("button",{class:"btn-cancel", style:"width:auto;padding:7px 12px;font-size:13px;border-radius:20px;"}, "Speichern");
-      wageSaveBtn.addEventListener("click", ()=>{
-        const val = parseFloat(wageInput.value);
-        update(ref(db, `employees/${id}`), {hourlyWage: isNaN(val) ? 0 : val});
+      const wageFromInput = el("input",{type:"date", value: toDateKey(new Date()), title:"gültig ab", style:"padding:6px 10px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;"});
+      wageSaveBtn.addEventListener("click", async ()=>{
+        const val = parseFloat(String(wageInput.value).replace(",", "."));
+        if(isNaN(val) || val < 0){ alert("Bitte einen gültigen Stundenlohn eingeben."); return; }
+        if(!wageFromInput.value){ alert("Bitte ein Datum für „gültig ab“ wählen."); return; }
+        await setEmployeeWage(id, val, wageFromInput.value);
         wageSaveBtn.textContent = "Gespeichert ✓";
         setTimeout(()=>{ wageSaveBtn.textContent = "Speichern"; }, 1500);
       });
 
       const actions = el("div",{style:"display:flex;align-items:center;gap:8px;flex-wrap:wrap;"},[
         wageInput,
-        el("span",{style:"font-size:12.5px;color:var(--text-muted);"},"€/Std."),
+        el("span",{style:"font-size:12.5px;color:var(--text-muted);"},"€/Std. ab"),
+        wageFromInput,
         wageSaveBtn,
         el("button",{class:"btn-danger", style:"width:auto;padding:6px 14px;font-size:13px;border-radius:20px;", onclick:()=>{
           if(confirm(`Konto von ${emp.name} wirklich löschen?`)){
@@ -3549,7 +3625,7 @@ function computePersonnelCostMaps(){
   empIds.forEach(id=>{
     const wage = employeeWage(id);
     Object.values(state.timeEntries[id] || {}).forEach(entry=>{
-      const cost = entry.hours * wage;
+      const cost = entry.hours * employeeWageAt(id, entry.date);
       if(!dailyMap[entry.date]) dailyMap[entry.date] = {hours:0, cost:0};
       dailyMap[entry.date].hours += entry.hours;
       dailyMap[entry.date].cost += cost;
