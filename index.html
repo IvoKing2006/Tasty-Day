@@ -376,6 +376,13 @@
   .ticket.custom-shift{box-shadow:inset 3px 0 0 var(--mango);}
   .ticket.my-shift{background:var(--mango-soft);border-color:rgba(180,101,12,.25);box-shadow:inset 3px 0 0 var(--mango);}
   .ticket.my-shift .ticket-name{color:#7A430A;}
+  .ticket.lead-shift{border-color:var(--mango);}
+  .lead-badge{display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:11.5px;font-weight:700;color:var(--mango);background:var(--mango-soft);border:1px solid rgba(180,101,12,.3);border-radius:12px;padding:2px 8px;}
+  .lead-badge .ic{width:12px;height:12px;fill:currentColor;}
+  .lead-toggle{background:none;border:none;padding:2px;cursor:pointer;color:var(--text-muted);opacity:.55;line-height:0;}
+  .lead-toggle .ic{width:16px;height:16px;}
+  .lead-toggle.on{color:var(--mango);opacity:1;}
+  .lead-toggle.on .ic{fill:currentColor;}
   .ticket-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
   .ticket-name{font-weight:600;font-size:15px;line-height:1.35;overflow-wrap:anywhere;color:var(--text);}
   .ticket-time{font-variant-numeric:tabular-nums;font-size:13.5px;color:var(--text-muted);margin-top:3px;font-weight:500;}
@@ -1101,6 +1108,43 @@ function employeeWageAt(id, dateKey){
 }
 function employeeWage(id){ return employeeWageAt(id, toDateKey(new Date())); }
 function entryPay(empId, entry){ return entry.hours * employeeWageAt(empId, entry.date) + (entry.tip || 0); }
+// ---- Teilauszahlungen ----
+// Alte Einträge mit paid:true gelten unverändert als voll bezahlt.
+// Neue Teilzahlungen stehen in entry.paidAmount (Summe) und entry.payouts {payoutId: betrag}.
+const roundCents = (v)=> Math.round(v * 100) / 100;
+function entryPaidAmount(empId, entry){
+  if(entry.paid) return entryPay(empId, entry);
+  return Math.min(Number(entry.paidAmount) || 0, entryPay(empId, entry));
+}
+function entryOpenAmount(empId, entry){
+  if(entry.paid) return 0;
+  return Math.max(0, roundCents(entryPay(empId, entry) - (Number(entry.paidAmount) || 0)));
+}
+function entryIsPartial(empId, entry){
+  return !entry.paid && (Number(entry.paidAmount) || 0) > 0 && entryOpenAmount(empId, entry) > 0;
+}
+// Älteste offene Schichten zuerst
+function sortEntriesOldestFirst(list){
+  return list.slice().sort((a,b)=> a[1].date.localeCompare(b[1].date) || String(a[1].start||"").localeCompare(String(b[1].start||"")));
+}
+// Verteilt einen Betrag auf die ältesten offenen Schichten. Gibt pro Schicht den Anteil zurück.
+function distributePayout(empId, openEntries, amount){
+  let rest = roundCents(amount);
+  const parts = [];
+  sortEntriesOldestFirst(openEntries).forEach(([id, e])=>{
+    const open = entryOpenAmount(empId, e);
+    if(open <= 0 || rest <= 0) return;
+    const take = roundCents(Math.min(open, rest));
+    rest = roundCents(rest - take);
+    parts.push({id, entry:e, take, full: take >= open});
+  });
+  return parts;
+}
+// Gehört ein Eintrag zu einer Auszahlung? (neu: payouts-Map, alt: payoutId)
+function entryInPayout(entry, payoutId){
+  if(entry.payouts) return entry.payouts[payoutId] != null;
+  return entry.payoutId === payoutId;
+}
 // Neuen Lohn ab einem Datum setzen – ältere Stunden behalten ihren alten Lohn
 // hourlyWage = heute gültiger Lohn (für Anzeige/Kompatibilität)
 function wageForToday(hist){
@@ -1157,11 +1201,16 @@ function localDateFromKey(dateStr){
 function renderGroupedTimeList(entries, empId, onDelete){
   const wrap = el("div",{});
   const totalHours = entries.reduce((s,[id,e])=> s+e.hours, 0);
-  const paidHours = entries.filter(([id,e])=> e.paid).reduce((s,[id,e])=> s+e.hours, 0);
+  // Teilweise bezahlte Schichten zählen anteilig
+  const paidHours = entries.reduce((s,[id,e])=>{
+    if(e.paid) return s + e.hours;
+    const pay = entryPay(empId, e);
+    return pay > 0 ? s + e.hours * (entryPaidAmount(empId, e) / pay) : s;
+  }, 0);
   const openHours = totalHours - paidHours;
   // Geld pro Eintrag mit dem Lohn, der an dem Tag galt
   const totalMoney = entries.reduce((s,[id,e])=> s+entryPay(empId, e), 0);
-  const paidMoney = entries.filter(([id,e])=> e.paid).reduce((s,[id,e])=> s+entryPay(empId, e), 0);
+  const paidMoney = entries.reduce((s,[id,e])=> s+entryPaidAmount(empId, e), 0);
   const openMoney = totalMoney - paidMoney;
   const hasWage = entries.some(([id,e])=> employeeWageAt(empId, e.date) > 0);
 
@@ -1208,6 +1257,7 @@ function renderGroupedTimeList(entries, empId, onDelete){
       const dt = new Date(entry.date);
       const rightSide = [];
       if(entry.paid) rightSide.push(el("span",{style:"color:var(--avocado);font-size:14px;font-weight:700;"}, [ic("check")]));
+      else if(entryIsPartial(empId, entry)) rightSide.push(el("span",{class:"mono", title:`${fmtMoney(entryPaidAmount(empId, entry))} bezahlt`, style:"font-size:12px;font-weight:700;color:var(--mango);background:var(--mango-soft);border-radius:10px;padding:1px 7px;"}, `teilw. · ${fmtMoney(entryOpenAmount(empId, entry))} offen`));
       rightSide.push(el("span",{class:"hrs"}, `${fmtHours(entry.hours)} Std.`));
       if(entry.tip) rightSide.push(el("span",{class:"mono", style:"font-size:12.5px;color:var(--mango);"}, icl("coins", fmtMoney(entry.tip))));
       if(employeeWageAt(empId, entry.date) > 0 || entry.tip) rightSide.push(el("span",{class:"mono", style:"font-size:13px;color:var(--text-muted);"}, fmtMoney(entryPay(empId, entry))));
@@ -1566,6 +1616,7 @@ function attachWeekListener(){
 const ICONS = {
   x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   check:'<path d="M20 6 9 17l-5-5"/>',
+  star:'<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
   chevronDown:'<path d="m6 9 6 6 6-6"/>',
   chevronRight:'<path d="m9 18 6-6-6-6"/>',
   grid:'<rect width="7" height="9" x="3" y="3" rx="1.5"/><rect width="7" height="5" x="14" y="3" rx="1.5"/><rect width="7" height="9" x="14" y="12" rx="1.5"/><rect width="7" height="5" x="3" y="16" rx="1.5"/>',
@@ -2427,16 +2478,23 @@ function buildScheduleBoard(editable, empIds, dates, wid, groupKey){
         assignEntries.forEach(([assignId, s])=>{
           const empName = state.employees[s.employeeId] ? state.employees[s.employeeId].name : "?";
           const isMe = s.employeeId === state.currentUser.id;
-          const ticket = el("div",{class:`ticket ${shift.isExtra?"custom-shift":""} ${isMe?"my-shift":""}`});
+          const ticket = el("div",{class:`ticket ${shift.isExtra?"custom-shift":""} ${isMe?"my-shift":""} ${s.lead?"lead-shift":""}`});
+          const leadToggle = editable ? el("button",{class:`lead-toggle ${s.lead?"on":""}`, title: s.lead ? "Schichtleiter entfernen" : "Als Schichtleiter markieren", "aria-label": s.lead ? "Schichtleiter entfernen" : "Als Schichtleiter markieren", onclick:()=>{
+            setShiftLead(wid, d.key, shift.key, assignEntries.map(([aid])=> aid), s.lead ? null : assignId);
+          }},[ic("star")]) : null;
           const row = el("div",{class:"ticket-row"},[
             el("span",{class:"ticket-name"}, isMe ? `${empName} · Du` : empName),
-            editable ? el("button",{class:"shift-remove", onclick:()=>{
-              remove(ref(db, `weeks/${wid}/schedule/${d.key}/${shift.key}/${assignId}`));
-            }},[ic("x")]) : null
+            editable ? el("div",{style:"display:flex;align-items:center;gap:4px;"},[
+              leadToggle,
+              el("button",{class:"shift-remove", onclick:()=>{
+                remove(ref(db, `weeks/${wid}/schedule/${d.key}/${shift.key}/${assignId}`));
+              }},[ic("x")])
+            ]) : null
           ]);
           ticket.appendChild(row);
           ticket.appendChild(el("div",{class:"ticket-dash"}));
           ticket.appendChild(el("div",{class:"ticket-time mono"}, `${s.start} – ${s.end}`));
+          if(s.lead) ticket.appendChild(el("div",{},[el("span",{class:"lead-badge"},[ic("star"), "Schichtleiter"])]));
 
           if(isMe && !editable && state.currentUser.role !== "chef"){
             const pendingReq = Object.entries(state.swapRequests || {}).find(([rid,r])=> r.from && r.from.assignId === assignId && (r.status === "pending" || r.status === "colleague"));
@@ -2488,7 +2546,7 @@ function buildScheduleBoard(editable, empIds, dates, wid, groupKey){
         const selectable = empIds.filter(id=> !assignedIds.has(id));
         if(selectable.length > 0){
           const addBtn = el("button",{class:"add-shift-btn"}, "+ Mitarbeiter");
-          addBtn.addEventListener("click", ()=> openAssignForm(group, d.key, shift, selectable, wid));
+          addBtn.addEventListener("click", ()=> openAssignForm(group, d.key, shift, selectable, wid, assignEntries.map(([aid])=> aid)));
           group.appendChild(addBtn);
         } else {
           group.appendChild(el("div",{style:"font-size:12.5px;color:var(--text-muted);text-align:center;padding:6px;"}, "Alle Mitarbeiter bereits eingeteilt"));
@@ -2510,7 +2568,17 @@ function buildScheduleBoard(editable, empIds, dates, wid, groupKey){
   return board;
 }
 
-function openAssignForm(group, dayKey, shift, empIds, wid){
+// Pro Schicht (und Gruppe) genau ein Schichtleiter: alle anderen verlieren die Markierung.
+// leadAssignId = null entfernt die Markierung komplett.
+function setShiftLead(wid, dayKey, shiftKey, groupAssignIds, leadAssignId){
+  const base = `weeks/${wid}/schedule/${dayKey}/${shiftKey}`;
+  const updates = {};
+  groupAssignIds.forEach(aid=>{ updates[`${base}/${aid}/lead`] = null; });
+  if(leadAssignId) updates[`${base}/${leadAssignId}/lead`] = true;
+  return update(ref(db), updates);
+}
+
+function openAssignForm(group, dayKey, shift, empIds, wid, groupAssignIds){
   const existing = group.querySelector(".assign-form");
   if(existing){ existing.remove(); return; }
   const form = el("div",{class:"assign-form"});
@@ -2542,6 +2610,8 @@ function openAssignForm(group, dayKey, shift, empIds, wid){
     el("div",{class:"af-field"},[el("label",{},"Von"), startInput]),
     el("div",{class:"af-field"},[el("label",{},"Bis"), endInput]),
   ]));
+  const leadCheck = el("input",{type:"checkbox", style:"width:16px;height:16px;padding:0;margin:0;accent-color:var(--mango);cursor:pointer;flex:none;"});
+  form.appendChild(el("label",{style:"display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;"},[leadCheck, "Als Schichtleiter einteilen"]));
 
   const actions = el("div",{class:"assign-form-actions"});
   const saveBtn = el("button",{class:"btn btn-primary"}, "Einteilen");
@@ -2559,6 +2629,7 @@ function openAssignForm(group, dayKey, shift, empIds, wid){
     }
     const newRef = push(ref(db, `weeks/${wid}/schedule/${dayKey}/${shift.key}`));
     await set(newRef, {employeeId: chosenId, start: startInput.value, end: endInput.value});
+    if(leadCheck.checked) await setShiftLead(wid, dayKey, shift.key, groupAssignIds || [], newRef.key);
     form.remove();
   });
   cancelBtn.addEventListener("click", ()=> form.remove());
@@ -2644,7 +2715,7 @@ function renderTimes(chefView){
         const row = el("div",{class:"team-row", style:"flex-wrap:wrap;cursor:pointer;margin-bottom:0;"});
         row.appendChild(el("div",{},[
           el("div",{style:"font-weight:700;"}, fmtMoney(p.amount)),
-          el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, `${fmtHours(p.hours)} Std.${p.tip ? ` · davon ${fmtMoney(p.tip)} Trinkgeld` : ""} · vom Chef markiert am ${dt.toLocaleDateString("de-DE")} · Tage anzeigen ▾`)
+          el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, `${fmtHours(p.hours)} Std.${p.tip ? ` · davon ${fmtMoney(p.tip)} Trinkgeld` : ""} · vom Chef markiert am ${dt.toLocaleDateString("de-DE")}${p.openAfter != null ? ` · Rest offen ${fmtMoney(p.openAfter)}` : ""} · Tage anzeigen ▾`)
         ]));
         const rightSide = el("div",{style:"display:flex;align-items:center;gap:8px;"});
         if(p.status === "confirmed"){
@@ -2662,7 +2733,7 @@ function renderTimes(chefView){
 
         const detailBox = el("div",{style:"display:none;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:6px;"});
         const includedEntries = Object.entries(state.timeEntries[state.currentUser.id] || {})
-          .filter(([id,e])=> e.payoutId === payoutId)
+          .filter(([id,e])=> entryInPayout(e, payoutId))
           .sort((a,b)=> a[1].date.localeCompare(b[1].date));
         if(includedEntries.length === 0){
           detailBox.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Keine Detail-Einträge gefunden."));
@@ -2671,7 +2742,7 @@ function renderTimes(chefView){
             const edt = new Date(entry.date);
             detailBox.appendChild(el("div",{style:"display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line);"},[
               el("span",{}, `${edt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})} · ${entry.start}–${entry.end}`),
-              el("span",{class:"mono", style:"color:var(--mango);"}, `${fmtHours(entry.hours)} Std.`)
+              el("span",{class:"mono", style:"color:var(--mango);"}, entry.payouts && entry.payouts[payoutId] != null ? `${fmtHours(entry.hours)} Std. · ${fmtMoney(Number(entry.payouts[payoutId]))}${entry.paid && entry.payoutId === payoutId && Object.keys(entry.payouts).length === 1 ? "" : " (Teil)"}` : `${fmtHours(entry.hours)} Std.`)
             ]));
           });
         }
@@ -2763,88 +2834,110 @@ function renderTimes(chefView){
   }
   section.appendChild(wageCard);
 
-  // unpaid entries with selectable checkboxes
+  // offene Auszahlung: Chef gibt den tatsächlich ausgezahlten Betrag ein,
+  // die App verteilt ihn auf die ältesten offenen Schichten zuerst
   const allEntries = Object.entries(state.timeEntries[empId] || {}).sort((a,b)=> b[1].date.localeCompare(a[1].date));
-  const unpaidEntries = allEntries.filter(([id,e])=> !e.paid);
-  const selected = new Set(unpaidEntries.map(([id])=> id)); // alle standardmäßig ausgewählt
+  const unpaidEntries = sortEntriesOldestFirst(allEntries.filter(([id,e])=> !e.paid));
+  const openEntries = unpaidEntries.filter(([id,e])=> entryOpenAmount(empId, e) > 0);
+  const noWageCount = unpaidEntries.filter(([id,e])=> entryPay(empId, e) <= 0).length;
+  const totalOpen = roundCents(openEntries.reduce((s,[id,e])=> s + entryOpenAmount(empId, e), 0));
 
   const payoutCard = el("div",{class:"card"});
   payoutCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Offene Auszahlung"));
 
-  if(unpaidEntries.length === 0){
-    payoutCard.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Keine offenen, unbezahlten Stunden."));
+  if(openEntries.length === 0){
+    payoutCard.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, noWageCount > 0 ? `Keine offenen Beträge. ${noWageCount} Schicht(en) ohne Stundenlohn.` : "Keine offenen, unbezahlten Stunden."));
   } else {
-    const summaryBox = el("div",{style:"display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background:var(--bg-elevated-2);border-radius:10px;padding:14px 16px;margin-bottom:12px;"});
-    const summaryText = el("div",{});
-    const payBtn = el("button",{class:"btn btn-primary", style:"width:auto;padding:10px 18px;"}, "Ausgewählte auszahlen");
-    summaryBox.appendChild(summaryText);
-    summaryBox.appendChild(payBtn);
+    const summaryBox = el("div",{style:"display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;background:var(--bg-elevated-2);border-radius:10px;padding:14px 16px;margin-bottom:12px;"});
+    const openInfo = el("div",{},[
+      el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, `Offen · ${openEntries.length} Schicht(en)`),
+      el("div",{style:"font-size:20px;font-weight:700;color:var(--mango);margin-top:2px;"}, fmtMoney(totalOpen))
+    ]);
+    const amountInput = el("input",{type:"number", min:"0.01", step:"0.01", inputmode:"decimal", value: totalOpen.toFixed(2), class:"mono", style:"width:130px;padding:9px 10px;border-radius:9px;border:1px solid var(--line-strong);background:var(--bg);color:var(--text);font-size:15px;font-weight:700;"});
+    const amountField = el("div",{style:"display:flex;flex-direction:column;gap:4px;"},[
+      el("label",{style:"font-size:12px;font-weight:600;color:var(--text-muted);"}, "Betrag auszahlen (€)"),
+      amountInput
+    ]);
+    const payBtn = el("button",{class:"btn btn-primary", style:"width:auto;padding:10px 18px;"}, "Auszahlen");
+    summaryBox.appendChild(openInfo);
+    summaryBox.appendChild(el("div",{style:"display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;"},[amountField, payBtn]));
     payoutCard.appendChild(summaryBox);
 
-    const checkList = el("div",{style:"display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"});
-    unpaidEntries.forEach(([id, entry])=>{
-      const dt = new Date(entry.date);
-      const row = el("label",{style:"display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14px;cursor:pointer;"});
-      const checkbox = el("input",{type:"checkbox", checked:"checked", style:"width:16px;height:16px;accent-color:var(--mango);cursor:pointer;"});
-      checkbox.addEventListener("change", ()=>{
-        if(checkbox.checked) selected.add(id); else selected.delete(id);
-        updateSummary();
+    const hint = el("div",{class:"mono", style:"font-size:12.5px;color:var(--text-muted);margin-bottom:10px;"});
+    payoutCard.appendChild(hint);
+
+    const previewList = el("div",{style:"display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"});
+    payoutCard.appendChild(previewList);
+    if(noWageCount > 0) payoutCard.appendChild(el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, `${noWageCount} Schicht(en) ohne Stundenlohn werden nicht berücksichtigt.`));
+
+    const readAmount = ()=> roundCents(parseFloat(String(amountInput.value).replace(",", ".")) || 0);
+
+    function updatePreview(){
+      const amount = readAmount();
+      const valid = amount > 0 && amount <= totalOpen;
+      const parts = valid ? distributePayout(empId, openEntries, amount) : [];
+      const partMap = {};
+      parts.forEach(p=> partMap[p.id] = p);
+
+      previewList.innerHTML = "";
+      openEntries.forEach(([id, entry])=>{
+        const dt = new Date(entry.date);
+        const open = entryOpenAmount(empId, entry);
+        const p = partMap[id];
+        let status, color;
+        if(p && p.full){ status = "✓ wird voll bezahlt"; color = "var(--avocado)"; }
+        else if(p){ status = `◐ ${fmtMoney(p.take)} bezahlt · ${fmtMoney(roundCents(open - p.take))} bleibt offen`; color = "var(--mango)"; }
+        else { status = "bleibt offen"; color = "var(--text-muted)"; }
+        const already = entryIsPartial(empId, entry) ? ` (von ${fmtMoney(entryPay(empId, entry))}, schon ${fmtMoney(entryPaidAmount(empId, entry))} bezahlt)` : "";
+        previewList.appendChild(el("div",{style:"display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14px;"},[
+          el("span",{style:"flex:1;min-width:150px;"}, `${dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})} · ${entry.start}–${entry.end}`),
+          el("span",{class:"hrs mono"}, `${fmtHours(entry.hours)} Std.`),
+          el("span",{class:"mono", style:"font-size:13px;"}, `${fmtMoney(open)} offen${already}`),
+          el("span",{style:`font-size:12.5px;font-weight:700;color:${color};width:100%;`}, status)
+        ]));
       });
-      row.appendChild(checkbox);
-      row.appendChild(el("span",{style:"flex:1;"}, `${dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})} · ${entry.start}–${entry.end}`));
-      if(entry.tip) row.appendChild(el("span",{class:"mono", style:"font-size:12.5px;color:var(--mango);"}, icl("coins", fmtMoney(entry.tip))));
-      row.appendChild(el("span",{class:"hrs mono"}, `${fmtHours(entry.hours)} Std.`));
-      checkList.appendChild(row);
-    });
-    payoutCard.appendChild(checkList);
 
-    const selectRow = el("div",{style:"display:flex;gap:14px;margin-bottom:12px;"});
-    const selAllBtn = el("button",{class:"link-btn"}, "Alle auswählen");
-    const selNoneBtn = el("button",{class:"link-btn"}, "Keine auswählen");
-    selAllBtn.addEventListener("click", ()=>{
-      unpaidEntries.forEach(([id])=> selected.add(id));
-      checkList.querySelectorAll('input[type="checkbox"]').forEach(cb=> cb.checked = true);
-      updateSummary();
-    });
-    selNoneBtn.addEventListener("click", ()=>{
-      selected.clear();
-      checkList.querySelectorAll('input[type="checkbox"]').forEach(cb=> cb.checked = false);
-      updateSummary();
-    });
-    selectRow.appendChild(selAllBtn);
-    selectRow.appendChild(selNoneBtn);
-    payoutCard.appendChild(selectRow);
-
-    function updateSummary(){
-      const chosen = unpaidEntries.filter(([id])=> selected.has(id));
-      const hoursSum = chosen.reduce((s,[id,e])=> s+e.hours, 0);
-      const tipSum = chosen.reduce((s,[id,e])=> s+(e.tip||0), 0);
-      const amountSum = chosen.reduce((s,[id,e])=> s+entryPay(empId, e), 0);
-      summaryText.innerHTML = "";
-      const detailParts = [`${chosen.length} Schicht(en) ausgewählt`, `${fmtHours(hoursSum)} Std.`];
-      if(tipSum > 0) detailParts.push(`+ ${fmtMoney(tipSum)} Trinkgeld`);
-      summaryText.appendChild(el("div",{class:"mono", style:"font-size:14px;color:var(--text-muted);"}, detailParts.join(" · ")));
-      summaryText.appendChild(el("div",{style:"font-size:20px;font-weight:700;color:var(--mango);margin-top:2px;"}, amountSum > 0 ? fmtMoney(amountSum) : "Stundenlohn fehlt"));
-      payBtn.disabled = chosen.length === 0 || amountSum <= 0;
-      payBtn.style.opacity = payBtn.disabled ? ".5" : "1";
+      if(amount <= 0) hint.textContent = "Bitte einen Betrag eingeben.";
+      else if(amount > totalOpen) hint.textContent = `Der Betrag ist höher als der offene Betrag (${fmtMoney(totalOpen)}).`;
+      else hint.textContent = `Nach der Auszahlung bleibt offen: ${fmtMoney(roundCents(totalOpen - amount))}`;
+      hint.style.color = valid ? "var(--text-muted)" : "var(--chili)";
+      payBtn.disabled = !valid;
+      payBtn.style.opacity = valid ? "1" : ".5";
     }
-    updateSummary();
+    amountInput.addEventListener("input", updatePreview);
+    updatePreview();
 
     payBtn.addEventListener("click", ()=>{
-      const chosen = unpaidEntries.filter(([id])=> selected.has(id));
-      if(chosen.length === 0) return;
-      const hoursSum = chosen.reduce((s,[id,e])=> s+e.hours, 0);
-      const tipSum = chosen.reduce((s,[id,e])=> s+(e.tip||0), 0);
-      const amountSum = chosen.reduce((s,[id,e])=> s+entryPay(empId, e), 0);
-      if(!confirm(`${fmtMoney(amountSum)} (${chosen.length} Schicht(en)) für ${emp.name} als ausgezahlt markieren?`)) return;
+      const amount = readAmount();
+      if(!(amount > 0 && amount <= totalOpen)) return;
+      const parts = distributePayout(empId, openEntries, amount);
+      if(parts.length === 0) return;
+      const openAfter = roundCents(totalOpen - amount);
+      if(!confirm(`${fmtMoney(amount)} an ${emp.name} auszahlen?\n\nDanach bleibt offen: ${fmtMoney(openAfter)}`)) return;
+
       const payoutRef = push(ref(db, `payouts/${empId}`));
       const payoutId = payoutRef.key;
       const updates = {};
-      chosen.forEach(([id])=>{
-        updates[`timeEntries/${empId}/${id}/paid`] = true;
-        updates[`timeEntries/${empId}/${id}/payoutId`] = payoutId;
+      let hoursSum = 0, tipSum = 0;
+      parts.forEach(({id, entry, take, full})=>{
+        const base = `timeEntries/${empId}/${id}`;
+        const pay = entryPay(empId, entry);
+        const share = pay > 0 ? take / pay : 0;
+        hoursSum += entry.hours * share;
+        tipSum += (entry.tip || 0) * share;
+        // nur neue Felder schreiben – bestehende Werte bleiben unangetastet
+        updates[`${base}/paidAmount`] = roundCents((Number(entry.paidAmount) || 0) + take);
+        updates[`${base}/payouts/${payoutId}`] = take;
+        if(full){
+          updates[`${base}/paid`] = true;
+          updates[`${base}/payoutId`] = payoutId;
+        }
       });
-      updates[`payouts/${empId}/${payoutId}`] = {amount: amountSum, hours: hoursSum, tip: tipSum, createdAt: Date.now(), status:"pending"};
+      updates[`payouts/${empId}/${payoutId}`] = {
+        amount, hours: roundCents(hoursSum), tip: roundCents(tipSum),
+        openBefore: totalOpen, openAfter, partial: true,
+        createdAt: Date.now(), status:"pending"
+      };
       update(ref(db), updates).then(()=> notifyWorker({type:"payout", employeeId: empId, id: payoutId}));
     });
   }
@@ -2861,13 +2954,13 @@ function renderTimes(chefView){
       const row = el("div",{class:"team-row", style:"flex-wrap:wrap;cursor:pointer;margin-bottom:0;"});
       row.appendChild(el("div",{},[
         el("div",{style:"font-weight:700;"}, fmtMoney(p.amount)),
-        el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, `${fmtHours(p.hours)} Std.${p.tip ? ` · davon ${fmtMoney(p.tip)} Trinkgeld` : ""} · markiert am ${dt.toLocaleDateString("de-DE")} · Tage anzeigen ▾`)
+        el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, `${fmtHours(p.hours)} Std.${p.tip ? ` · davon ${fmtMoney(p.tip)} Trinkgeld` : ""} · markiert am ${dt.toLocaleDateString("de-DE")}${p.openAfter != null ? ` · Rest offen ${fmtMoney(p.openAfter)}` : ""} · Tage anzeigen ▾`)
       ]));
       row.appendChild(el("span",{class:`avail-pill ${p.status==="confirmed"?"yes":"no"}`}, p.status==="confirmed" ? "Vom Mitarbeiter bestätigt" : "Bestätigung ausstehend"));
 
       const detailBox = el("div",{style:"display:none;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:6px;"});
       const includedEntries = Object.entries(state.timeEntries[empId] || {})
-        .filter(([id,e])=> e.payoutId === payoutId)
+        .filter(([id,e])=> entryInPayout(e, payoutId))
         .sort((a,b)=> a[1].date.localeCompare(b[1].date));
       if(includedEntries.length === 0){
         detailBox.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Keine Detail-Einträge gefunden."));
@@ -2876,7 +2969,7 @@ function renderTimes(chefView){
           const edt = new Date(entry.date);
           detailBox.appendChild(el("div",{style:"display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line);"},[
             el("span",{}, `${edt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})} · ${entry.start}–${entry.end}`),
-            el("span",{class:"mono", style:"color:var(--mango);"}, `${fmtHours(entry.hours)} Std.`)
+            el("span",{class:"mono", style:"color:var(--mango);"}, entry.payouts && entry.payouts[payoutId] != null ? `${fmtHours(entry.hours)} Std. · ${fmtMoney(Number(entry.payouts[payoutId]))}${entry.paid && entry.payoutId === payoutId && Object.keys(entry.payouts).length === 1 ? "" : " (Teil)"}` : `${fmtHours(entry.hours)} Std.`)
           ]));
         });
       }
