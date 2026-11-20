@@ -405,10 +405,18 @@
     width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--line);
     background:var(--bg-elevated-2);color:var(--text);font-size:14px;
   }
-  .assign-form .af-time-row{display:flex;gap:8px;}
-  .assign-form .af-time-row .af-field{flex:1;}
-  .assign-form-actions{display:flex;gap:8px;margin-top:2px;}
-  .assign-form-actions button{flex:1;padding:9px;font-size:13px;min-height:38px;}
+  /* Von/Bis nebeneinander, wenn Platz ist – sonst untereinander (schmale Wochenspalten) */
+  .assign-form .af-time-row{display:grid;grid-template-columns:repeat(auto-fit, minmax(100px, 1fr));gap:8px;}
+  .assign-form .af-field{min-width:0;}
+  .assign-form select, .assign-form input[type=time]{min-width:0;max-width:100%;display:block;}
+  .assign-form input[type=time]{min-height:42px;font-variant-numeric:tabular-nums;padding:8px 8px;}
+  /* 7-Tage-Ansicht: Spalten sind schmal, Formular etwas kompakter */
+  @media(min-width:1501px){ .board .assign-form{padding:10px;} .board .assign-form input[type=time]{font-size:13.5px;padding:8px 6px;} }
+  .assign-form .af-presets{display:flex;flex-wrap:wrap;gap:6px;}
+  .assign-form .af-presets button{background:var(--bg-elevated-2);border:1px solid var(--line);color:var(--text);border-radius:14px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;}
+  .assign-form .af-presets button:hover{border-color:var(--brand);color:var(--brand);}
+  .assign-form-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px;}
+  .assign-form-actions button{flex:1 1 100px;padding:9px;font-size:13px;min-height:38px;}
   .btn-cancel{background:var(--bg-elevated);border:1px solid var(--line-strong);color:var(--text);border-radius:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;}
   .btn-cancel:hover{background:var(--bg-elevated-2);}
 
@@ -995,6 +1003,19 @@ let state = {
 };
 
 // Beim Neuzeichnen Fokus, Cursor und Scrollposition von Fenstern erhalten
+// Ungespeicherte Eingaben überleben das Neu-Aufbauen der Seite (jede Firebase-Änderung ruft render() auf).
+// Ohne das springt z. B. „gültig ab“ immer wieder auf heute zurück.
+const inputDrafts = {};
+function draftInput(input, key, fallback){
+  input.id = "draft-" + key.replace(/[^a-zA-Z0-9_-]/g, "_");
+  input.value = (key in inputDrafts) ? inputDrafts[key] : (fallback == null ? "" : String(fallback));
+  const save = ()=>{ inputDrafts[key] = input.value; };
+  input.addEventListener("input", save);
+  input.addEventListener("change", save);
+  return input;
+}
+function clearDrafts(...keys){ keys.forEach(k=> delete inputDrafts[k]); }
+
 function captureUiState(root){
   const k = {focusId:null, selS:null, selE:null, scroll:{}};
   const a = document.activeElement;
@@ -2604,8 +2625,20 @@ function openAssignForm(group, dayKey, shift, empIds, wid, groupAssignIds){
 
   const startInput = el("input",{type:"time"});
   const endInput = el("input",{type:"time"});
+  // Standardzeiten der Schicht vorausfüllen (nicht bei Extra-Schichten, die haben keine festen Zeiten)
+  if(!shift.isExtra && shift.defStart && shift.defEnd){
+    startInput.value = shift.defStart;
+    endInput.value = shift.defEnd;
+  }
+  // Schnellwahl mit den Standardzeiten des Tages
+  const presets = el("div",{class:"af-presets"});
+  defaultShiftsForDay(dayKey).forEach(ds=>{
+    const short = (t)=> String(parseInt(t.slice(0,2),10)) + (t.slice(3) === "00" ? "" : ":" + t.slice(3));
+    presets.appendChild(el("button",{type:"button", title:`${ds.defStart}–${ds.defEnd} Uhr`, onclick:()=>{ startInput.value = ds.defStart; endInput.value = ds.defEnd; }}, `${ds.label} ${short(ds.defStart)}–${short(ds.defEnd)}`));
+  });
 
   form.appendChild(el("div",{class:"af-field"},[el("label",{},"Mitarbeiter"), empSelect]));
+  form.appendChild(presets);
   form.appendChild(el("div",{class:"af-time-row"},[
     el("div",{class:"af-field"},[el("label",{},"Von"), startInput]),
     el("div",{class:"af-field"},[el("label",{},"Bis"), endInput]),
@@ -2805,7 +2838,11 @@ function renderTimes(chefView){
     if(isNaN(val) || val < 0){ alert("Bitte einen gültigen Stundenlohn eingeben."); return; }
     if(!wageFromInput.value){ alert("Bitte ein Datum für „gültig ab“ wählen."); return; }
     await setEmployeeWage(empId, val, wageFromInput.value);
+    clearDrafts(`wage-${empId}`, `wagefrom-${empId}`);
+    render();
   });
+  draftInput(wageInput, `wage-${empId}`, wage>0 ? wage : "");
+  draftInput(wageFromInput, `wagefrom-${empId}`, toDateKey(new Date()));
   wageCard.appendChild(el("div",{style:"display:flex;align-items:center;gap:10px;flex-wrap:wrap;"},[
     wageInput, el("span",{style:"color:var(--text-muted);font-size:14px;"},"€ / Stunde"),
     el("span",{style:"color:var(--text-muted);font-size:14px;"},"gültig ab"), wageFromInput, wageSaveBtn
@@ -2853,7 +2890,8 @@ function renderTimes(chefView){
       el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, `Offen · ${openEntries.length} Schicht(en)`),
       el("div",{style:"font-size:20px;font-weight:700;color:var(--mango);margin-top:2px;"}, fmtMoney(totalOpen))
     ]);
-    const amountInput = el("input",{type:"number", min:"0.01", step:"0.01", inputmode:"decimal", value: totalOpen.toFixed(2), class:"mono", style:"width:130px;padding:9px 10px;border-radius:9px;border:1px solid var(--line-strong);background:var(--bg);color:var(--text);font-size:15px;font-weight:700;"});
+    const amountInput = el("input",{type:"number", min:"0.01", step:"0.01", inputmode:"decimal", class:"mono", style:"width:130px;padding:9px 10px;border-radius:9px;border:1px solid var(--line-strong);background:var(--bg);color:var(--text);font-size:15px;font-weight:700;"});
+    draftInput(amountInput, `payout-${empId}`, totalOpen.toFixed(2));
     const amountField = el("div",{style:"display:flex;flex-direction:column;gap:4px;"},[
       el("label",{style:"font-size:12px;font-weight:600;color:var(--text-muted);"}, "Betrag auszahlen (€)"),
       amountInput
@@ -2938,6 +2976,7 @@ function renderTimes(chefView){
         openBefore: totalOpen, openAfter, partial: true,
         createdAt: Date.now(), status:"pending"
       };
+      clearDrafts(`payout-${empId}`);
       update(ref(db), updates).then(()=> notifyWorker({type:"payout", employeeId: empId, id: payoutId}));
     });
   }
@@ -3387,10 +3426,13 @@ function renderTeam(){
         if(isNaN(val) || val < 0){ alert("Bitte einen gültigen Stundenlohn eingeben."); return; }
         if(!wageFromInput.value){ alert("Bitte ein Datum für „gültig ab“ wählen."); return; }
         await setEmployeeWage(id, val, wageFromInput.value);
+        clearDrafts(`teamwage-${id}`, `teamwagefrom-${id}`);
         wageSaveBtn.textContent = "Gespeichert ✓";
         setTimeout(()=>{ wageSaveBtn.textContent = "Speichern"; }, 1500);
       });
 
+      draftInput(wageInput, `teamwage-${id}`, wage>0 ? wage : "");
+      draftInput(wageFromInput, `teamwagefrom-${id}`, toDateKey(new Date()));
       const actions = el("div",{style:"display:flex;align-items:center;gap:8px;flex-wrap:wrap;"},[
         wageInput,
         el("span",{style:"font-size:12.5px;color:var(--text-muted);"},"€/Std. ab"),
