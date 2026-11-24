@@ -911,7 +911,11 @@
   .cat-note.big .cat-note-title{font-size:18px;}
   .cat-note.big .cat-note-title .ic{width:20px;height:20px;}
   .cat-note.big .cat-note-line .ic{width:16px;height:16px;margin-top:3px;}
-  .board-col > .cat-note{margin:0 0 10px;}
+  .cat-chip{display:inline-flex;align-items:center;gap:4px;margin-left:4px;padding:2px 9px 2px 7px;border-radius:999px;border:1px solid rgba(237,168,80,.45);background:var(--mango-soft);color:var(--text);font:inherit;font-size:12px;font-weight:650;cursor:pointer;line-height:1.5;transition:border-color .15s, box-shadow .15s;}
+  .cat-chip .ic{width:13px;height:13px;color:var(--mango);}
+  .cat-chip:hover{border-color:var(--mango);box-shadow:0 2px 8px rgba(237,168,80,.2);}
+  .cat-chip:focus-visible{outline:2px solid var(--mango);outline-offset:2px;}
+  #cat-detail .cat-note.big{margin-bottom:12px;}
   .cat-item-row{display:grid;grid-template-columns:1fr 80px 110px 36px;gap:8px;align-items:center;}
   @media (max-width:560px){ .cat-item-row{grid-template-columns:1fr 64px 86px 36px;} }
   .cat-total{font-weight:700;font-size:15px;margin-top:10px;text-align:right;font-variant-numeric:tabular-nums;}
@@ -2477,10 +2481,6 @@ function buildScheduleBoard(editable, empIds, dates, wid, groupKey, showDayInfo)
       el("span",{class:"d"}, fmtDate(dates[i]))
     ]));
     const dateKey = toDateKey(dates[i]);
-    // Chef sieht alle Caterings des Tages kurz oben in der Spalte (nur im ersten Plan-Block)
-    if(isChefView && showDayInfo){
-      cateringsForDate(dateKey, null, true).forEach(([cid,c])=> col.appendChild(renderCateringNote(c, {compact:true, showShift:true})));
-    }
 
     const extra = (state.weekData.extraShifts && state.weekData.extraShifts[d.key]) || {};
     const shifts = [
@@ -2488,10 +2488,31 @@ function buildScheduleBoard(editable, empIds, dates, wid, groupKey, showDayInfo)
       ...Object.entries(extra).map(([key,v])=>({key, label:v.label, defStart:"08:00", defEnd:"16:00", isExtra:true}))
     ];
 
+    // Catering-Button neben der Schicht. „Ganzer Tag“ erscheint nur einmal (bei der ersten passenden Schicht).
+    // Chef: alle Caterings (nur im ersten Plan-Block). Mitarbeiter: nur in Schichten, in denen sie eingeteilt sind.
+    const shownCats = new Set();
+    const catsForShift = (shift)=>{
+      let list;
+      if(isChefView){
+        if(!showDayInfo) return [];
+        list = cateringsForDate(dateKey, null, true).filter(([cid,c])=> c.shift === shift.key || ((!c.shift || c.shift === "both") && !shownCats.has(cid)));
+      } else {
+        const me = state.currentUser.id;
+        const assigns = (state.weekData.schedule && state.weekData.schedule[d.key] && state.weekData.schedule[d.key][shift.key]) || {};
+        if(!empIds.includes(me) || !Object.values(assigns).some(a=> a && a.employeeId === me)) return [];
+        list = cateringsForDate(dateKey, shift.key).filter(([cid])=> !shownCats.has(cid));
+      }
+      list.forEach(([cid])=> shownCats.add(cid));
+      return list;
+    };
+
     shifts.forEach(shift=>{
       const group = el("div",{class:"shift-group"});
+      const shiftCats = catsForShift(shift);
+      const catBtn = shiftCats.length ? el("button",{type:"button", class:"cat-chip", title:"Catering-Details anzeigen", onclick:(e)=>{ e.stopPropagation(); openCateringDetail(shiftCats.map(([cid,c])=> c)); }},
+        [ic("utensils"), shiftCats.length > 1 ? `${shiftCats.length}× Catering` : "Catering"]) : null;
       const labelRow = el("div",{style:"display:flex;align-items:center;justify-content:space-between;"},[
-        el("div",{class:`shift-group-label ${shift.isExtra?"custom":""}`}, shift.label),
+        el("div",{class:`shift-group-label ${shift.isExtra?"custom":""}`}, [shift.label, catBtn]),
         (editable && shift.isExtra) ? el("button",{class:"shift-remove", style:"opacity:.8;font-size:14px;", onclick:()=>{
           if(confirm(`Schicht „${shift.label}“ wirklich entfernen? Alle Einteilungen dafür werden gelöscht.`)){
             remove(ref(db, `weeks/${wid}/extraShifts/${d.key}/${shift.key}`));
@@ -2540,10 +2561,6 @@ function buildScheduleBoard(editable, empIds, dates, wid, groupKey, showDayInfo)
           ticket.appendChild(el("div",{class:"ticket-dash"}));
           ticket.appendChild(el("div",{class:"ticket-time mono"}, `${s.start} – ${s.end}`));
           if(s.lead) ticket.appendChild(el("div",{},[el("span",{class:"lead-badge"},[ic("star"), "Schichtleiter"])]));
-          // Mitarbeiter: Caterings, die in die eigene Schicht fallen
-          if(isMe && !isChefView){
-            cateringsForDate(dateKey, shift.key).forEach(([cid,c])=> ticket.appendChild(renderCateringNote(c)));
-          }
 
           if(isMe && !editable && state.currentUser.role !== "chef"){
             const pendingReq = Object.entries(state.swapRequests || {}).find(([rid,r])=> r.from && r.from.assignId === assignId && (r.status === "pending" || r.status === "colleague"));
@@ -6324,6 +6341,24 @@ function renderCateringNote(c, opts){
   if(c.notes) box.appendChild(el("div",{class:"cat-note-text"}, c.notes));
   return box;
 }
+
+// Detail-Fenster (liegt außerhalb von #app, damit es ein Neuzeichnen übersteht)
+function openCateringDetail(list){
+  closeCateringDetail();
+  if(!list.length) return;
+  const {ov, box} = invModal(list.length > 1 ? `${list.length} Caterings` : "Catering", cateringDateStr(list[0]), closeCateringDetail, "cat-detail", 240);
+  ov.id = "cat-detail";
+  list.forEach(c=> box.appendChild(renderCateringNote(c, {big:true, showShift:true})));
+  box.appendChild(el("button",{type:"button", class:"btn btn-primary", onclick: closeCateringDetail}, "Schließen"));
+  document.body.appendChild(ov);
+  document.addEventListener("keydown", catDetailEsc);
+}
+function closeCateringDetail(){
+  const ov = document.getElementById("cat-detail");
+  if(ov) ov.remove();
+  document.removeEventListener("keydown", catDetailEsc);
+}
+function catDetailEsc(e){ if(e.key === "Escape") closeCateringDetail(); }
 
 // Umsatz in „Finanzen“ passend zum Status halten (Datum = Tag, an dem auf „Bezahlt“ gesetzt wurde)
 async function syncCateringRevenue(id, c){
