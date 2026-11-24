@@ -898,6 +898,24 @@
   .k-step-row{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:8px;align-items:start;}
   .k-step-row .k-step-num{width:30px;height:30px;font-size:14px;margin-top:6px;}
   @media(max-width:600px){ .k-ing-row{grid-template-columns:70px 80px minmax(0,1fr) auto;} }
+  /* ---------- Catering (Wochenplan, iPad, Verwaltung) ---------- */
+  .cat-note{margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--mango-soft);border:1px solid rgba(237,168,80,.35);font-size:12.5px;line-height:1.45;color:var(--text);}
+  .cat-note-title{display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;}
+  .cat-note-title .ic{width:15px;height:15px;color:var(--mango);flex-shrink:0;}
+  .cat-note-meta{color:var(--text-muted);font-weight:550;margin-top:1px;}
+  .cat-note-line{display:flex;align-items:flex-start;gap:5px;margin-top:4px;}
+  .cat-note-line .ic{width:13px;height:13px;margin-top:2px;flex-shrink:0;color:var(--text-muted);}
+  .cat-note-items{margin:4px 0 0;padding-left:16px;}
+  .cat-note-text{margin-top:4px;white-space:pre-wrap;font-style:italic;}
+  .cat-note.big{font-size:16px;padding:14px 18px;border-radius:14px;margin:0 0 12px;}
+  .cat-note.big .cat-note-title{font-size:18px;}
+  .cat-note.big .cat-note-title .ic{width:20px;height:20px;}
+  .cat-note.big .cat-note-line .ic{width:16px;height:16px;margin-top:3px;}
+  .board-col > .cat-note{margin:0 0 10px;}
+  .cat-item-row{display:grid;grid-template-columns:1fr 80px 110px 36px;gap:8px;align-items:center;}
+  @media (max-width:560px){ .cat-item-row{grid-template-columns:1fr 64px 86px 36px;} }
+  .cat-total{font-weight:700;font-size:15px;margin-top:10px;text-align:right;font-variant-numeric:tabular-nums;}
+  .cat-status{width:auto !important;min-width:130px;height:38px;}
 </style>
 </head>
 <body>
@@ -2442,14 +2460,15 @@ function renderSchedule(editable){
 
   blocks.forEach(([title, ids, type], i)=>{
     section.appendChild(el("h3",{style:`margin:${i===0?26:30}px 0 12px;font-size:17px;color:var(--text);display:flex;align-items:center;gap:2px;`}, title));
-    section.appendChild(buildScheduleBoard(editable, ids, dates, wid, type));
+    section.appendChild(buildScheduleBoard(editable, ids, dates, wid, type, i === 0));
   });
 
   return section;
 }
 
-function buildScheduleBoard(editable, empIds, dates, wid, groupKey){
+function buildScheduleBoard(editable, empIds, dates, wid, groupKey, showDayInfo){
   const board = el("div",{class:"board"});
+  const isChefView = editable || state.currentUser.role === "chef";
 
   DAYS.forEach((d,i)=>{
     const col = el("div",{class:"board-col"});
@@ -2457,6 +2476,11 @@ function buildScheduleBoard(editable, empIds, dates, wid, groupKey){
       el("span",{}, d.label),
       el("span",{class:"d"}, fmtDate(dates[i]))
     ]));
+    const dateKey = toDateKey(dates[i]);
+    // Chef sieht alle Caterings des Tages kurz oben in der Spalte (nur im ersten Plan-Block)
+    if(isChefView && showDayInfo){
+      cateringsForDate(dateKey, null, true).forEach(([cid,c])=> col.appendChild(renderCateringNote(c, {compact:true, showShift:true})));
+    }
 
     const extra = (state.weekData.extraShifts && state.weekData.extraShifts[d.key]) || {};
     const shifts = [
@@ -2516,6 +2540,10 @@ function buildScheduleBoard(editable, empIds, dates, wid, groupKey){
           ticket.appendChild(el("div",{class:"ticket-dash"}));
           ticket.appendChild(el("div",{class:"ticket-time mono"}, `${s.start} – ${s.end}`));
           if(s.lead) ticket.appendChild(el("div",{},[el("span",{class:"lead-badge"},[ic("star"), "Schichtleiter"])]));
+          // Mitarbeiter: Caterings, die in die eigene Schicht fallen
+          if(isMe && !isChefView){
+            cateringsForDate(dateKey, shift.key).forEach(([cid,c])=> ticket.appendChild(renderCateringNote(c)));
+          }
 
           if(isMe && !editable && state.currentUser.role !== "chef"){
             const pendingReq = Object.entries(state.swapRequests || {}).find(([rid,r])=> r.from && r.from.assignId === assignId && (r.status === "pending" || r.status === "colleague"));
@@ -5440,7 +5468,7 @@ function openInventoryLabelsOverlay(items){
 
 // =====================================================================
 // Küchen-Modus (iPad) — eigener Account mit role "kitchen"
-// Daten in Firebase unter /kitchen: tasks, taskDone/{datum}, recipes, alarms, alarmLog
+// Daten in Firebase unter /kitchen: tasks, taskDone/{datum}, recipes, alarms, alarmLog, customers, caterings
 // =====================================================================
 function isStaff(e){ return !!e && e.role !== "chef" && e.role !== "kitchen"; }
 function kitchenAccounts(){ return Object.entries(state.employees).filter(([id,e])=> e && e.role === "kitchen"); }
@@ -5858,6 +5886,13 @@ function renderKitchenTasks(){
   const done = kDoneMap(today);
   const doneCount = tasks.filter(([id])=> done[id]).length;
 
+  // Caterings von heute (nur bestätigte/erledigte/bezahlte)
+  const cats = cateringsForDate(today);
+  if(cats.length){
+    wrap.appendChild(el("div",{class:"k-section-title", style:"margin-top:0;"}, cats.length === 1 ? "Catering heute" : `${cats.length} Caterings heute`));
+    cats.forEach(([cid,c])=> wrap.appendChild(renderCateringNote(c, {big:true, showShift:true})));
+  }
+
   const prog = el("div",{class:"k-progress"});
   prog.appendChild(el("div",{class:"k-progress-text"}, tasks.length ? `${doneCount} von ${tasks.length} Aufgaben erledigt` : "Heute keine Aufgaben"));
   if(tasks.length) prog.appendChild(el("div",{class:"k-progress-bar"},[ el("div",{style:`width:${Math.round(doneCount/tasks.length*100)}%;`}) ]));
@@ -6063,10 +6098,10 @@ function renderKitchenAdmin(){
   section.appendChild(el("div",{class:"section-head"},[
     el("div",{},[
       el("h2",{class:"section-title"}, "Küchen-Modus"),
-      el("p",{class:"section-sub"}, "Aufgaben, Rezepte und Alarme für das Küchen-iPad. Alarme ertönen nur dort.")
+      el("p",{class:"section-sub"}, "Aufgaben, Rezepte, Caterings und Alarme für das Küchen-iPad. Alarme ertönen nur dort.")
     ])
   ]));
-  const views = [["tasks","clipboard","Aufgaben"],["recipes","bowl","Rezepte"],["alarms","bell","Alarme"],["log","clock","Protokoll"],["account","tablet","iPad-Konto"]];
+  const views = [["tasks","clipboard","Aufgaben"],["recipes","bowl","Rezepte"],["caterings","utensils","Catering"],["customers","users","Kunden"],["alarms","bell","Alarme"],["log","clock","Protokoll"],["account","tablet","iPad-Konto"]];
   const row = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"});
   views.forEach(([k,icn,l])=> row.appendChild(el("button",{class:`tab ${state.kAdmin.view===k?"active":""}`, onclick:()=>{ state.kAdmin.view = k; state.kDraft = null; render(); }}, icl(icn,l))));
   section.appendChild(row);
@@ -6084,6 +6119,8 @@ function renderKitchenAdmin(){
 
   const v = state.kAdmin.view;
   if(v === "recipes") section.appendChild(renderKAdminRecipes());
+  else if(v === "caterings") section.appendChild(renderKAdminCaterings());
+  else if(v === "customers") section.appendChild(renderKAdminCustomers());
   else if(v === "alarms") section.appendChild(renderKAdminAlarms());
   else if(v === "log") section.appendChild(renderKAdminLog());
   else if(v === "account") section.appendChild(renderKAdminAccount());
@@ -6231,6 +6268,280 @@ function renderKAdminRecipes(){
       sub: `${r.category || "Sonstiges"} · ${nIng} Zutaten · ${nSteps} Schritte${r.yield ? ` · ergibt ${r.yield}` : ""}`,
       onEdit: ()=> kStartEdit("recipe", id, Object.assign(kClone(K_RECIPE_DEFAULTS), kClone(r))),
       onDelete: ()=>{ if(confirm(`Rezept „${r.name}“ löschen?`)) remove(ref(db, `kitchen/recipes/${id}`)); }
+    }));
+  });
+  wrap.appendChild(lc);
+  return wrap;
+}
+
+// ---------- Catering & Kunden ----------
+// Daten: kitchen/customers, kitchen/caterings. Bezahlte Caterings stehen als Umsatz unter revenue/catering_{id}.
+const K_CATERING_STATUS = [["requested","Angefragt"],["confirmed","Bestätigt"],["done","Erledigt"],["paid","Bezahlt"],["canceled","Storniert"]];
+const K_CATERING_STATUS_LABEL = Object.fromEntries(K_CATERING_STATUS);
+const K_CATERING_VISIBLE = ["confirmed","done","paid"]; // nur diese sehen Mitarbeiter und das iPad
+const K_CUSTOMER_DEFAULTS = {name:"", company:"", phone:"", email:"", address:"", notes:""};
+const K_CATERING_DEFAULTS = {customerId:"", newCustomer:{name:"", company:"", phone:"", email:"", address:"", notes:""}, date:"", time:"", shift:"both", mode:"delivery", address:"", items:[{name:"", qty:"1", price:""}], notes:"", status:"requested"};
+
+function kNum(v){ const n = parseFloat(String(v == null ? "" : v).replace(/\s/g,"").replace(",", ".")); return isFinite(n) ? n : 0; }
+function kNumStr(n){ return (n === "" || n == null) ? "" : String(n).replace(".", ","); }
+function cateringTotal(c){ return Math.round((c.items || []).reduce((s,i)=> s + kNum(i.qty) * kNum(i.price), 0) * 100) / 100; }
+function customerLabel(cu){
+  if(!cu) return "";
+  if(cu.company) return cu.name ? `${cu.company} (${cu.name})` : cu.company;
+  return cu.name || "";
+}
+function cateringCustomer(c){ return (state.kitchen.customers || {})[c.customerId] || null; }
+function cateringCustomerLabel(c){ return customerLabel(cateringCustomer(c)) || c.customerLabel || "Unbekannter Kunde"; }
+function cateringShortName(c){ const cu = cateringCustomer(c); return cu ? (cu.company || cu.name) : (c.customerLabel || "Kunde"); }
+function cateringDateStr(c){ return c.date ? localDateFromKey(c.date).toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit", year:"numeric"}) : "?"; }
+
+// Caterings für Mitarbeiter/iPad an einem Tag (optional nur für eine Schicht)
+function cateringsForDate(dateKey, shiftKey, includeRequested){
+  return Object.entries(state.kitchen.caterings || {}).filter(([id,c])=>{
+    if(!c || c.date !== dateKey) return false;
+    if(!(K_CATERING_VISIBLE.includes(c.status) || (includeRequested && c.status === "requested"))) return false;
+    if(shiftKey && c.shift && c.shift !== "both" && c.shift !== shiftKey) return false;
+    return true;
+  }).sort((a,b)=> (a[1].time || "99:99").localeCompare(b[1].time || "99:99"));
+}
+
+// Hinweis-Kasten: ohne Preise und Kontaktdaten
+function renderCateringNote(c, opts){
+  opts = opts || {};
+  const box = el("div",{class:`cat-note ${opts.big ? "big" : ""}`});
+  box.appendChild(el("div",{class:"cat-note-title"},[ ic("utensils"), `Catering · ${cateringShortName(c)}` ]));
+  const meta = [
+    c.time ? `${c.time} Uhr` : null,
+    c.mode === "pickup" ? "Abholung" : "Lieferung",
+    opts.showShift ? (K_SHIFT_LABEL[c.shift] || "Ganzer Tag") : null,
+    c.status === "requested" ? "noch angefragt" : null
+  ].filter(Boolean).join(" · ");
+  box.appendChild(el("div",{class:"cat-note-meta"}, meta));
+  if(opts.compact) return box;
+  if(c.mode !== "pickup" && c.address) box.appendChild(el("div",{class:"cat-note-line"},[ ic("mapPin"), el("span",{}, c.address) ]));
+  const items = (c.items || []).filter(i=> i && i.name);
+  if(items.length) box.appendChild(el("ul",{class:"cat-note-items"}, items.map(i=> el("li",{}, `${kNumStr(i.qty) || "1"} × ${i.name}`))));
+  if(c.notes) box.appendChild(el("div",{class:"cat-note-text"}, c.notes));
+  return box;
+}
+
+// Umsatz in „Finanzen“ passend zum Status halten (Datum = Tag, an dem auf „Bezahlt“ gesetzt wurde)
+async function syncCateringRevenue(id, c){
+  const path = `revenue/catering_${id}`;
+  if(c && c.status === "paid"){
+    await set(ref(db, path), {
+      date: c.paidDate || toDateKey(new Date()), amount: cateringTotal(c),
+      source:"catering", cateringId:id, note:`Catering ${c.customerLabel || ""}`.trim()
+    });
+  } else {
+    await remove(ref(db, path));
+  }
+}
+async function setCateringStatus(id, status){
+  const c = (state.kitchen.caterings || {})[id];
+  if(!c) return;
+  const upd = {status, paidDate: status === "paid" ? (c.status === "paid" && c.paidDate ? c.paidDate : toDateKey(new Date())) : null};
+  await update(ref(db, `kitchen/caterings/${id}`), upd);
+  await syncCateringRevenue(id, Object.assign({}, c, upd));
+}
+
+function renderKAdminCaterings(){
+  const wrap = el("div",{});
+  const customers = state.kitchen.customers || {};
+  const d = kDraft("catering", K_CATERING_DEFAULTS); const x = d.data;
+  if(!x.newCustomer) x.newCustomer = kClone(K_CUSTOMER_DEFAULTS);
+  if(!Array.isArray(x.items) || !x.items.length) x.items = [{name:"", qty:"1", price:""}];
+
+  const fc = el("div",{class:"card"});
+  fc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, d.id ? "Catering bearbeiten" : "+ Neues Catering"));
+  const form = el("div",{class:"k-form"});
+
+  // Kunde
+  const cs = el("select",{class:"select-emp", style:"width:100%;"});
+  cs.appendChild(el("option",{value:""}, "– Kunde wählen –"));
+  Object.entries(customers).sort((a,b)=> customerLabel(a[1]).localeCompare(customerLabel(b[1]))).forEach(([id,cu])=> cs.appendChild(el("option",{value:id}, customerLabel(cu))));
+  cs.appendChild(el("option",{value:"__new"}, "+ Neuer Kunde …"));
+  cs.value = (x.customerId && (x.customerId === "__new" || customers[x.customerId])) ? x.customerId : "";
+  cs.addEventListener("change", ()=>{
+    const prev = customers[x.customerId];
+    x.customerId = cs.value;
+    const cu = customers[cs.value];
+    if(cu && cu.address && (!x.address || (prev && x.address === prev.address))) x.address = cu.address;
+    render();
+  });
+  form.appendChild(kField("Kunde", cs, true));
+  if(x.customerId === "__new"){
+    const nc = x.newCustomer;
+    form.appendChild(kField("Name (Ansprechpartner)", kIn(nc,"name",{type:"text", placeholder:"z. B. Anna Müller"})));
+    form.appendChild(kField("Firma (optional)", kIn(nc,"company",{type:"text", placeholder:"z. B. Firma XY GmbH"})));
+    form.appendChild(kField("Telefon (optional)", kIn(nc,"phone",{type:"tel", placeholder:"z. B. 0151 …"})));
+    form.appendChild(kField("E-Mail (optional)", kIn(nc,"email",{type:"email", placeholder:"z. B. anna@firma.de"})));
+    const ncAddr = kIn(nc,"address",{type:"text", placeholder:"Straße, PLZ Ort"});
+    ncAddr.addEventListener("input", ()=>{ if(x.mode !== "pickup") { x.address = nc.address; if(addrIn) addrIn.value = nc.address; } });
+    form.appendChild(kField("Adresse (optional)", ncAddr, true));
+  }
+
+  form.appendChild(kField("Datum", kIn(x,"date",{type:"date"})));
+  form.appendChild(kField("Uhrzeit (Lieferung/Abholung)", kIn(x,"time",{type:"time"})));
+  form.appendChild(kField("Schicht", kSel(x,"shift",[["both","Ganzer Tag"],["frueh","Früh"],["abend","Abend"]])));
+  form.appendChild(kField("Art", kSel(x,"mode",[["delivery","Lieferung"],["pickup","Abholung"]], true)));
+  let addrIn = null;
+  if(x.mode !== "pickup"){
+    addrIn = kIn(x,"address",{type:"text", placeholder:"Lieferadresse"});
+    form.appendChild(kField("Lieferadresse", addrIn, true));
+  }
+  form.appendChild(kField("Status", kSel(x,"status", K_CATERING_STATUS)));
+  fc.appendChild(form);
+
+  // Positionen
+  fc.appendChild(el("div",{style:"font-weight:650;font-size:14px;margin:18px 0 8px;"}, "Positionen"));
+  fc.appendChild(el("div",{class:"cat-item-row", style:"font-size:12px;color:var(--text-muted);margin-bottom:4px;"},[
+    el("span",{}, "Bezeichnung"), el("span",{}, "Menge"), el("span",{}, "Preis/Stück €"), el("span",{})
+  ]));
+  const totalEl = el("div",{class:"cat-total"});
+  const updTotal = ()=>{ totalEl.textContent = `Gesamt: ${fmtMoney(cateringTotal(x))}`; };
+  const rows = el("div",{class:"k-rows"});
+  x.items.forEach((it,i)=>{
+    const q = kIn(it,"qty",{type:"text", inputmode:"decimal", placeholder:"1"});
+    const p = kIn(it,"price",{type:"text", inputmode:"decimal", placeholder:"0,00"});
+    q.addEventListener("input", updTotal); p.addEventListener("input", updTotal);
+    rows.appendChild(el("div",{class:"cat-item-row"},[
+      kIn(it,"name",{type:"text", placeholder:"z. B. Poke Bowl Lachs"}), q, p,
+      el("button",{type:"button", class:"del-btn", "aria-label":"Position entfernen", onclick:()=>{ x.items.splice(i,1); render(); }},[ic("x")])
+    ]));
+  });
+  fc.appendChild(rows);
+  fc.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-top:8px;", onclick:()=>{ x.items.push({name:"", qty:"1", price:""}); render(); }}, "+ Position"));
+  updTotal();
+  fc.appendChild(totalEl);
+
+  fc.appendChild(el("div",{style:"margin-top:14px;"},[ kField("Notiz (optional, sehen die Mitarbeiter)", kTa(x,"notes","z. B. 5 davon vegan, Besteck mitgeben", 2)) ]));
+
+  fc.appendChild(kFormActions(d, async ()=>{
+    let customerId = x.customerId;
+    const nc = {};
+    Object.keys(K_CUSTOMER_DEFAULTS).forEach(k=> nc[k] = String(x.newCustomer[k] || "").trim());
+    if(customerId === "__new"){
+      if(!nc.name && !nc.company){ alert("Bitte Name oder Firma des neuen Kunden eingeben."); return; }
+    } else if(!customerId || !customers[customerId]){ alert("Bitte einen Kunden wählen."); return; }
+    if(!x.date){ alert("Bitte ein Datum wählen."); return; }
+    if(x.shift === "frueh" && WEEKEND.includes(dayKeyOf(localDateFromKey(x.date)))){ alert("Am Wochenende gibt es nur die Abendschicht. Bitte „Abend“ oder „Ganzer Tag“ wählen."); return; }
+    const items = x.items.map(i=> ({name:String(i.name || "").trim(), qty:kNum(i.qty) || 1, price:kNum(i.price)})).filter(i=> i.name);
+    if(!items.length){ alert("Bitte mindestens eine Position eintragen."); return; }
+    const address = x.mode === "pickup" ? "" : String(x.address || "").trim();
+    if(x.mode !== "pickup" && !address){ alert("Bitte eine Lieferadresse eingeben."); return; }
+
+    if(customerId === "__new"){
+      const cr = push(ref(db, "kitchen/customers"));
+      await set(cr, {...nc, createdAt:Date.now()});
+      customerId = cr.key;
+    }
+    const old = d.id ? (state.kitchen.caterings || {})[d.id] : null;
+    const rec = {
+      customerId, customerLabel: customerId === x.customerId ? customerLabel(customers[customerId]) : customerLabel(nc),
+      date:x.date, time:x.time || null, shift:x.shift, mode:x.mode, address: address || null,
+      items, notes:String(x.notes || "").trim(), status:x.status,
+      paidDate: x.status === "paid" ? (old && old.status === "paid" && old.paidDate ? old.paidDate : toDateKey(new Date())) : null
+    };
+    let id = d.id;
+    if(id) await update(ref(db, `kitchen/caterings/${id}`), rec);
+    else { const r = push(ref(db, "kitchen/caterings")); await set(r, {...rec, createdAt:Date.now()}); id = r.key; }
+    await syncCateringRevenue(id, rec);
+    state.kDraft = null; render();
+  }));
+  wrap.appendChild(fc);
+
+  // Listen
+  const today = toDateKey(new Date());
+  const all = Object.entries(state.kitchen.caterings || {}).filter(([id,c])=> c);
+  const upcoming = all.filter(([id,c])=> (c.date || "") >= today).sort((a,b)=> (a[1].date + (a[1].time||"")).localeCompare(b[1].date + (b[1].time||"")));
+  const past = all.filter(([id,c])=> (c.date || "") < today).sort((a,b)=> (b[1].date + (b[1].time||"")).localeCompare(a[1].date + (a[1].time||"")));
+  [["Kommende Caterings", upcoming, "Keine kommenden Caterings."],["Vergangene Caterings", past, "Noch keine vergangenen Caterings."]].forEach(([title, list, empty], idx)=>{
+    const lc = el("div",{class:"card"});
+    lc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, `${title} (${list.length})`));
+    if(!list.length) lc.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, empty));
+    list.forEach(([id,c])=> lc.appendChild(kCateringRow(id, c, idx === 1)));
+    wrap.appendChild(lc);
+  });
+  return wrap;
+}
+
+function kCateringRow(id, c, isPast){
+  const dim = c.status === "canceled" || (isPast && c.status === "paid");
+  const row = el("div",{class:"team-row", style:`flex-wrap:wrap;${dim ? "opacity:.55;" : ""}`});
+  const n = (c.items || []).length;
+  row.appendChild(el("div",{style:"flex:1;min-width:200px;"},[
+    el("div",{class:"name"}, cateringCustomerLabel(c)),
+    el("div",{style:"font-size:12.5px;color:var(--text-muted);margin-top:2px;"},
+      `${cateringDateStr(c)}${c.time ? ` · ${c.time} Uhr` : ""} · ${c.mode === "pickup" ? "Abholung" : "Lieferung"} · ${n} ${n === 1 ? "Position" : "Positionen"} · ${fmtMoney(cateringTotal(c))}`)
+  ]));
+  const acts = el("div",{style:"display:flex;align-items:center;gap:4px;flex-wrap:wrap;"});
+  const st = el("select",{class:"select-emp cat-status", title:"Status"});
+  K_CATERING_STATUS.forEach(([v,l])=> st.appendChild(el("option",{value:v}, l)));
+  st.value = c.status || "requested";
+  st.addEventListener("change", ()=> setCateringStatus(id, st.value));
+  acts.appendChild(st);
+  acts.appendChild(el("button",{class:"icon-btn", title:"Bearbeiten", "aria-label":"Bearbeiten", onclick:()=> kStartEdit("catering", id, Object.assign(kClone(K_CATERING_DEFAULTS), kClone(c), {
+    time:c.time || "", address:c.address || "", notes:c.notes || "", newCustomer:kClone(K_CUSTOMER_DEFAULTS),
+    items:(c.items || []).map(i=> ({name:i.name || "", qty:kNumStr(i.qty), price:kNumStr(i.price)}))
+  }))},[ic("pencil")]));
+  acts.appendChild(el("button",{class:"del-btn", title:"Löschen", "aria-label":"Löschen", onclick:async ()=>{
+    if(!confirm(`Catering „${cateringCustomerLabel(c)}“ am ${cateringDateStr(c)} löschen?${c.status === "paid" ? " Der Umsatz in „Finanzen“ wird dabei auch entfernt." : ""}`)) return;
+    await remove(ref(db, `kitchen/caterings/${id}`));
+    await syncCateringRevenue(id, null);
+  }},[ic("trash")]));
+  row.appendChild(acts);
+  return row;
+}
+
+function renderKAdminCustomers(){
+  const wrap = el("div",{});
+  const d = kDraft("customer", K_CUSTOMER_DEFAULTS); const x = d.data;
+  const fc = el("div",{class:"card"});
+  fc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, d.id ? "Kunde bearbeiten" : "+ Neuer Kunde"));
+  const form = el("div",{class:"k-form"});
+  form.appendChild(kField("Name (Ansprechpartner)", kIn(x,"name",{type:"text", placeholder:"z. B. Anna Müller"})));
+  form.appendChild(kField("Firma (optional)", kIn(x,"company",{type:"text", placeholder:"z. B. Firma XY GmbH"})));
+  form.appendChild(kField("Telefon", kIn(x,"phone",{type:"tel", placeholder:"z. B. 0151 …"})));
+  form.appendChild(kField("E-Mail", kIn(x,"email",{type:"email", placeholder:"z. B. anna@firma.de"})));
+  form.appendChild(kField("Adresse", kIn(x,"address",{type:"text", placeholder:"Straße, PLZ Ort"}), true));
+  form.appendChild(kField("Notizen (optional)", kTa(x,"notes","z. B. zahlt per Rechnung, mag keinen Koriander", 2), true));
+  fc.appendChild(form);
+  fc.appendChild(kFormActions(d, async ()=>{
+    const rec = {};
+    Object.keys(K_CUSTOMER_DEFAULTS).forEach(k=> rec[k] = String(x[k] || "").trim());
+    if(!rec.name && !rec.company){ alert("Bitte Name oder Firma eingeben."); return; }
+    if(d.id) await update(ref(db, `kitchen/customers/${d.id}`), rec);
+    else await set(push(ref(db, "kitchen/customers")), {...rec, createdAt:Date.now()});
+    state.kDraft = null; render();
+  }));
+  wrap.appendChild(fc);
+
+  const caterings = Object.values(state.kitchen.caterings || {}).filter(Boolean);
+  const all = Object.entries(state.kitchen.customers || {}).sort((a,b)=> customerLabel(a[1]).localeCompare(customerLabel(b[1])));
+  const lc = el("div",{class:"card"});
+  lc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, `Alle Kunden (${all.length})`));
+  if(all.length){
+    const search = el("input",{type:"search", id:"k-cust-search", class:"select-emp", style:"width:100%;margin-bottom:10px;", placeholder:"Kunde suchen …"});
+    search.value = state.kCustSearch || "";
+    search.addEventListener("input", ()=>{ state.kCustSearch = search.value; render(); });
+    lc.appendChild(search);
+  } else {
+    lc.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Noch keine Kunden angelegt."));
+  }
+  const q = (state.kCustSearch || "").trim().toLowerCase();
+  all.filter(([id,cu])=> !q || [cu.name, cu.company, cu.phone, cu.email, cu.address].join(" ").toLowerCase().includes(q)).forEach(([id,cu])=>{
+    const mine = caterings.filter(c=> c.customerId === id && c.status !== "canceled");
+    const sum = mine.reduce((s,c)=> s + cateringTotal(c), 0);
+    const sub = [cu.phone, cu.email, cu.address, mine.length ? `${mine.length} ${mine.length === 1 ? "Catering" : "Caterings"} · ${fmtMoney(sum)}` : "noch kein Catering"].filter(Boolean).join(" · ");
+    lc.appendChild(kListRow({
+      title: customerLabel(cu),
+      sub: sub + (cu.notes ? ` · ${cu.notes}` : ""),
+      onEdit: ()=> kStartEdit("customer", id, Object.assign(kClone(K_CUSTOMER_DEFAULTS), kClone(cu))),
+      onDelete: ()=>{
+        const txt = mine.length ? ` Die ${mine.length} Caterings bleiben erhalten (mit dem gespeicherten Namen).` : "";
+        if(confirm(`Kunde „${customerLabel(cu)}“ löschen?${txt}`)) remove(ref(db, `kitchen/customers/${id}`));
+      }
     }));
   });
   wrap.appendChild(lc);
