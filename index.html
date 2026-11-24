@@ -841,8 +841,80 @@
   .k-progress-bar{height:10px;border-radius:6px;background:var(--bg-elevated-2);overflow:hidden;}
   .k-progress-bar > div{height:100%;background:var(--avocado);border-radius:6px;transition:width .4s var(--ease);}
   .k-section-title{font-size:15px;font-weight:650;color:var(--text-muted);margin:22px 0 10px;}
-  .k-task{display:flex;align-items:center;gap:16px;background:var(--bg-elevated);border:1px solid var(--line);border-radius:18px;padding:18px 20px;margin-bottom:12px;box-shadow:var(--shadow-sm);}
-  .k-task.high{border-color:rgba(197,64,46,.45);box-shadow:inset 5px 0 0 var(--chili), var(--shadow-sm);}
+  .k-task{display:flex;align-items:center;gap:16px;background:var(--bg-elevated);border:1px solid var(--line);border-radius:18px;padding:18px 20px 18px 24px;margin-bottom:12px;box-shadow:inset 5px 0 0 var(--cat, var(--line-strong)), var(--shadow-sm);transition:transform .2s var(--ease), box-shadow .2s var(--ease), opacity .3s;}
+  .k-task.high{border-color:rgba(197,64,46,.45);}
+  .k-task.soon{border-color:rgba(217,138,43,.6);background:linear-gradient(90deg, rgba(237,168,80,.10), var(--bg-elevated) 45%);}
+  .k-task.overdue{border-color:rgba(197,64,46,.65);animation:kOverdue 2.2s ease-in-out infinite;}
+  @keyframes kOverdue{0%,100%{box-shadow:inset 5px 0 0 var(--chili), 0 0 0 0 rgba(197,64,46,0);}50%{box-shadow:inset 5px 0 0 var(--chili), 0 0 0 6px rgba(197,64,46,.16);}}
+  .k-task.later{opacity:.55;background:var(--bg-elevated-2);box-shadow:inset 5px 0 0 var(--line-strong);}
+  .k-task.just-done{animation:kJustDone 1.4s var(--ease);}
+  .k-task.just-done .k-chip.ok .ic{animation:kPop .6s var(--ease);}
+  @keyframes kJustDone{0%{transform:scale(1);box-shadow:inset 5px 0 0 var(--avocado), 0 0 0 0 rgba(47,138,87,.5);opacity:1;}25%{transform:scale(1.015);box-shadow:inset 5px 0 0 var(--avocado), 0 0 0 10px rgba(47,138,87,.18);opacity:1;}100%{transform:scale(1);box-shadow:inset 5px 0 0 var(--avocado), 0 0 0 0 rgba(47,138,87,0);opacity:.6;}}
+  @keyframes kPop{0%{transform:scale(.2);}60%{transform:scale(1.35);}100%{transform:scale(1);}}
+  .k-task-top{display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap;}
+  .k-task-cat{font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--cat, var(--text-muted));}
+  .k-task-who{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--text-muted);}
+  .k-task-who .ic{width:14px;height:14px;}
+  .k-chip .ic{width:15px;height:15px;margin-right:4px;}
+  .k-chip.soon{background:var(--mango-soft);color:#B26A12;}
+  .k-chip.pulse{animation:kChipPulse 1.6s ease-in-out infinite;}
+  @keyframes kChipPulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+  .k-checklist{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+  .k-check{display:flex;align-items:center;gap:12px;min-height:50px;padding:8px 14px;border-radius:13px;border:1px solid var(--line);background:var(--bg-elevated-2);color:var(--text);font:inherit;font-size:17px;font-weight:550;text-align:left;cursor:pointer;transition:background .2s, border-color .2s;}
+  .k-check.on{background:var(--avocado-soft);border-color:rgba(47,138,87,.35);}
+  .k-check.on span:last-child{text-decoration:line-through;color:var(--text-muted);}
+  .k-check.locked{cursor:default;}
+  .k-check-box{width:28px;height:28px;flex-shrink:0;border-radius:8px;border:2px solid var(--line-strong);background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;color:#fff;transition:background .2s, border-color .2s;}
+  .k-check.on .k-check-box{background:var(--avocado);border-color:var(--avocado);}
+  .k-check.on .k-check-box .ic{width:18px;height:18px;animation:kPop .35s var(--ease);}
+  /* Kopfbereich: Ring + Countdowns */
+  .k-hero{display:grid;grid-template-columns:minmax(260px,.9fr) minmax(0,1.6fr);gap:14px;margin-bottom:8px;}
+  @media(max-width:820px){ .k-hero{grid-template-columns:1fr;} }
+  .k-ring-card{display:flex;align-items:center;gap:20px;background:var(--bg-elevated);border:1px solid var(--line);border-radius:22px;padding:18px 22px;box-shadow:var(--shadow-sm);}
+  .k-ring-card.all{background:linear-gradient(135deg, var(--avocado-soft), var(--bg-elevated) 70%);border-color:rgba(47,138,87,.3);}
+  .k-ring-box{position:relative;width:118px;height:118px;flex-shrink:0;}
+  .k-ring{width:118px;height:118px;transform:rotate(-90deg);}
+  .k-ring-bg{fill:none;stroke:var(--bg-elevated-2);stroke-width:12;}
+  .k-ring-fg{fill:none;stroke:var(--avocado);stroke-width:12;stroke-linecap:round;transition:stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1);}
+  .k-ring-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+  .k-ring-num{font-size:26px;font-weight:750;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;}
+  .k-ring-check{width:44px;height:44px;color:var(--avocado);animation:kPop .7s var(--ease);}
+  .k-ring-text .t{font-size:22px;font-weight:700;letter-spacing:-0.02em;}
+  .k-ring-text .s{font-size:15.5px;color:var(--text-muted);margin-top:4px;}
+  .k-next-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;}
+  .k-cd{background:var(--bg-elevated);border:1px solid var(--line);border-radius:20px;padding:16px 18px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .k-cd-label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:650;color:var(--text-muted);}
+  .k-cd-label .ic{width:16px;height:16px;}
+  .k-cd-title{font-size:17px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .k-cd-value{font-size:28px;font-weight:750;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;line-height:1.15;}
+  .k-cd.soon{border-color:rgba(217,138,43,.5);background:linear-gradient(135deg, var(--mango-soft), var(--bg-elevated) 75%);}
+  .k-cd.soon .k-cd-value, .k-cd.soon .k-cd-label{color:#B26A12;}
+  .k-cd.over{border-color:rgba(197,64,46,.55);background:linear-gradient(135deg, var(--chili-soft), var(--bg-elevated) 75%);animation:kChipPulse 2s ease-in-out infinite;}
+  .k-cd.over .k-cd-value, .k-cd.over .k-cd-label{color:var(--chili);}
+  .k-cd.cat .k-cd-label .ic{color:var(--mango);}
+  .k-cd.calm .k-cd-label{color:var(--avocado);}
+  .k-cd.calm .k-cd-value{font-size:20px;color:var(--text-muted);font-weight:600;}
+  :root[data-theme="dark"] .k-chip.soon, :root[data-theme="dark"] .k-cd.soon .k-cd-value, :root[data-theme="dark"] .k-cd.soon .k-cd-label{color:#EDA850;}
+  /* Kategorien */
+  .k-cat-bar{display:flex;gap:10px;overflow-x:auto;padding:14px 0 2px;-webkit-overflow-scrolling:touch;}
+  .k-cat{display:inline-flex;align-items:center;gap:9px;min-height:50px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--bg-elevated);color:var(--text);font:inherit;font-size:16.5px;font-weight:650;white-space:nowrap;flex-shrink:0;}
+  .k-cat.active{background:var(--ink);border-color:var(--ink);color:var(--bg-elevated);}
+  .k-cat-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;display:inline-block;}
+  .k-cat-n{min-width:26px;padding:2px 8px;border-radius:999px;background:var(--bg-elevated-2);color:var(--text-muted);font-size:13.5px;text-align:center;font-variant-numeric:tabular-nums;}
+  .k-cat.active .k-cat-n{background:rgba(255,255,255,.18);color:inherit;}
+  .k-admin-cat{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin:14px 0 8px;}
+  .k-admin-cat:first-of-type{margin-top:0;}
+  /* Erfolgs-Moment */
+  .k-celebrate{position:fixed;inset:0;z-index:190;display:flex;align-items:center;justify-content:center;pointer-events:none;background:rgba(18,25,21,.18);animation:kFadeInOut 3.5s ease forwards;}
+  .k-celebrate-card{background:var(--bg-elevated);border-radius:28px;padding:34px 46px;text-align:center;box-shadow:var(--shadow-lg);animation:kRise .6s cubic-bezier(.2,.9,.25,1.2);}
+  .k-celebrate-icon{width:96px;height:96px;margin:0 auto 16px;border-radius:50%;background:var(--avocado);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 0 rgba(47,138,87,.45);animation:kRipple 1.6s ease-out .3s 2;}
+  .k-celebrate-icon .ic{width:54px;height:54px;animation:kPop .7s var(--ease) .15s both;}
+  .k-celebrate-title{font-size:28px;font-weight:750;letter-spacing:-0.03em;}
+  .k-celebrate-sub{font-size:17px;color:var(--text-muted);margin-top:6px;}
+  @keyframes kFadeInOut{0%{opacity:0;}10%{opacity:1;}82%{opacity:1;}100%{opacity:0;}}
+  @keyframes kRise{0%{transform:translateY(24px) scale(.92);opacity:0;}100%{transform:none;opacity:1;}}
+  @keyframes kRipple{0%{box-shadow:0 0 0 0 rgba(47,138,87,.45);}100%{box-shadow:0 0 0 34px rgba(47,138,87,0);}}
+  @media (prefers-reduced-motion: reduce){ .k-task, .k-cd, .k-chip, .k-celebrate, .k-celebrate-card, .k-celebrate-icon, .k-ring-fg{animation:none !important;transition:none !important;} }
   .k-task.done{opacity:.6;}
   .k-task-body{flex:1;min-width:0;}
   .k-task-title{font-size:21px;font-weight:650;letter-spacing:-0.015em;overflow-wrap:anywhere;}
@@ -5558,7 +5630,7 @@ function openInventoryLabelsOverlay(items){
 
 // =====================================================================
 // Küchen-Modus (iPad) — eigener Account mit role "kitchen"
-// Daten in Firebase unter /kitchen: tasks, taskDone/{datum}, recipes, alarms, alarmLog, customers, caterings
+// Daten in Firebase unter /kitchen: tasks, taskDone/{datum}, taskChecks/{datum}, recipes, alarms, alarmLog, customers, caterings
 // =====================================================================
 function isStaff(e){ return !!e && e.role !== "chef" && e.role !== "kitchen"; }
 function kitchenAccounts(){ return Object.entries(state.employees).filter(([id,e])=> e && e.role === "kitchen"); }
@@ -5794,16 +5866,41 @@ function ackKitchenAlarm(logId, empId){
 }
 
 // ---------- Aufgaben-Helfer ----------
+// Wiederholung: recurring (Wochentage), everyN (alle X Tage ab Startdatum), monthly (Tag im Monat), once (Datum)
+const K_TASK_CATS = ["Vorbereitung","Öffnen","Schließen","Reinigung","Lager","Lieferung","Sonstiges"];
+function kDaysBetween(a, b){ return Math.round((localDateFromKey(b) - localDateFromKey(a)) / 86400000); }
+function kTaskOnDate(t, dateKey){
+  if(!t || t.active === false) return false;
+  const d = localDateFromKey(dateKey);
+  if(t.repeat === "once") return t.date === dateKey;
+  if(t.repeat === "everyN"){
+    const n = Math.max(1, Number(t.every) || 1);
+    if(!t.startDate || dateKey < t.startDate) return false;
+    return kDaysBetween(t.startDate, dateKey) % n === 0;
+  }
+  if(t.repeat === "monthly"){
+    const want = Math.min(31, Math.max(1, Number(t.monthDay) || 1));
+    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    return d.getDate() === Math.min(want, last); // 31. → im Februar am letzten Tag
+  }
+  return (t.days || []).includes(dayKeyOf(d));
+}
 function kTasksForDate(dateKey){
-  const dk = dayKeyOf(localDateFromKey(dateKey));
   const prio = (t)=> t.priority === "high" ? 0 : 1;
-  return Object.entries(state.kitchen.tasks || {}).filter(([id,t])=>{
-    if(!t || t.active === false) return false;
-    if(t.repeat === "once") return t.date === dateKey;
-    return (t.days || []).includes(dk);
-  }).sort((a,b)=> prio(a[1]) - prio(b[1]) || (a[1].dueTime||"99:99").localeCompare(b[1].dueTime||"99:99") || a[1].title.localeCompare(b[1].title));
+  return Object.entries(state.kitchen.tasks || {}).filter(([id,t])=> kTaskOnDate(t, dateKey))
+    .sort((a,b)=> prio(a[1]) - prio(b[1]) || (a[1].dueTime||"99:99").localeCompare(b[1].dueTime||"99:99") || a[1].title.localeCompare(b[1].title));
 }
 function kDoneMap(dateKey){ return (state.kitchen.taskDone && state.kitchen.taskDone[dateKey]) || {}; }
+function kChecksMap(dateKey, id){ return (state.kitchen.taskChecks && state.kitchen.taskChecks[dateKey] && state.kitchen.taskChecks[dateKey][id]) || {}; }
+function kChecklist(t){ return (t.checklist || []).filter(Boolean); }
+function kTaskCat(t){ return (t.category || "").trim() || "Sonstiges"; }
+function kAssigneeLabel(t){
+  const a = t.assignee || "all";
+  if(a === "all") return "";
+  if(a === "kueche") return "Küche";
+  if(a === "fahrer") return "Fahrer";
+  return empName(a) || "";
+}
 function kCurrentShift(){
   const shifts = defaultShiftsForDay(todayDayKey());
   const now = new Date(); const min = now.getHours()*60 + now.getMinutes();
@@ -5811,9 +5908,30 @@ function kCurrentShift(){
   shifts.forEach(s=>{ if(hmToMin(s.defStart) <= min) cur = s; });
   return cur;
 }
+function kRepeatSummary(t){
+  if(t.repeat === "once") return `einmalig am ${t.date ? localDateFromKey(t.date).toLocaleDateString("de-DE") : "?"}`;
+  if(t.repeat === "everyN"){
+    const n = Math.max(1, Number(t.every) || 1);
+    return `${n === 1 ? "täglich" : `alle ${n} Tage`} ab ${t.startDate ? localDateFromKey(t.startDate).toLocaleDateString("de-DE") : "?"}`;
+  }
+  if(t.repeat === "monthly") return `monatlich am ${Number(t.monthDay) || 1}.`;
+  return daysSummary(t.days);
+}
 function kTaskWhen(t){
-  const when = t.repeat === "once" ? `einmalig am ${t.date ? localDateFromKey(t.date).toLocaleDateString("de-DE") : "?"}` : daysSummary(t.days);
-  return `${when} · ${K_SHIFT_LABEL[t.shift] || "Ganzer Tag"}${t.dueTime ? ` · bis ${t.dueTime} Uhr` : ""}${t.priority === "high" ? " · Wichtig" : ""}`;
+  const who = kAssigneeLabel(t);
+  return [
+    kRepeatSummary(t), K_SHIFT_LABEL[t.shift] || "Ganzer Tag",
+    t.startTime ? `ab ${t.startTime} Uhr` : null, t.dueTime ? `bis ${t.dueTime} Uhr` : null,
+    who ? `für ${who}` : null, t.priority === "high" ? "Wichtig" : null
+  ].filter(Boolean).join(" · ");
+}
+// Minuten bis hh:mm heute (negativ = vorbei)
+function kMinUntil(hm){ const n = new Date(); return hmToMin(hm) - (n.getHours()*60 + n.getMinutes()); }
+function kDurLabel(min){
+  const m = Math.abs(min);
+  if(m < 60) return `${m} Min`;
+  const h = Math.floor(m / 60), r = m % 60;
+  return r ? `${h} Std ${r} Min` : `${h} Std`;
 }
 function kTodayStaffIds(){
   const sched = (state.currentWeekData.schedule && state.currentWeekData.schedule[todayDayKey()]) || {};
@@ -5861,6 +5979,7 @@ function renderKitchen(){
   main.appendChild(ui.view === "recipes" ? renderKitchenRecipes() : renderKitchenTasks());
   shell.appendChild(main);
 
+  if(state.kCelebrate) shell.appendChild(renderKCelebrate());
   if(state.kitchenActive.length) shell.appendChild(renderKitchenAlarmOverlay());
   if(state.kNamePicker) shell.appendChild(renderKNamePicker());
   if(!state.kitchenStarted) shell.appendChild(renderKitchenStart());
@@ -5969,25 +6088,146 @@ function renderKitchenExit(){
   return ov;
 }
 
+// Farbe je Kategorie (Streifen + Etikett)
+const K_CAT_COLORS = {"Vorbereitung":"#2F8A57","Öffnen":"#1D6A4C","Schließen":"#6B5BD2","Reinigung":"#2F7FC1","Lager":"#D98A2B","Lieferung":"#C26A2E","Sonstiges":"#7A857E"};
+function kCatColor(cat){
+  if(K_CAT_COLORS[cat]) return K_CAT_COLORS[cat];
+  let h = 0; for(const ch of cat) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return ["#2F8A57","#2F7FC1","#D98A2B","#6B5BD2","#C5402E","#1D6A4C"][h % 6];
+}
+function kSortCats(cats){
+  return cats.sort((a,b)=>{
+    const ia = K_TASK_CATS.indexOf(a), ib = K_TASK_CATS.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+  });
+}
+
+// Fortschrittsring (animiert vom letzten Stand zum neuen)
+let kRingPrev = null;
+function renderKRing(done, total){
+  const pct = total ? done / total : 0;
+  const R = 54, C = 2 * Math.PI * R;
+  const all = total > 0 && done === total;
+  const wrap = el("div",{class:`k-ring-card ${all ? "all" : ""}`});
+  const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("viewBox","0 0 128 128"); svg.setAttribute("class","k-ring");
+  svg.innerHTML = `<circle cx="64" cy="64" r="${R}" class="k-ring-bg"/><circle cx="64" cy="64" r="${R}" class="k-ring-fg" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - (kRingPrev == null ? pct : kRingPrev))}"/>`;
+  const fg = svg.querySelector(".k-ring-fg");
+  if(kRingPrev !== pct) requestAnimationFrame(()=> requestAnimationFrame(()=> fg.setAttribute("stroke-dashoffset", String(C * (1 - pct)))));
+  kRingPrev = pct;
+  const center = el("div",{class:"k-ring-center"}, all
+    ? [ic("check","k-ring-check")]
+    : [ el("div",{class:"k-ring-num"}, total ? `${Math.round(pct * 100)} %` : "–") ]);
+  wrap.appendChild(el("div",{class:"k-ring-box"},[svg, center]));
+  wrap.appendChild(el("div",{class:"k-ring-text"},[
+    el("div",{class:"t"}, !total ? "Heute keine Aufgaben" : (all ? "Alles erledigt!" : `${done} von ${total} erledigt`)),
+    el("div",{class:"s"}, !total ? "Genießt den Tag." : (all ? "Starke Arbeit, Team." : `Noch ${total - done} ${total - done === 1 ? "Aufgabe" : "Aufgaben"} offen`))
+  ]));
+  return wrap;
+}
+
+// „Als Nächstes“: Countdowns für Fristen, Catering und Alarm
+function renderKNextUp(tasks, done){
+  const nowMin = (()=>{ const n = new Date(); return n.getHours()*60 + n.getMinutes(); })();
+  const tiles = [];
+  const open = tasks.filter(([id,t])=> !done[id] && t.dueTime && !(t.startTime && hmToMin(t.startTime) > nowMin));
+  const overdue = open.filter(([id,t])=> hmToMin(t.dueTime) < nowMin);
+  if(overdue.length){
+    const [id,t] = overdue.sort((a,b)=> a[1].dueTime.localeCompare(b[1].dueTime))[0];
+    tiles.push({kind:"over", icon:"alert", label: overdue.length > 1 ? `${overdue.length} Aufgaben überfällig` : "Überfällig", title:t.title, value:`seit ${kDurLabel(nowMin - hmToMin(t.dueTime))}`});
+  }
+  const next = open.filter(([id,t])=> hmToMin(t.dueTime) >= nowMin).sort((a,b)=> a[1].dueTime.localeCompare(b[1].dueTime))[0];
+  if(next){
+    const m = hmToMin(next[1].dueTime) - nowMin;
+    tiles.push({kind: m <= 30 ? "soon" : "", icon:"clock", label:`Fällig um ${next[1].dueTime} Uhr`, title:next[1].title, value: m === 0 ? "jetzt" : `noch ${kDurLabel(m)}`});
+  }
+  const cat = cateringsForDate(toDateKey(new Date())).filter(([cid,c])=> c.readyTime && hmToMin(c.readyTime) >= nowMin - 30)
+    .sort((a,b)=> a[1].readyTime.localeCompare(b[1].readyTime))[0];
+  if(cat){
+    const m = hmToMin(cat[1].readyTime) - nowMin;
+    tiles.push({kind: m < 0 ? "over" : (m <= 30 ? "soon" : "cat"), icon:"utensils", label:`Catering fertig bis ${cat[1].readyTime} Uhr`, title:cateringShortName(cat[1]), value: m < 0 ? `seit ${kDurLabel(-m)} drüber` : (m === 0 ? "jetzt" : `noch ${kDurLabel(m)}`)});
+  }
+  const now = new Date(); let best = null;
+  Object.values(state.kitchen.alarms || {}).forEach(a=>{
+    if(!a || a.active === false) return;
+    const d = nextAlarmFire(a, now, 12*60);
+    if(d && (!best || d < best.d)) best = {d, a};
+  });
+  if(best){
+    const m = Math.max(1, Math.round((best.d - now) / 60000));
+    tiles.push({kind:"", icon:"bell", label:`Alarm um ${minToHm(best.d.getHours()*60 + best.d.getMinutes())} Uhr`, title:best.a.title || "Alarm", value:`in ${kDurLabel(m)}`});
+  }
+  const box = el("div",{class:"k-next-grid"});
+  if(!tiles.length){
+    box.appendChild(el("div",{class:"k-cd calm"},[ el("div",{class:"k-cd-label"},[ic("check"), "Keine Fristen"]), el("div",{class:"k-cd-title"}, "Alles im grünen Bereich"), el("div",{class:"k-cd-value"}, "Ruhig weiterarbeiten") ]));
+  }
+  tiles.slice(0, 4).forEach(x=> box.appendChild(el("div",{class:`k-cd ${x.kind}`},[
+    el("div",{class:"k-cd-label"},[ic(x.icon), x.label]),
+    el("div",{class:"k-cd-title"}, x.title),
+    el("div",{class:"k-cd-value"}, x.value)
+  ])));
+  return box;
+}
+
+// Erfolgs-Moment, wenn die letzte Aufgabe abgehakt wird
+let kPrevDone = null;
+function kCheckAllDone(total, doneCount){
+  if(total > 0 && doneCount === total && kPrevDone !== null && kPrevDone < total && !state.kCelebrate){
+    state.kCelebrate = Date.now();
+    setTimeout(()=>{ state.kCelebrate = null; render(); }, 3600);
+  }
+  kPrevDone = doneCount;
+}
+function renderKCelebrate(){
+  return el("div",{class:"k-celebrate", "aria-live":"polite"},[
+    el("div",{class:"k-celebrate-card"},[
+      el("div",{class:"k-celebrate-icon"},[ic("check")]),
+      el("div",{class:"k-celebrate-title"}, "Alle Aufgaben erledigt!"),
+      el("div",{class:"k-celebrate-sub"}, "Danke, Team – richtig gute Arbeit.")
+    ])
+  ]);
+}
+
 function renderKitchenTasks(){
+  const ui = state.kUi;
   const wrap = el("div",{});
   const today = toDateKey(new Date());
   const tasks = kTasksForDate(today);
   const done = kDoneMap(today);
   const doneCount = tasks.filter(([id])=> done[id]).length;
+  kCheckAllDone(tasks.length, doneCount);
 
-  // Caterings von heute (nur bestätigte/erledigte/bezahlte)
+  wrap.appendChild(el("div",{class:"k-hero"},[ renderKRing(doneCount, tasks.length), renderKNextUp(tasks, done) ]));
+
+  // Caterings von heute (nur bestätigte/erledigte)
   const cats = cateringsForDate(today);
   if(cats.length){
-    wrap.appendChild(el("div",{class:"k-section-title", style:"margin-top:0;"}, cats.length === 1 ? "Catering heute" : `${cats.length} Caterings heute`));
+    wrap.appendChild(el("div",{class:"k-section-title"}, cats.length === 1 ? "Catering heute" : `${cats.length} Caterings heute`));
     cats.forEach(([cid,c])=> wrap.appendChild(renderCateringNote(c, {big:true, showShift:true})));
   }
-
-  const prog = el("div",{class:"k-progress"});
-  prog.appendChild(el("div",{class:"k-progress-text"}, tasks.length ? `${doneCount} von ${tasks.length} Aufgaben erledigt` : "Heute keine Aufgaben"));
-  if(tasks.length) prog.appendChild(el("div",{class:"k-progress-bar"},[ el("div",{style:`width:${Math.round(doneCount/tasks.length*100)}%;`}) ]));
-  wrap.appendChild(prog);
   if(!tasks.length) return wrap;
+
+  // Kategorie-Filter
+  const catNames = kSortCats([...new Set(tasks.map(([id,t])=> kTaskCat(t)))]);
+  if(!ui.taskCat || (ui.taskCat !== "Alle" && !catNames.includes(ui.taskCat))) ui.taskCat = "Alle";
+  if(catNames.length > 1){
+    const bar = el("div",{class:"k-cat-bar"});
+    ["Alle", ...catNames].forEach(cn=>{
+      const list = cn === "Alle" ? tasks : tasks.filter(([id,t])=> kTaskCat(t) === cn);
+      const openN = list.filter(([id])=> !done[id]).length;
+      bar.appendChild(el("button",{class:`k-cat ${ui.taskCat === cn ? "active" : ""}`, onclick:()=>{ ui.taskCat = cn; render(); }},[
+        cn !== "Alle" ? el("span",{class:"k-cat-dot", style:`background:${kCatColor(cn)};`}) : null,
+        cn, el("span",{class:"k-cat-n"}, openN ? String(openN) : "✓")
+      ]));
+    });
+    wrap.appendChild(bar);
+  }
+  const shown = ui.taskCat === "Alle" ? tasks : tasks.filter(([id,t])=> kTaskCat(t) === ui.taskCat);
+
+  const nowMin = (()=>{ const n = new Date(); return n.getHours()*60 + n.getMinutes(); })();
+  const isLater = ([id,t])=> !done[id] && t.startTime && hmToMin(t.startTime) > nowMin;
+  const visible = shown.filter(x=> !isLater(x));
+  const later = shown.filter(isLater).sort((a,b)=> a[1].startTime.localeCompare(b[1].startTime));
 
   const dayShifts = defaultShiftsForDay(todayDayKey());
   const validKeys = dayShifts.map(s=> s.key);
@@ -5998,36 +6238,81 @@ function renderKitchenTasks(){
     ...dayShifts.filter(s=> s.key !== cur.key).map(s=> ({key:s.key, label:s.label}))
   ];
   groups.forEach(g=>{
-    const items = tasks.filter(([id,t])=> (validKeys.includes(t.shift) ? t.shift : "both") === g.key);
+    const items = visible.filter(([id,t])=> (validKeys.includes(t.shift) ? t.shift : "both") === g.key);
     if(!items.length) return;
     items.sort((a,b)=> (done[a[0]]?1:0) - (done[b[0]]?1:0)); // erledigte nach unten
-    wrap.appendChild(el("div",{class:"k-section-title"}, g.label));
+    const openN = items.filter(([id])=> !done[id]).length;
+    wrap.appendChild(el("div",{class:"k-section-title"}, `${g.label} · ${openN ? `${openN} offen` : "alles erledigt"}`));
     items.forEach(([id,t])=> wrap.appendChild(renderKitchenTaskCard(id, t, done[id], today)));
   });
+  if(later.length){
+    wrap.appendChild(el("div",{class:"k-section-title"}, "Später heute"));
+    later.forEach(([id,t])=> wrap.appendChild(renderKitchenTaskCard(id, t, null, today, true)));
+  }
+  if(!visible.length && !later.length) wrap.appendChild(el("div",{class:"k-progress"}, "In dieser Kategorie gibt es heute nichts."));
   return wrap;
 }
 
-function renderKitchenTaskCard(id, t, d, today){
-  const now = new Date(); const nowMin = now.getHours()*60 + now.getMinutes();
-  const overdue = !d && t.dueTime && hmToMin(t.dueTime) < nowMin;
-  const card = el("div",{class:`k-task ${t.priority==="high" && !d ? "high" : ""} ${d ? "done" : ""}`});
+function renderKitchenTaskCard(id, t, d, today, later){
+  const nowMin = (()=>{ const n = new Date(); return n.getHours()*60 + n.getMinutes(); })();
+  const dueIn = t.dueTime ? hmToMin(t.dueTime) - nowMin : null;
+  const overdue = !d && !later && dueIn !== null && dueIn < 0;
+  const soon = !d && !later && dueIn !== null && dueIn >= 0 && dueIn <= 30;
+  const just = state.kJustDone && state.kJustDone.id === id && Date.now() - state.kJustDone.at < 1600;
+  const cat = kTaskCat(t);
+  const color = kCatColor(cat);
+  const card = el("div",{class:`k-task ${t.priority==="high" && !d ? "high" : ""} ${d ? "done" : ""} ${overdue ? "overdue" : ""} ${soon ? "soon" : ""} ${later ? "later" : ""} ${just ? "just-done" : ""}`, style:`--cat:${color};`});
   const body = el("div",{class:"k-task-body"});
+  const who = kAssigneeLabel(t);
+  body.appendChild(el("div",{class:"k-task-top"},[
+    el("span",{class:"k-task-cat"}, cat),
+    who ? el("span",{class:"k-task-who"},[ic("user"), who]) : null
+  ]));
   body.appendChild(el("div",{class:"k-task-title"}, t.title));
   if(t.description) body.appendChild(el("div",{class:"k-task-desc"}, t.description));
+
+  // Checkliste: Punkte einzeln abhaken (pro Tag gespeichert)
+  const cl = kChecklist(t);
+  const checks = kChecksMap(today, id);
+  const nChecked = cl.filter((x,i)=> checks[i]).length;
+  if(cl.length && !later){
+    const list = el("div",{class:"k-checklist"});
+    cl.forEach((item,i)=>{
+      const on = !!d || !!checks[i];
+      list.appendChild(el("button",{type:"button", class:`k-check ${on ? "on" : ""} ${d ? "locked" : ""}`, onclick:()=>{
+        if(d) return;
+        if(checks[i]) remove(ref(db, `kitchen/taskChecks/${today}/${id}/${i}`));
+        else set(ref(db, `kitchen/taskChecks/${today}/${id}/${i}`), true);
+      }},[ el("span",{class:"k-check-box"}, on ? [ic("check")] : []), el("span",{}, item) ]));
+    });
+    body.appendChild(list);
+  }
+
   const meta = el("div",{class:"k-task-meta"});
   if(t.priority === "high" && !d) meta.appendChild(el("span",{class:"k-chip warn"}, "Wichtig"));
-  if(t.dueTime && !d) meta.appendChild(el("span",{class:`k-chip ${overdue ? "warn" : ""}`}, overdue ? `Überfällig · war bis ${t.dueTime} Uhr` : `bis ${t.dueTime} Uhr`));
+  if(later) meta.appendChild(el("span",{class:"k-chip"}, icl("clock", `ab ${t.startTime} Uhr`)));
+  if(t.dueTime && !d && !later){
+    if(overdue) meta.appendChild(el("span",{class:"k-chip warn pulse"}, `Überfällig · seit ${kDurLabel(-dueIn)}`));
+    else if(soon) meta.appendChild(el("span",{class:"k-chip soon"}, dueIn === 0 ? `Jetzt fällig (${t.dueTime} Uhr)` : `noch ${kDurLabel(dueIn)} · bis ${t.dueTime} Uhr`));
+    else meta.appendChild(el("span",{class:"k-chip"}, `bis ${t.dueTime} Uhr`));
+  }
+  if(cl.length && !d) meta.appendChild(el("span",{class:`k-chip ${nChecked === cl.length ? "ok" : ""}`}, `${nChecked}/${cl.length} Punkte`));
   if(d) meta.appendChild(el("span",{class:"k-chip ok"}, icl("check", `${d.byName} · ${fmtTime(d.at)} Uhr`)));
   if(meta.childNodes.length) body.appendChild(meta);
   card.appendChild(body);
+
+  if(later) return card;
   if(d){
     card.appendChild(el("button",{class:"k-undo-btn", onclick:()=>{
       if(confirm(`„${t.title}“ wieder als offen markieren?`)) remove(ref(db, `kitchen/taskDone/${today}/${id}`));
     }}, icl("undo","Rückgängig")));
   } else {
     card.appendChild(el("button",{class:"k-done-btn", onclick:()=>{
+      if(cl.length && nChecked < cl.length && !confirm(`Noch ${cl.length - nChecked} von ${cl.length} Punkten offen. Trotzdem als erledigt markieren?`)) return;
       state.kNamePicker = {title:`Erledigt: ${t.title}`, onPick:(empId)=>{
         const emp = state.employees[empId];
+        state.kJustDone = {id, at:Date.now()};
+        setTimeout(()=>{ if(state.kJustDone && state.kJustDone.id === id){ state.kJustDone = null; render(); } }, 1700);
         set(ref(db, `kitchen/taskDone/${today}/${id}`), {by:empId, byName: emp ? emp.name : "?", at:Date.now()});
       }};
       render();
@@ -6109,7 +6394,7 @@ function renderKitchenRecipeDetail(r){
 // =====================================================================
 // Verwaltung (Chef) — Bereich „Küchen-Modus“
 // =====================================================================
-const K_TASK_DEFAULTS = {title:"", description:"", repeat:"recurring", date:"", days:["mon","tue","wed","thu","fri","sat","sun"], shift:"both", dueTime:"", priority:"normal"};
+const K_TASK_DEFAULTS = {title:"", description:"", category:"", assignee:"all", repeat:"recurring", date:"", days:["mon","tue","wed","thu","fri","sat","sun"], every:"2", startDate:"", monthDay:"1", shift:"both", startTime:"", dueTime:"", priority:"normal", checklist:[]};
 const K_RECIPE_DEFAULTS = {name:"", category:"", yield:"", ingredients:[{amount:"", unit:"", name:""}], steps:[""], notes:""};
 const K_ALARM_DEFAULTS = {title:"", text:"", type:"times", times:["15:00"], days:["mon","tue","wed","thu","fri","sat","sun"], every:"60", from:"11:00", to:"22:00", date:"", time:"", sound:"glocke", volume:"0.8", repeat:true};
 const kLabelStyle = "display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;font-weight:550;";
@@ -6228,57 +6513,107 @@ function renderKAdminTasks(){
   if(!todays.length) tc.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Für heute sind keine Aufgaben eingetragen."));
   todays.forEach(([id,t])=>{
     const dd = done[id];
+    const cl = kChecklist(t);
+    const nChecked = cl.filter((x,i)=> kChecksMap(today, id)[i]).length;
     tc.appendChild(el("div",{class:"team-row", style:"flex-wrap:wrap;"},[
-      el("div",{style:"flex:1;min-width:160px;"},[ el("div",{class:"name"}, t.title), el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, kTaskWhen(t)) ]),
-      dd ? el("span",{class:"avail-pill yes"}, `${dd.byName} · ${fmtTime(dd.at)} Uhr`) : el("span",{class:"avail-pill no"}, "offen")
+      el("span",{class:"k-cat-dot", style:`background:${kCatColor(kTaskCat(t))};`}),
+      el("div",{style:"flex:1;min-width:160px;"},[ el("div",{class:"name"}, t.title), el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, `${kTaskCat(t)} · ${kTaskWhen(t)}`) ]),
+      dd ? el("span",{class:"avail-pill yes"}, `${dd.byName} · ${fmtTime(dd.at)} Uhr`) : el("span",{class:"avail-pill no"}, cl.length ? `offen · ${nChecked}/${cl.length}` : "offen")
     ]));
   });
   wrap.appendChild(tc);
 
   const d = kDraft("task", K_TASK_DEFAULTS); const x = d.data;
+  if(!Array.isArray(x.checklist)) x.checklist = [];
   const fc = el("div",{class:"card"});
   fc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, d.id ? "Aufgabe bearbeiten" : "+ Neue Aufgabe"));
   const form = el("div",{class:"k-form"});
   form.appendChild(kField("Aufgabe", kIn(x,"title",{type:"text", placeholder:"z. B. Tomaten vorschneiden"}), true));
   form.appendChild(kField("Beschreibung (optional)", kTa(x,"description","z. B. 2 Kisten, in Würfel, in die blaue Box", 2), true));
-  form.appendChild(kField("Wiederholung", kSel(x,"repeat",[["recurring","Wiederkehrend"],["once","Einmalig"]], true)));
+  const existingCats = kSortCats([...new Set([...K_TASK_CATS, ...Object.values(state.kitchen.tasks || {}).map(t=> t && t.category).filter(Boolean)])]);
+  const catIn = kIn(x,"category",{type:"text", placeholder:"z. B. Reinigung", list:"k-task-cats"});
+  const dl = el("datalist",{id:"k-task-cats"});
+  existingCats.forEach(c=> dl.appendChild(el("option",{value:c})));
+  form.appendChild(kField("Kategorie", el("div",{},[catIn, dl])));
+  const staffIds = kStaffSorted(Object.keys(state.employees).filter(id=> isStaff(state.employees[id])));
+  form.appendChild(kField("Zuständig", kSel(x,"assignee",[["all","Alle"],["kueche","Küche"],["fahrer","Fahrer"], ...staffIds.map(id=> [id, state.employees[id].name])])));
+
+  form.appendChild(kField("Wiederholung", kSel(x,"repeat",[["recurring","An bestimmten Wochentagen"],["everyN","Alle X Tage"],["monthly","Monatlich"],["once","Einmalig"]], true)));
   if(x.repeat === "once") form.appendChild(kField("Datum", kIn(x,"date",{type:"date"})));
+  if(x.repeat === "everyN"){
+    if(!x.startDate) x.startDate = today;
+    form.appendChild(kField("Alle … Tage", kIn(x,"every",{type:"number", min:"1", inputmode:"numeric", placeholder:"z. B. 3"})));
+    form.appendChild(kField("Ab Datum", kIn(x,"startDate",{type:"date"})));
+  }
+  if(x.repeat === "monthly") form.appendChild(kField("Am … des Monats", kSel(x,"monthDay", Array.from({length:31}, (_,i)=> [String(i+1), `${i+1}.${i === 30 ? " (oder letzter Tag)" : ""}`]))));
   form.appendChild(kField("Schicht", kSel(x,"shift",[["both","Ganzer Tag"],["frueh","Früh"],["abend","Abend"]])));
+  form.appendChild(kField("Sichtbar ab (optional)", kIn(x,"startTime",{type:"time"})));
   form.appendChild(kField("Erledigt bis (optional)", kIn(x,"dueTime",{type:"time"})));
   form.appendChild(kField("Priorität", kSel(x,"priority",[["normal","Normal"],["high","Wichtig"]])));
-  if(x.repeat !== "once") form.appendChild(kField("An diesen Tagen", kDayPicker(x), true));
+  if(x.repeat === "recurring") form.appendChild(kField("An diesen Tagen", kDayPicker(x), true));
   fc.appendChild(form);
+
+  fc.appendChild(el("div",{style:"font-weight:650;font-size:14px;margin:18px 0 8px;"}, "Checkliste (optional)"));
+  const rows = el("div",{class:"k-rows"});
+  x.checklist.forEach((item,i)=>{
+    rows.appendChild(el("div",{class:"k-step-row"},[
+      el("span",{class:"k-step-num"}, String(i+1)),
+      kIn(x.checklist, i, {type:"text", placeholder:"z. B. Fritteuse aus"}),
+      el("button",{type:"button", class:"del-btn", "aria-label":"Punkt entfernen", onclick:()=>{ x.checklist.splice(i,1); render(); }},[ic("x")])
+    ]));
+  });
+  fc.appendChild(rows);
+  fc.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-top:8px;", onclick:()=>{ x.checklist.push(""); render(); }}, "+ Punkt"));
+  fc.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-top:4px;"}, "Die Punkte werden am iPad einzeln abgehakt, z. B. für Öffnen oder Schließen."));
+
   fc.appendChild(kFormActions(d, async ()=>{
     const title = (x.title || "").trim();
     if(!title){ alert("Bitte einen Titel eingeben."); return; }
     if(x.repeat === "once" && !x.date){ alert("Bitte ein Datum wählen."); return; }
-    if(x.repeat !== "once" && !sortDays(x.days).length){ alert("Bitte mindestens einen Tag wählen."); return; }
+    if(x.repeat === "recurring" && !sortDays(x.days).length){ alert("Bitte mindestens einen Tag wählen."); return; }
+    if(x.repeat === "everyN" && (!(Number(x.every) >= 1) || !x.startDate)){ alert("Bitte „Alle … Tage“ (mindestens 1) und ein Startdatum eintragen."); return; }
+    if(x.startTime && x.dueTime && hmToMin(x.startTime) >= hmToMin(x.dueTime)){ alert("„Sichtbar ab“ muss vor „Erledigt bis“ liegen."); return; }
     const rec = {
-      title, description:(x.description || "").trim(), repeat:x.repeat,
+      title, description:(x.description || "").trim(), category:(x.category || "").trim() || "Sonstiges",
+      assignee: x.assignee || "all", repeat:x.repeat,
       date: x.repeat === "once" ? x.date : null,
-      days: x.repeat === "once" ? null : sortDays(x.days),
-      shift:x.shift, dueTime: x.dueTime || null, priority:x.priority
+      days: x.repeat === "recurring" ? sortDays(x.days) : null,
+      every: x.repeat === "everyN" ? Math.round(Number(x.every)) : null,
+      startDate: x.repeat === "everyN" ? x.startDate : null,
+      monthDay: x.repeat === "monthly" ? Number(x.monthDay) || 1 : null,
+      shift:x.shift, startTime: x.startTime || null, dueTime: x.dueTime || null, priority:x.priority,
+      checklist: x.checklist.map(s=> String(s || "").trim()).filter(Boolean)
     };
+    if(!rec.checklist.length) rec.checklist = null;
     if(d.id) await update(ref(db, `kitchen/tasks/${d.id}`), rec);
     else await set(push(ref(db, "kitchen/tasks")), {...rec, active:true, createdAt:Date.now()});
     state.kDraft = null; render();
   }));
   wrap.appendChild(fc);
 
-  const all = Object.entries(state.kitchen.tasks || {}).sort((a,b)=> a[1].title.localeCompare(b[1].title));
+  // Alle Aufgaben, nach Kategorie gruppiert
+  const all = Object.entries(state.kitchen.tasks || {}).filter(([id,t])=> t).sort((a,b)=> a[1].title.localeCompare(b[1].title));
   const lc = el("div",{class:"card"});
   lc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, `Alle Aufgaben (${all.length})`));
   if(!all.length) lc.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Noch keine Aufgaben angelegt."));
-  all.forEach(([id,t])=>{
-    const past = t.repeat === "once" && t.date && t.date < today;
-    lc.appendChild(kListRow({
-      title: t.title,
-      sub: kTaskWhen(t) + (past ? " · vorbei" : "") + (t.active === false ? " · pausiert" : ""),
-      paused: t.active === false || past,
-      onToggle: ()=> update(ref(db, `kitchen/tasks/${id}`), {active: t.active === false}),
-      onEdit: ()=> kStartEdit("task", id, Object.assign(kClone(K_TASK_DEFAULTS), kClone(t), {date:t.date || "", dueTime:t.dueTime || "", days:t.days || []})),
-      onDelete: ()=>{ if(confirm(`Aufgabe „${t.title}“ löschen?`)) remove(ref(db, `kitchen/tasks/${id}`)); }
-    }));
+  kSortCats([...new Set(all.map(([id,t])=> kTaskCat(t)))]).forEach(cat=>{
+    lc.appendChild(el("div",{class:"k-admin-cat"},[ el("span",{class:"k-cat-dot", style:`background:${kCatColor(cat)};`}), cat ]));
+    all.filter(([id,t])=> kTaskCat(t) === cat).forEach(([id,t])=>{
+      const past = t.repeat === "once" && t.date && t.date < today;
+      const n = kChecklist(t).length;
+      lc.appendChild(kListRow({
+        title: t.title,
+        sub: kTaskWhen(t) + (n ? ` · ${n} Punkte` : "") + (past ? " · vorbei" : "") + (t.active === false ? " · pausiert" : ""),
+        paused: t.active === false || past,
+        onToggle: ()=> update(ref(db, `kitchen/tasks/${id}`), {active: t.active === false}),
+        onEdit: ()=> kStartEdit("task", id, Object.assign(kClone(K_TASK_DEFAULTS), kClone(t), {
+          date:t.date || "", dueTime:t.dueTime || "", startTime:t.startTime || "", days:t.days || [],
+          category:t.category || "", assignee:t.assignee || "all", every:String(t.every || 2), startDate:t.startDate || "",
+          monthDay:String(t.monthDay || 1), checklist:(t.checklist || []).slice(), repeat:t.repeat || "recurring"
+        })),
+        onDelete: ()=>{ if(confirm(`Aufgabe „${t.title}“ löschen?`)) remove(ref(db, `kitchen/tasks/${id}`)); }
+      }));
+    });
   });
   wrap.appendChild(lc);
   return wrap;
