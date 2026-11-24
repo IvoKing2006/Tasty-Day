@@ -916,10 +916,79 @@
   .cat-chip:hover{border-color:var(--mango);box-shadow:0 2px 8px rgba(237,168,80,.2);}
   .cat-chip:focus-visible{outline:2px solid var(--mango);outline-offset:2px;}
   #cat-detail .cat-note.big{margin-bottom:12px;}
-  .cat-item-row{display:grid;grid-template-columns:1fr 80px 110px 36px;gap:8px;align-items:center;}
-  @media (max-width:560px){ .cat-item-row{grid-template-columns:1fr 64px 86px 36px;} }
-  .cat-total{font-weight:700;font-size:15px;margin-top:10px;text-align:right;font-variant-numeric:tabular-nums;}
-  .cat-status{width:auto !important;min-width:130px;height:38px;}
+  .cat-note-facts{margin-top:3px;font-weight:600;}
+  .cat-note-sub{margin-top:8px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);}
+  .cat-note.big .cat-note-sub{font-size:12.5px;}
+  .cat-note-warn{display:flex;align-items:flex-start;gap:6px;margin-top:8px;padding:7px 10px;border-radius:9px;background:var(--chili-soft);color:var(--chili);font-weight:650;}
+  .cat-note-warn .ic{width:15px;height:15px;margin-top:2px;flex-shrink:0;}
+  /* Catering-Bereich (Chef) */
+  .cat-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  .cat-filter{display:inline-flex;align-items:center;gap:8px;padding:8px 12px 8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--bg-elevated);color:var(--text);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;}
+  .cat-filter:hover:not(.active){background:var(--bg-elevated-2);}
+  .cat-filter.active{background:var(--ink);border-color:var(--ink);color:var(--bg-elevated);}
+  .cat-filter-n{min-width:22px;padding:1px 7px;border-radius:999px;background:var(--bg-elevated-2);color:var(--text-muted);font-size:12px;text-align:center;font-variant-numeric:tabular-nums;}
+  .cat-filter.active .cat-filter-n{background:rgba(255,255,255,.18);color:inherit;}
+  .cat-row{display:flex;align-items:center;gap:14px;width:100%;text-align:left;font:inherit;color:var(--text);background:none;border:none;border-radius:14px;padding:12px;cursor:pointer;}
+  .cat-row + .cat-row{border-top:1px solid var(--line);border-radius:0 0 14px 14px;}
+  .cat-row:hover{background:var(--bg-elevated-2);border-radius:14px;}
+  .cat-row.canceled{opacity:.5;}
+  .cat-row.compact{flex-wrap:wrap;}
+  .cat-row.compact .cat-row-main{flex:1 1 140px;}
+  .cat-row.compact .cat-row-pills{order:5;flex-basis:100%;justify-content:flex-start;margin-left:62px;}
+  .cat-row-date{width:48px;flex-shrink:0;text-align:center;border-radius:12px;background:var(--mango-soft);padding:6px 0;}
+  .cat-row-date .dd{font-size:19px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;}
+  .cat-row-date .mm{font-size:11.5px;font-weight:650;color:var(--mango);text-transform:uppercase;}
+  .cat-row-main{flex:1;min-width:0;}
+  .cat-row-title{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-weight:650;font-size:15px;}
+  .cat-row-no{font-size:12px;font-weight:600;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+  .cat-row-sub{font-size:13px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cat-row-pills{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+  .cat-row-sum{text-align:right;min-width:92px;font-variant-numeric:tabular-nums;}
+  .cat-row-sum .t{font-weight:700;font-size:15px;}
+  .cat-row-sum .o{font-size:12px;color:var(--text-muted);margin-top:2px;}
+  .cat-pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:650;white-space:nowrap;background:var(--bg-elevated-2);color:var(--text-muted);}
+  .cat-pill.st-confirmed{background:var(--avocado-soft);color:var(--avocado);}
+  .cat-pill.st-requested{background:var(--mango-soft);color:var(--mango);}
+  .cat-pill.st-canceled, .cat-pill.pay-overdue, .cat-pill.warn{background:var(--chili-soft);color:var(--chili);}
+  .cat-pill.pay-paid{background:var(--avocado-soft);color:var(--avocado);}
+  .cat-pill.pay-partial, .cat-pill.pay-open{background:var(--mango-soft);color:var(--mango);}
+  .cat-avatar{width:42px;height:42px;flex-shrink:0;border-radius:12px;background:var(--avocado-soft);color:var(--avocado);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;}
+  .cat-avatar.big{width:56px;height:56px;border-radius:16px;font-size:19px;}
+  @media (max-width:640px){
+    .cat-row{flex-wrap:wrap;gap:10px;}
+    .cat-row-main{flex-basis:calc(100% - 70px);}
+    .cat-row-pills{justify-content:flex-start;margin-left:62px;}
+    .cat-row-sum{margin-left:auto;}
+  }
+  .cat-editor-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start;}
+  .cat-editor-grid > div{display:flex;flex-direction:column;gap:16px;min-width:0;}
+  .cat-editor-grid .card{margin-bottom:0;}
+  .cat-editor-grid.profile{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);}
+  @media (max-width:980px){ .cat-editor-grid, .cat-editor-grid.profile{grid-template-columns:1fr;} }
+  .cat-section-title{margin:0 0 14px;font-size:16px;display:flex;align-items:center;gap:2px;}
+  .cat-sub-title{font-weight:650;font-size:13.5px;margin:6px 0 8px;}
+  .cat-item-row{display:grid;grid-template-columns:1fr 70px 100px 32px;gap:8px;align-items:center;margin-bottom:8px;}
+  .cat-item-head{font-size:12px;color:var(--text-muted);margin-bottom:4px;}
+  .cat-loan-row{display:grid;grid-template-columns:1fr 64px auto 32px;gap:8px;align-items:center;margin-bottom:8px;}
+  .cat-pay-row{display:grid;grid-template-columns:minmax(130px,1fr) 90px minmax(140px,1.2fr) 32px;gap:8px;align-items:center;margin-bottom:8px;}
+  @media (max-width:560px){ .cat-pay-row{grid-template-columns:1fr 90px 32px;} .cat-pay-row > select{grid-column:1 / 3;} }
+  .cat-check{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:550;cursor:pointer;white-space:nowrap;}
+  .cat-check input{width:17px;height:17px;accent-color:var(--brand);}
+  .cat-summary{margin-top:16px;border-top:1px solid var(--line);padding-top:10px;font-variant-numeric:tabular-nums;}
+  .cat-sum-line{display:flex;justify-content:space-between;padding:4px 0;font-size:14px;}
+  .cat-sum-line.total{font-size:17px;font-weight:700;border-top:1px solid var(--line);margin-top:6px;padding-top:10px;}
+  .cat-sum-line.muted{font-size:12.5px;color:var(--text-muted);}
+  .cat-pay-open{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--bg-elevated-2);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .cat-pay-open strong{font-size:17px;}
+  .cat-pay-open .neg{color:var(--chili);} .cat-pay-open .pos{color:var(--avocado);}
+  .cat-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px;}
+  .cat-del:hover{color:var(--chili);border-color:var(--chili);}
+  .cat-info{display:flex;gap:12px;align-items:flex-start;padding:9px 0;}
+  .cat-info + .cat-info{border-top:1px solid var(--line);}
+  .cat-info .ic{width:17px;height:17px;color:var(--text-muted);margin-top:2px;flex-shrink:0;}
+  .cat-info .l{font-size:12px;color:var(--text-muted);}
+  .cat-info .v{font-size:14.5px;font-weight:550;white-space:pre-wrap;color:var(--text);}
+  .cat-info a.v{color:var(--brand);text-decoration:none;}
 </style>
 </head>
 <body>
@@ -1741,11 +1810,13 @@ const TAB_META = {
   finance:{label:"Finanzen", icon:"wallet"},
   recipes:{label:"Kalkulation", icon:"calculator"},
   kitchen:{label:"Küchen-Modus", icon:"tablet"},
+  catering:{label:"Catering", icon:"utensils"},
   team:{label:"Mitarbeiter", icon:"users"},
 };
 const CHEF_GROUPS = [
   {key:"overview", label:"Übersicht", icon:"grid", tabs:["dashboard"]},
   {key:"planning", label:"Planung", icon:"calendar", tabs:["plan","schedule","allavail","swaps"]},
+  {key:"catering", label:"Catering", icon:"utensils", tabs:["catering"]},
   {key:"team", label:"Team", icon:"users", tabs:["alltimes","team"]},
   {key:"numbers", label:"Zahlen", icon:"chart", tabs:["stats","costs","finance"]},
   {key:"kitchen", label:"Küche", icon:"package", tabs:["inventory","recipes","kitchen"]},
@@ -1756,7 +1827,7 @@ function navItemKeys(){
   const isChefRole = state.currentUser.role === "chef";
   const isHiddenAdmin = !isChefRole && state.currentUser.isAdmin === true;
   const employeeTabs = ["availability","schedule","mytimes","inventory"];
-  const chefTabs = ["dashboard","plan","allavail","alltimes","swaps","stats","costs","finance","inventory","recipes","team","kitchen"];
+  const chefTabs = ["dashboard","plan","allavail","alltimes","swaps","catering","stats","costs","finance","inventory","recipes","team","kitchen"];
   if(isChefRole) return {mine:[], chef:["dashboard","plan","schedule",...chefTabs.slice(2)]};
   if(isHiddenAdmin) return {mine:employeeTabs, chef:chefTabs.filter(t=> t !== "inventory")};
   return {mine:employeeTabs, chef:[]};
@@ -2258,6 +2329,7 @@ function renderTabContent(){
     case "inventory": return renderInventory();
     case "recipes": return renderRecipes();
     case "kitchen": return renderKitchenAdmin();
+    case "catering": return renderCatering();
     default: return el("div",{},"—");
   }
 }
@@ -2500,7 +2572,8 @@ function buildScheduleBoard(editable, empIds, dates, wid, groupKey, showDayInfo)
         const me = state.currentUser.id;
         const assigns = (state.weekData.schedule && state.weekData.schedule[d.key] && state.weekData.schedule[d.key][shift.key]) || {};
         if(!empIds.includes(me) || !Object.values(assigns).some(a=> a && a.employeeId === me)) return [];
-        list = cateringsForDate(dateKey, shift.key).filter(([cid])=> !shownCats.has(cid));
+        // passende Schicht – oder mir als Fahrer zugewiesen (dann bei meiner ersten Schicht des Tages)
+        list = cateringsForDate(dateKey, null).filter(([cid,c])=> !shownCats.has(cid) && (cateringMatchesShift(c, shift.key) || c.driverId === me));
       }
       list.forEach(([cid])=> shownCats.add(cid));
       return list;
@@ -6115,10 +6188,10 @@ function renderKitchenAdmin(){
   section.appendChild(el("div",{class:"section-head"},[
     el("div",{},[
       el("h2",{class:"section-title"}, "Küchen-Modus"),
-      el("p",{class:"section-sub"}, "Aufgaben, Rezepte, Caterings und Alarme für das Küchen-iPad. Alarme ertönen nur dort.")
+      el("p",{class:"section-sub"}, "Aufgaben, Rezepte und Alarme für das Küchen-iPad. Alarme ertönen nur dort.")
     ])
   ]));
-  const views = [["tasks","clipboard","Aufgaben"],["recipes","bowl","Rezepte"],["caterings","utensils","Catering"],["customers","users","Kunden"],["alarms","bell","Alarme"],["log","clock","Protokoll"],["account","tablet","iPad-Konto"]];
+  const views = [["tasks","clipboard","Aufgaben"],["recipes","bowl","Rezepte"],["alarms","bell","Alarme"],["log","clock","Protokoll"],["account","tablet","iPad-Konto"]];
   const row = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"});
   views.forEach(([k,icn,l])=> row.appendChild(el("button",{class:`tab ${state.kAdmin.view===k?"active":""}`, onclick:()=>{ state.kAdmin.view = k; state.kDraft = null; render(); }}, icl(icn,l))));
   section.appendChild(row);
@@ -6136,8 +6209,6 @@ function renderKitchenAdmin(){
 
   const v = state.kAdmin.view;
   if(v === "recipes") section.appendChild(renderKAdminRecipes());
-  else if(v === "caterings") section.appendChild(renderKAdminCaterings());
-  else if(v === "customers") section.appendChild(renderKAdminCustomers());
   else if(v === "alarms") section.appendChild(renderKAdminAlarms());
   else if(v === "log") section.appendChild(renderKAdminLog());
   else if(v === "account") section.appendChild(renderKAdminAccount());
@@ -6292,16 +6363,50 @@ function renderKAdminRecipes(){
 }
 
 // ---------- Catering & Kunden ----------
-// Daten: kitchen/customers, kitchen/caterings. Bezahlte Caterings stehen als Umsatz unter revenue/catering_{id}.
-const K_CATERING_STATUS = [["requested","Angefragt"],["confirmed","Bestätigt"],["done","Erledigt"],["paid","Bezahlt"],["canceled","Storniert"]];
-const K_CATERING_STATUS_LABEL = Object.fromEntries(K_CATERING_STATUS);
+// Eigener Bereich „Catering“ (Chef). Daten: kitchen/customers, kitchen/caterings.
+// Jede Zahlung steht als Umsatz unter revenue/catering_{auftragId}_{zahlungId} (Datum = Zahlungsdatum).
+const K_CATERING_STATUS = [["requested","Angefragt"],["confirmed","Bestätigt"],["done","Erledigt"],["canceled","Storniert"]];
+const K_CATERING_STATUS_LABEL = Object.assign(Object.fromEntries(K_CATERING_STATUS), {paid:"Erledigt"});
 const K_CATERING_VISIBLE = ["confirmed","done","paid"]; // nur diese sehen Mitarbeiter und das iPad
-const K_CUSTOMER_DEFAULTS = {name:"", company:"", phone:"", email:"", address:"", notes:""};
-const K_CATERING_DEFAULTS = {customerId:"", newCustomer:{name:"", company:"", phone:"", email:"", address:"", notes:""}, date:"", time:"", shift:"both", mode:"delivery", address:"", items:[{name:"", qty:"1", price:""}], notes:"", status:"requested"};
+const K_PAY_METHODS = [["cash","Bar"],["card","EC-/Kreditkarte"],["transfer","Überweisung"],["invoice","Auf Rechnung"],["paypal","PayPal"]];
+const K_PAY_LABEL = Object.fromEntries(K_PAY_METHODS);
+const K_CUSTOMER_DEFAULTS = {name:"", company:"", phone:"", email:"", address:"", billingDifferent:false, billingAddress:"", notes:""};
+const K_CATERING_DEFAULTS = {
+  customerId:"", newCustomer:null, occasion:"", guests:"", status:"requested",
+  date:"", time:"", readyTime:"", shift:"both", mode:"delivery", address:"", driverId:"",
+  items:[{name:"", qty:"1", price:""}], vatRate:"7", discountType:"pct", discountValue:"", deliveryFee:"",
+  paymentMethod:"transfer", dueDate:"", payments:[],
+  loanItems:[], returnDue:"", dietary:"", notes:"", internalNotes:""
+};
 
 function kNum(v){ const n = parseFloat(String(v == null ? "" : v).replace(/\s/g,"").replace(",", ".")); return isFinite(n) ? n : 0; }
 function kNumStr(n){ return (n === "" || n == null) ? "" : String(n).replace(".", ","); }
-function cateringTotal(c){ return Math.round((c.items || []).reduce((s,i)=> s + kNum(i.qty) * kNum(i.price), 0) * 100) / 100; }
+function kRound(n){ return Math.round(n * 100) / 100; }
+function cateringPayments(c){
+  const p = c.payments || [];
+  return Array.isArray(p) ? p.filter(Boolean) : Object.values(p).filter(Boolean);
+}
+// Alle Preise sind Bruttopreise (inkl. MwSt.)
+function cateringCalc(c){
+  const subtotal = kRound((c.items || []).reduce((s,i)=> s + kNum(i.qty) * kNum(i.price), 0));
+  const dv = kNum(c.discountValue);
+  const discount = kRound(Math.min(subtotal, Math.max(0, c.discountType === "eur" ? dv : subtotal * dv / 100)));
+  const delivery = c.mode === "pickup" ? 0 : kRound(Math.max(0, kNum(c.deliveryFee)));
+  const total = kRound(subtotal - discount + delivery);
+  const rate = kNum(c.vatRate || 7);
+  const vat = kRound(total - total / (1 + rate / 100));
+  const paid = kRound(cateringPayments(c).reduce((s,p)=> s + kNum(p.amount), 0));
+  const open = kRound(total - paid);
+  let payState = "open";
+  if(total <= 0 && paid <= 0) payState = "none";
+  else if(open <= 0.004) payState = "paid";
+  else if(paid > 0) payState = "partial";
+  const overdue = open > 0.004 && c.dueDate && c.dueDate < toDateKey(new Date()) && c.status !== "canceled";
+  return {subtotal, discount, delivery, total, rate, vat, net: kRound(total - vat), paid, open, payState, overdue};
+}
+function cateringTotal(c){ return cateringCalc(c).total; }
+const K_PAY_STATE_LABEL = {open:"Offen", partial:"Angezahlt", paid:"Bezahlt", none:"–"};
+
 function customerLabel(cu){
   if(!cu) return "";
   if(cu.company) return cu.name ? `${cu.company} (${cu.name})` : cu.company;
@@ -6311,33 +6416,51 @@ function cateringCustomer(c){ return (state.kitchen.customers || {})[c.customerI
 function cateringCustomerLabel(c){ return customerLabel(cateringCustomer(c)) || c.customerLabel || "Unbekannter Kunde"; }
 function cateringShortName(c){ const cu = cateringCustomer(c); return cu ? (cu.company || cu.name) : (c.customerLabel || "Kunde"); }
 function cateringDateStr(c){ return c.date ? localDateFromKey(c.date).toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit", year:"numeric"}) : "?"; }
+function fmtDateKey(k){ return k ? localDateFromKey(k).toLocaleDateString("de-DE") : ""; }
+function empName(id){ return (id && state.employees[id]) ? state.employees[id].name : ""; }
+function loanOpen(c){ return (c.loanItems || []).some(l=> l && l.name && !l.returned) && c.status !== "canceled"; }
 
 // Caterings für Mitarbeiter/iPad an einem Tag (optional nur für eine Schicht)
+function cateringMatchesShift(c, shiftKey){ return !shiftKey || !c.shift || c.shift === "both" || c.shift === shiftKey; }
 function cateringsForDate(dateKey, shiftKey, includeRequested){
   return Object.entries(state.kitchen.caterings || {}).filter(([id,c])=>{
     if(!c || c.date !== dateKey) return false;
     if(!(K_CATERING_VISIBLE.includes(c.status) || (includeRequested && c.status === "requested"))) return false;
-    if(shiftKey && c.shift && c.shift !== "both" && c.shift !== shiftKey) return false;
-    return true;
+    return cateringMatchesShift(c, shiftKey);
   }).sort((a,b)=> (a[1].time || "99:99").localeCompare(b[1].time || "99:99"));
 }
 
-// Hinweis-Kasten: ohne Preise und Kontaktdaten
+// Hinweis-Kasten für Team und iPad: ohne Preise, Kontaktdaten und interne Notiz
 function renderCateringNote(c, opts){
   opts = opts || {};
   const box = el("div",{class:`cat-note ${opts.big ? "big" : ""}`});
   box.appendChild(el("div",{class:"cat-note-title"},[ ic("utensils"), `Catering · ${cateringShortName(c)}` ]));
   const meta = [
-    c.time ? `${c.time} Uhr` : null,
-    c.mode === "pickup" ? "Abholung" : "Lieferung",
+    c.number || null,
+    c.time ? `${c.mode === "pickup" ? "Abholung" : "Lieferung"} ${c.time} Uhr` : (c.mode === "pickup" ? "Abholung" : "Lieferung"),
     opts.showShift ? (K_SHIFT_LABEL[c.shift] || "Ganzer Tag") : null,
     c.status === "requested" ? "noch angefragt" : null
   ].filter(Boolean).join(" · ");
   box.appendChild(el("div",{class:"cat-note-meta"}, meta));
-  if(opts.compact) return box;
+  const facts = [
+    c.readyTime ? `Fertig bis ${c.readyTime} Uhr` : null,
+    c.guests ? `${c.guests} Personen` : null,
+    c.occasion || null,
+    (c.mode !== "pickup" && c.driverId && empName(c.driverId)) ? `Fahrer: ${empName(c.driverId)}` : null
+  ].filter(Boolean);
+  if(facts.length) box.appendChild(el("div",{class:"cat-note-facts"}, facts.join(" · ")));
   if(c.mode !== "pickup" && c.address) box.appendChild(el("div",{class:"cat-note-line"},[ ic("mapPin"), el("span",{}, c.address) ]));
+  if(c.dietary) box.appendChild(el("div",{class:"cat-note-warn"},[ ic("alert"), el("span",{}, c.dietary) ]));
   const items = (c.items || []).filter(i=> i && i.name);
-  if(items.length) box.appendChild(el("ul",{class:"cat-note-items"}, items.map(i=> el("li",{}, `${kNumStr(i.qty) || "1"} × ${i.name}`))));
+  if(items.length){
+    box.appendChild(el("div",{class:"cat-note-sub"}, "Positionen"));
+    box.appendChild(el("ul",{class:"cat-note-items"}, items.map(i=> el("li",{}, `${kNumStr(i.qty) || "1"} × ${i.name}`))));
+  }
+  const loans = (c.loanItems || []).filter(l=> l && l.name);
+  if(loans.length){
+    box.appendChild(el("div",{class:"cat-note-sub"}, "Mitnehmen (Leihmaterial)"));
+    box.appendChild(el("ul",{class:"cat-note-items"}, loans.map(l=> el("li",{}, `${kNumStr(l.qty) || "1"} × ${l.name}${l.returned ? " (zurück)" : ""}`))));
+  }
   if(c.notes) box.appendChild(el("div",{class:"cat-note-text"}, c.notes));
   return box;
 }
@@ -6360,226 +6483,646 @@ function closeCateringDetail(){
 }
 function catDetailEsc(e){ if(e.key === "Escape") closeCateringDetail(); }
 
-// Umsatz in „Finanzen“ passend zum Status halten (Datum = Tag, an dem auf „Bezahlt“ gesetzt wurde)
-async function syncCateringRevenue(id, c){
-  const path = `revenue/catering_${id}`;
-  if(c && c.status === "paid"){
-    await set(ref(db, path), {
-      date: c.paidDate || toDateKey(new Date()), amount: cateringTotal(c),
-      source:"catering", cateringId:id, note:`Catering ${c.customerLabel || ""}`.trim()
-    });
-  } else {
-    await remove(ref(db, path));
+// ---------- Speichern, Umsatz, Nummern ----------
+function paymentList(c){
+  // Zahlungen als Objekt {id: zahlung}, damit jede Zahlung ihren eigenen Umsatz-Eintrag hat
+  const p = c.payments || {};
+  if(Array.isArray(p)) return Object.fromEntries(p.filter(Boolean).map((x,i)=> [x.id || ("p" + i), x]));
+  return p;
+}
+async function syncCateringRevenue(id, c, old){
+  const updates = {};
+  const now = c ? paymentList(c) : {};
+  const before = old ? paymentList(old) : {};
+  Object.keys(before).forEach(pid=>{ if(!now[pid]) updates[`revenue/catering_${id}_${pid}`] = null; });
+  Object.entries(now).forEach(([pid,p])=>{
+    updates[`revenue/catering_${id}_${pid}`] = {
+      date: p.date || toDateKey(new Date()), amount: kRound(kNum(p.amount)),
+      source:"catering", cateringId:id, note:`Catering ${(c && c.number) || ""} ${(c && c.customerLabel) || ""}`.replace(/\s+/g," ").trim()
+    };
+  });
+  updates[`revenue/catering_${id}`] = null; // alter Eintrag aus der ersten Version
+  await update(ref(db), updates);
+}
+function nextCateringNumber(year){
+  let max = 0;
+  Object.values(state.kitchen.caterings || {}).forEach(c=>{
+    const m = c && c.number && String(c.number).match(/^CAT-(\d{4})-(\d+)$/);
+    if(m && Number(m[1]) === year) max = Math.max(max, Number(m[2]));
+  });
+  return `CAT-${year}-${String(max + 1).padStart(3,"0")}`;
+}
+// Einmalig: Aufträge aus der ersten Version (Status „Bezahlt“, ohne Nummer) übernehmen
+let cateringMigrated = false;
+async function migrateCaterings(){
+  if(cateringMigrated) return;
+  cateringMigrated = true;
+  const all = Object.entries(state.kitchen.caterings || {}).filter(([id,c])=> c).sort((a,b)=> (a[1].createdAt||0) - (b[1].createdAt||0));
+  for(const [id,c] of all){
+    const upd = {};
+    if(!c.number){
+      const y = Number((c.date || toDateKey(new Date())).slice(0,4));
+      upd.number = nextCateringNumber(y);
+      c.number = upd.number; // für die nächste Nummer im selben Durchlauf
+    }
+    if(c.status === "paid"){
+      const total = cateringCalc(c).total;
+      upd.status = "done";
+      upd.paidDate = null;
+      upd.payments = {legacy:{date: c.paidDate || c.date || toDateKey(new Date()), amount: total, method:"cash", note:"aus alter Version"}};
+    }
+    if(Object.keys(upd).length){
+      await update(ref(db, `kitchen/caterings/${id}`), upd);
+      if(upd.payments) await syncCateringRevenue(id, Object.assign({}, c, upd), null);
+    }
   }
 }
-async function setCateringStatus(id, status){
-  const c = (state.kitchen.caterings || {})[id];
-  if(!c) return;
-  const upd = {status, paidDate: status === "paid" ? (c.status === "paid" && c.paidDate ? c.paidDate : toDateKey(new Date())) : null};
-  await update(ref(db, `kitchen/caterings/${id}`), upd);
-  await syncCateringRevenue(id, Object.assign({}, c, upd));
+
+// ---------- Bereich „Catering“ ----------
+function catUi(){ if(!state.cat) state.cat = {view:"orders", filter:"upcoming", q:"", edit:null, customerId:null, custEdit:null, custQ:""}; return state.cat; }
+function catIn(obj, key, attrs, idKey){
+  const i = kIn(obj, key, attrs);
+  if(idKey) i.id = "cat-" + idKey;
+  return i;
+}
+function catPill(text, kind){ return el("span",{class:`cat-pill ${kind || ""}`}, text); }
+function catStatusPill(c){
+  const k = c.status === "paid" ? "done" : (c.status || "requested");
+  return catPill(K_CATERING_STATUS_LABEL[k] || k, "st-" + k);
+}
+function catPayPill(calc, c){
+  if(calc.payState === "none") return null;
+  if(c && (c.status === "canceled" || c.status === "requested") && calc.paid <= 0) return null;
+  if(calc.overdue) return catPill("Überfällig", "pay-overdue");
+  return catPill(K_PAY_STATE_LABEL[calc.payState], "pay-" + calc.payState);
 }
 
-function renderKAdminCaterings(){
+function renderCatering(){
+  const ui = catUi();
+  migrateCaterings();
+  const section = el("div",{});
+  if(ui.edit) return renderCateringEditor();
+  if(ui.custEdit) return renderCustomerEditor();
+  if(ui.view === "customers" && ui.customerId && (state.kitchen.customers || {})[ui.customerId]) return renderCustomerProfile(ui.customerId);
+
+  section.appendChild(el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, "Catering"),
+      el("p",{class:"section-sub"}, "Aufträge, Kunden, Zahlungen und Logistik.")
+    ]),
+    el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 20px;", onclick:()=> ui.view === "customers" ? openCustomerEditor(null) : openCateringEditor(null)},
+      icl("plus", ui.view === "customers" ? "Neuer Kunde" : "Neues Catering"))
+  ]));
+  const tabs = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"});
+  [["orders","clipboard","Aufträge"],["customers","users","Kunden"]].forEach(([k,icn,l])=>
+    tabs.appendChild(el("button",{class:`tab ${ui.view===k?"active":""}`, onclick:()=>{ ui.view = k; ui.customerId = null; render(); }}, icl(icn,l))));
+  section.appendChild(tabs);
+  section.appendChild(ui.view === "customers" ? renderCustomerList() : renderOrderList());
+  return section;
+}
+
+// ---------- Auftragsliste ----------
+function renderOrderList(){
+  const ui = catUi();
   const wrap = el("div",{});
+  const today = toDateKey(new Date());
+  const all = Object.entries(state.kitchen.caterings || {}).filter(([id,c])=> c);
+  const filters = [
+    ["upcoming","Kommend", ([id,c])=> (c.date||"") >= today && c.status !== "canceled"],
+    ["unpaid","Offene Zahlungen", ([id,c])=> c.status !== "canceled" && cateringCalc(c).open > 0.004 && c.status !== "requested"],
+    ["loans","Leihmaterial offen", ([id,c])=> loanOpen(c)],
+    ["past","Vergangen", ([id,c])=> (c.date||"") < today],
+    ["all","Alle", ()=> true]
+  ];
+  const chips = el("div",{class:"cat-filters"});
+  filters.forEach(([k,l,fn])=>{
+    const n = all.filter(fn).length;
+    chips.appendChild(el("button",{class:`cat-filter ${ui.filter===k?"active":""}`, onclick:()=>{ ui.filter = k; render(); }},[ l, el("span",{class:"cat-filter-n"}, String(n)) ]));
+  });
+  wrap.appendChild(chips);
+  const search = el("input",{type:"search", id:"cat-order-search", class:"select-emp", style:"width:100%;margin-bottom:14px;", placeholder:"Suchen: Kunde, Nummer, Anlass …"});
+  search.value = ui.q || "";
+  search.addEventListener("input", ()=>{ ui.q = search.value; render(); });
+  wrap.appendChild(search);
+
+  const f = (filters.find(x=> x[0] === ui.filter) || filters[0])[2];
+  const q = (ui.q || "").trim().toLowerCase();
+  let list = all.filter(f).filter(([id,c])=> !q || [c.number, cateringCustomerLabel(c), c.occasion, c.address].join(" ").toLowerCase().includes(q));
+  const desc = ui.filter === "past" || ui.filter === "all";
+  list.sort((a,b)=>{ const x = (a[1].date||"") + (a[1].time||""), y = (b[1].date||"") + (b[1].time||""); return desc ? y.localeCompare(x) : x.localeCompare(y); });
+
+  const card = el("div",{class:"card", style:"padding:8px;"});
+  if(!list.length){
+    card.appendChild(el("div",{class:"empty-state", style:"padding:36px 20px;"}, all.length ? "Keine Aufträge in dieser Ansicht." : "Noch keine Caterings. Leg oben rechts das erste an."));
+  }
+  list.forEach(([id,c])=> card.appendChild(renderOrderRow(id, c)));
+  wrap.appendChild(card);
+  return wrap;
+}
+function renderOrderRow(id, c, inProfile){
+  const calc = cateringCalc(c);
+  const row = el("button",{type:"button", class:`cat-row ${inProfile ? "compact" : ""} ${c.status === "canceled" ? "canceled" : ""}`, onclick:()=> openCateringEditor(id)});
+  const d = c.date ? localDateFromKey(c.date) : null;
+  row.appendChild(el("div",{class:"cat-row-date"},[
+    el("div",{class:"dd"}, d ? String(d.getDate()).padStart(2,"0") : "–"),
+    el("div",{class:"mm"}, d ? d.toLocaleDateString("de-DE",{month:"short"}).replace(".","") : "")
+  ]));
+  const info = [
+    c.time ? `${c.time} Uhr` : null,
+    c.mode === "pickup" ? "Abholung" : "Lieferung",
+    c.guests ? `${c.guests} Pers.` : null,
+    inProfile ? null : (c.occasion || null)
+  ].filter(Boolean).join(" · ");
+  row.appendChild(el("div",{class:"cat-row-main"},[
+    el("div",{class:"cat-row-title"},[ el("span",{}, inProfile ? (c.occasion || "Catering") : cateringCustomerLabel(c)), c.number ? el("span",{class:"cat-row-no"}, c.number) : null ]),
+    el("div",{class:"cat-row-sub"}, info)
+  ]));
+  const pills = el("div",{class:"cat-row-pills"},[ catStatusPill(c), catPayPill(calc, c), loanOpen(c) && (c.date||"") < toDateKey(new Date()) ? catPill("Leihmaterial offen","warn") : null ]);
+  row.appendChild(pills);
+  row.appendChild(el("div",{class:"cat-row-sum"},[
+    el("div",{class:"t"}, fmtMoney(calc.total)),
+    calc.open > 0.004 && calc.paid > 0 ? el("div",{class:"o"}, `offen ${fmtMoney(calc.open)}`) : null
+  ]));
+  return row;
+}
+
+// ---------- Auftrag bearbeiten ----------
+function openCateringEditor(id, preset){
+  const ui = catUi();
+  let data;
+  if(id){
+    const c = (state.kitchen.caterings || {})[id];
+    if(!c) return;
+    data = Object.assign(kClone(K_CATERING_DEFAULTS), kClone(c));
+    data.items = (c.items || []).map(i=> ({name:i.name || "", qty:kNumStr(i.qty), price:kNumStr(i.price)}));
+    if(!data.items.length) data.items = [{name:"", qty:"1", price:""}];
+    data.payments = Object.entries(paymentList(c)).map(([pid,p])=> ({id:pid, date:p.date || "", amount:kNumStr(p.amount), method:p.method || "cash", note:p.note || ""}));
+    data.loanItems = (c.loanItems || []).filter(Boolean).map(l=> ({name:l.name || "", qty:kNumStr(l.qty), returned:!!l.returned}));
+    ["time","readyTime","address","driverId","occasion","dietary","notes","internalNotes","dueDate","returnDue"].forEach(k=> data[k] = c[k] || "");
+    data.guests = c.guests ? String(c.guests) : "";
+    data.vatRate = String(c.vatRate || 7);
+    data.discountValue = kNumStr(c.discountValue);
+    data.deliveryFee = kNumStr(c.deliveryFee);
+    if(data.status === "paid") data.status = "done";
+  } else {
+    data = Object.assign(kClone(K_CATERING_DEFAULTS), preset || {});
+  }
+  ui.edit = {id: id || null, data};
+  render();
+  window.scrollTo({top:0});
+}
+function closeCateringEditor(){ catUi().edit = null; render(); window.scrollTo({top:0}); }
+
+function catSection(title, icon, children){
+  const card = el("div",{class:"card cat-section"});
+  card.appendChild(el("h3",{class:"cat-section-title"}, icl(icon, title)));
+  children.forEach(ch=> ch && card.appendChild(ch));
+  return card;
+}
+
+function renderCateringEditor(){
+  const ui = catUi();
+  const ed = ui.edit; const x = ed.data;
   const customers = state.kitchen.customers || {};
-  const d = kDraft("catering", K_CATERING_DEFAULTS); const x = d.data;
-  if(!x.newCustomer) x.newCustomer = kClone(K_CUSTOMER_DEFAULTS);
-  if(!Array.isArray(x.items) || !x.items.length) x.items = [{name:"", qty:"1", price:""}];
+  const old = ed.id ? (state.kitchen.caterings || {})[ed.id] : null;
+  const wrap = el("div",{class:"cat-editor"});
 
-  const fc = el("div",{class:"card"});
-  fc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, d.id ? "Catering bearbeiten" : "+ Neues Catering"));
-  const form = el("div",{class:"k-form"});
+  wrap.appendChild(el("button",{class:"link-btn", style:"margin-bottom:10px;", onclick: closeCateringEditor}, "← Alle Aufträge"));
+  wrap.appendChild(el("div",{class:"section-head"},[
+    el("div",{},[
+      el("h2",{class:"section-title"}, ed.id ? `${old && old.number ? old.number + " · " : ""}${old ? cateringCustomerLabel(old) : "Catering"}` : "Neues Catering"),
+      el("p",{class:"section-sub"}, ed.id ? `Angelegt am ${old && old.createdAt ? new Date(old.createdAt).toLocaleDateString("de-DE") : "?"}` : "Alle Preise sind Bruttopreise (inkl. MwSt.).")
+    ])
+  ]));
 
-  // Kunde
-  const cs = el("select",{class:"select-emp", style:"width:100%;"});
+  const grid = el("div",{class:"cat-editor-grid"});
+  const colA = el("div",{}), colB = el("div",{});
+
+  // 1) Kunde & Anlass
+  const f1 = el("div",{class:"k-form"});
+  const cs = el("select",{class:"select-emp", id:"cat-customer", style:"width:100%;"});
   cs.appendChild(el("option",{value:""}, "– Kunde wählen –"));
   Object.entries(customers).sort((a,b)=> customerLabel(a[1]).localeCompare(customerLabel(b[1]))).forEach(([id,cu])=> cs.appendChild(el("option",{value:id}, customerLabel(cu))));
   cs.appendChild(el("option",{value:"__new"}, "+ Neuer Kunde …"));
-  cs.value = (x.customerId && (x.customerId === "__new" || customers[x.customerId])) ? x.customerId : "";
+  cs.value = (x.customerId === "__new" || customers[x.customerId]) ? x.customerId : "";
   cs.addEventListener("change", ()=>{
     const prev = customers[x.customerId];
     x.customerId = cs.value;
+    if(cs.value === "__new" && !x.newCustomer) x.newCustomer = kClone(K_CUSTOMER_DEFAULTS);
     const cu = customers[cs.value];
     if(cu && cu.address && (!x.address || (prev && x.address === prev.address))) x.address = cu.address;
     render();
   });
-  form.appendChild(kField("Kunde", cs, true));
+  f1.appendChild(kField("Kunde", cs, true));
   if(x.customerId === "__new"){
-    const nc = x.newCustomer;
-    form.appendChild(kField("Name (Ansprechpartner)", kIn(nc,"name",{type:"text", placeholder:"z. B. Anna Müller"})));
-    form.appendChild(kField("Firma (optional)", kIn(nc,"company",{type:"text", placeholder:"z. B. Firma XY GmbH"})));
-    form.appendChild(kField("Telefon (optional)", kIn(nc,"phone",{type:"tel", placeholder:"z. B. 0151 …"})));
-    form.appendChild(kField("E-Mail (optional)", kIn(nc,"email",{type:"email", placeholder:"z. B. anna@firma.de"})));
-    const ncAddr = kIn(nc,"address",{type:"text", placeholder:"Straße, PLZ Ort"});
-    ncAddr.addEventListener("input", ()=>{ if(x.mode !== "pickup") { x.address = nc.address; if(addrIn) addrIn.value = nc.address; } });
-    form.appendChild(kField("Adresse (optional)", ncAddr, true));
+    const nc = x.newCustomer || (x.newCustomer = kClone(K_CUSTOMER_DEFAULTS));
+    f1.appendChild(kField("Name (Ansprechpartner)", catIn(nc,"name",{type:"text", placeholder:"z. B. Anna Müller"},"nc-name")));
+    f1.appendChild(kField("Firma (optional)", catIn(nc,"company",{type:"text", placeholder:"z. B. Firma XY GmbH"},"nc-company")));
+    f1.appendChild(kField("Telefon", catIn(nc,"phone",{type:"tel", placeholder:"z. B. 0151 …"},"nc-phone")));
+    f1.appendChild(kField("E-Mail", catIn(nc,"email",{type:"email", placeholder:"z. B. anna@firma.de"},"nc-email")));
+    const ncAddr = catIn(nc,"address",{type:"text", placeholder:"Straße, PLZ Ort"},"nc-address");
+    ncAddr.addEventListener("input", ()=>{ if(x.mode !== "pickup"){ x.address = nc.address; const a = document.getElementById("cat-address"); if(a) a.value = nc.address; } });
+    f1.appendChild(kField("Adresse", ncAddr, true));
+    f1.appendChild(el("div",{style:"grid-column:1/-1;font-size:12.5px;color:var(--text-muted);"}, "Der Kunde wird beim Speichern angelegt. Rechnungsadresse & Notizen kannst du später im Kundenprofil ergänzen."));
   }
+  f1.appendChild(kField("Anlass", catIn(x,"occasion",{type:"text", placeholder:"z. B. Firmenfeier, Meeting"},"occasion")));
+  f1.appendChild(kField("Personen", catIn(x,"guests",{type:"number", min:"0", inputmode:"numeric", placeholder:"z. B. 30"},"guests")));
+  f1.appendChild(kField("Status", kSel(x,"status", K_CATERING_STATUS)));
+  colA.appendChild(catSection("Kunde & Anlass", "user", [f1]));
 
-  form.appendChild(kField("Datum", kIn(x,"date",{type:"date"})));
-  form.appendChild(kField("Uhrzeit (Lieferung/Abholung)", kIn(x,"time",{type:"time"})));
-  form.appendChild(kField("Schicht", kSel(x,"shift",[["both","Ganzer Tag"],["frueh","Früh"],["abend","Abend"]])));
-  form.appendChild(kField("Art", kSel(x,"mode",[["delivery","Lieferung"],["pickup","Abholung"]], true)));
-  let addrIn = null;
+  // 2) Termin & Logistik
+  const f2 = el("div",{class:"k-form"});
+  f2.appendChild(kField("Datum", catIn(x,"date",{type:"date"},"date")));
+  f2.appendChild(kField("Art", kSel(x,"mode",[["delivery","Lieferung"],["pickup","Abholung"]], true)));
+  f2.appendChild(kField(x.mode === "pickup" ? "Abholung um" : "Lieferung um", catIn(x,"time",{type:"time"},"time")));
+  f2.appendChild(kField("Fertig bis (Küche)", catIn(x,"readyTime",{type:"time"},"ready")));
+  f2.appendChild(kField("Schicht", kSel(x,"shift",[["both","Ganzer Tag"],["frueh","Früh"],["abend","Abend"]])));
   if(x.mode !== "pickup"){
-    addrIn = kIn(x,"address",{type:"text", placeholder:"Lieferadresse"});
-    form.appendChild(kField("Lieferadresse", addrIn, true));
+    const drivers = Object.keys(state.employees).filter(id=> isStaff(state.employees[id]) && state.employees[id].jobType === "fahrer");
+    f2.appendChild(kField("Fahrer", kSel(x,"driverId",[["","– noch offen –"], ...kStaffSorted(drivers).map(id=> [id, state.employees[id].name])])));
+    f2.appendChild(kField("Lieferadresse", catIn(x,"address",{type:"text", placeholder:"Straße, PLZ Ort"},"address"), true));
   }
-  form.appendChild(kField("Status", kSel(x,"status", K_CATERING_STATUS)));
-  fc.appendChild(form);
-
-  // Positionen
-  fc.appendChild(el("div",{style:"font-weight:650;font-size:14px;margin:18px 0 8px;"}, "Positionen"));
-  fc.appendChild(el("div",{class:"cat-item-row", style:"font-size:12px;color:var(--text-muted);margin-bottom:4px;"},[
-    el("span",{}, "Bezeichnung"), el("span",{}, "Menge"), el("span",{}, "Preis/Stück €"), el("span",{})
-  ]));
-  const totalEl = el("div",{class:"cat-total"});
-  const updTotal = ()=>{ totalEl.textContent = `Gesamt: ${fmtMoney(cateringTotal(x))}`; };
-  const rows = el("div",{class:"k-rows"});
-  x.items.forEach((it,i)=>{
-    const q = kIn(it,"qty",{type:"text", inputmode:"decimal", placeholder:"1"});
-    const p = kIn(it,"price",{type:"text", inputmode:"decimal", placeholder:"0,00"});
-    q.addEventListener("input", updTotal); p.addEventListener("input", updTotal);
-    rows.appendChild(el("div",{class:"cat-item-row"},[
-      kIn(it,"name",{type:"text", placeholder:"z. B. Poke Bowl Lachs"}), q, p,
-      el("button",{type:"button", class:"del-btn", "aria-label":"Position entfernen", onclick:()=>{ x.items.splice(i,1); render(); }},[ic("x")])
+  // Leihmaterial
+  const loanBox = el("div",{style:"grid-column:1/-1;"});
+  loanBox.appendChild(el("div",{class:"cat-sub-title"}, "Leihmaterial (Thermoboxen, Geschirr …)"));
+  if(!Array.isArray(x.loanItems)) x.loanItems = [];
+  x.loanItems.forEach((l,i)=>{
+    const cb = el("input",{type:"checkbox"}); cb.checked = !!l.returned;
+    cb.addEventListener("change", ()=>{ l.returned = cb.checked; });
+    loanBox.appendChild(el("div",{class:"cat-loan-row"},[
+      catIn(l,"name",{type:"text", placeholder:"z. B. Thermobox"},`loan-name-${i}`),
+      catIn(l,"qty",{type:"text", inputmode:"numeric", placeholder:"1"},`loan-qty-${i}`),
+      el("label",{class:"cat-check"},[cb, "zurück"]),
+      el("button",{type:"button", class:"del-btn", "aria-label":"Entfernen", onclick:()=>{ x.loanItems.splice(i,1); render(); }},[ic("x")])
     ]));
   });
-  fc.appendChild(rows);
-  fc.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-top:8px;", onclick:()=>{ x.items.push({name:"", qty:"1", price:""}); render(); }}, "+ Position"));
-  updTotal();
-  fc.appendChild(totalEl);
+  loanBox.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-top:4px;", onclick:()=>{ x.loanItems.push({name:"", qty:"1", returned:false}); render(); }}, "+ Leihmaterial"));
+  f2.appendChild(loanBox);
+  if(x.loanItems.length) f2.appendChild(kField("Rückgabe bis", catIn(x,"returnDue",{type:"date"},"returnDue")));
+  colA.appendChild(catSection("Termin & Logistik", "truck", [f2]));
 
-  fc.appendChild(el("div",{style:"margin-top:14px;"},[ kField("Notiz (optional, sehen die Mitarbeiter)", kTa(x,"notes","z. B. 5 davon vegan, Besteck mitgeben", 2)) ]));
+  // 3) Hinweise
+  const f3 = el("div",{class:"k-form"});
+  f3.appendChild(kField("Allergien / Ernährung (sieht das Team)", kTa(x,"dietary","z. B. 5× vegan, 2× glutenfrei, Nussallergie", 2), true));
+  f3.appendChild(kField("Notiz fürs Team", kTa(x,"notes","z. B. Besteck und Servietten mitgeben", 2), true));
+  f3.appendChild(kField("Interne Notiz (nur Chef)", kTa(x,"internalNotes","z. B. Preis mit Kunde verhandelt", 2), true));
+  colA.appendChild(catSection("Hinweise", "clipboard", [f3]));
 
-  fc.appendChild(kFormActions(d, async ()=>{
-    let customerId = x.customerId;
-    const nc = {};
-    Object.keys(K_CUSTOMER_DEFAULTS).forEach(k=> nc[k] = String(x.newCustomer[k] || "").trim());
-    if(customerId === "__new"){
-      if(!nc.name && !nc.company){ alert("Bitte Name oder Firma des neuen Kunden eingeben."); return; }
-    } else if(!customerId || !customers[customerId]){ alert("Bitte einen Kunden wählen."); return; }
-    if(!x.date){ alert("Bitte ein Datum wählen."); return; }
-    if(x.shift === "frueh" && WEEKEND.includes(dayKeyOf(localDateFromKey(x.date)))){ alert("Am Wochenende gibt es nur die Abendschicht. Bitte „Abend“ oder „Ganzer Tag“ wählen."); return; }
-    const items = x.items.map(i=> ({name:String(i.name || "").trim(), qty:kNum(i.qty) || 1, price:kNum(i.price)})).filter(i=> i.name);
-    if(!items.length){ alert("Bitte mindestens eine Position eintragen."); return; }
-    const address = x.mode === "pickup" ? "" : String(x.address || "").trim();
-    if(x.mode !== "pickup" && !address){ alert("Bitte eine Lieferadresse eingeben."); return; }
-
-    if(customerId === "__new"){
-      const cr = push(ref(db, "kitchen/customers"));
-      await set(cr, {...nc, createdAt:Date.now()});
-      customerId = cr.key;
-    }
-    const old = d.id ? (state.kitchen.caterings || {})[d.id] : null;
-    const rec = {
-      customerId, customerLabel: customerId === x.customerId ? customerLabel(customers[customerId]) : customerLabel(nc),
-      date:x.date, time:x.time || null, shift:x.shift, mode:x.mode, address: address || null,
-      items, notes:String(x.notes || "").trim(), status:x.status,
-      paidDate: x.status === "paid" ? (old && old.status === "paid" && old.paidDate ? old.paidDate : toDateKey(new Date())) : null
-    };
-    let id = d.id;
-    if(id) await update(ref(db, `kitchen/caterings/${id}`), rec);
-    else { const r = push(ref(db, "kitchen/caterings")); await set(r, {...rec, createdAt:Date.now()}); id = r.key; }
-    await syncCateringRevenue(id, rec);
-    state.kDraft = null; render();
-  }));
-  wrap.appendChild(fc);
-
-  // Listen
-  const today = toDateKey(new Date());
-  const all = Object.entries(state.kitchen.caterings || {}).filter(([id,c])=> c);
-  const upcoming = all.filter(([id,c])=> (c.date || "") >= today).sort((a,b)=> (a[1].date + (a[1].time||"")).localeCompare(b[1].date + (b[1].time||"")));
-  const past = all.filter(([id,c])=> (c.date || "") < today).sort((a,b)=> (b[1].date + (b[1].time||"")).localeCompare(a[1].date + (a[1].time||"")));
-  [["Kommende Caterings", upcoming, "Keine kommenden Caterings."],["Vergangene Caterings", past, "Noch keine vergangenen Caterings."]].forEach(([title, list, empty], idx)=>{
-    const lc = el("div",{class:"card"});
-    lc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, `${title} (${list.length})`));
-    if(!list.length) lc.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, empty));
-    list.forEach(([id,c])=> lc.appendChild(kCateringRow(id, c, idx === 1)));
-    wrap.appendChild(lc);
+  // 4) Positionen & Preise
+  const itemsBox = el("div",{});
+  itemsBox.appendChild(el("div",{class:"cat-item-row cat-item-head"},[ el("span",{}, "Bezeichnung"), el("span",{}, "Menge"), el("span",{}, "Preis/Stück €"), el("span",{}) ]));
+  const summary = el("div",{class:"cat-summary"});
+  const payOpenEl = el("div",{class:"cat-pay-open"});
+  const updSummary = ()=>{
+    const k = cateringCalc(x);
+    summary.innerHTML = "";
+    const line = (l, v, cls)=> summary.appendChild(el("div",{class:`cat-sum-line ${cls || ""}`},[ el("span",{}, l), el("span",{}, v) ]));
+    line("Zwischensumme", fmtMoney(k.subtotal));
+    if(k.discount > 0) line(x.discountType === "eur" ? "Rabatt" : `Rabatt (${kNumStr(kNum(x.discountValue))} %)`, "– " + fmtMoney(k.discount));
+    if(k.delivery > 0) line("Liefergebühr", fmtMoney(k.delivery));
+    line("Gesamt (brutto)", fmtMoney(k.total), "total");
+    line(`darin ${kNumStr(k.rate)} % MwSt.`, fmtMoney(k.vat), "muted");
+    line("Netto", fmtMoney(k.net), "muted");
+    payOpenEl.innerHTML = "";
+    payOpenEl.appendChild(el("span",{}, k.open > 0.004 ? "Offen" : (k.open < -0.004 ? "Überzahlt" : "Vollständig bezahlt")));
+    payOpenEl.appendChild(el("strong",{class: k.open > 0.004 ? "neg" : "pos"}, fmtMoney(Math.abs(k.open))));
+  };
+  x.items.forEach((it,i)=>{
+    const q = catIn(it,"qty",{type:"text", inputmode:"decimal", placeholder:"1"},`item-qty-${i}`);
+    const p = catIn(it,"price",{type:"text", inputmode:"decimal", placeholder:"0,00"},`item-price-${i}`);
+    q.addEventListener("input", updSummary); p.addEventListener("input", updSummary);
+    itemsBox.appendChild(el("div",{class:"cat-item-row"},[
+      catIn(it,"name",{type:"text", placeholder:"z. B. Poke Bowl Lachs"},`item-name-${i}`), q, p,
+      el("button",{type:"button", class:"del-btn", "aria-label":"Position entfernen", onclick:()=>{ x.items.splice(i,1); if(!x.items.length) x.items.push({name:"", qty:"1", price:""}); render(); }},[ic("x")])
+    ]));
   });
+  itemsBox.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-top:6px;", onclick:()=>{ x.items.push({name:"", qty:"1", price:""}); render(); }}, "+ Position"));
+  const f4 = el("div",{class:"k-form", style:"margin-top:16px;"});
+  f4.appendChild(kField("MwSt.-Satz", kSel(x,"vatRate",[["7","7 % (Speisen)"],["19","19 % (mit Service)"]], true)));
+  const dType = kSel(x,"discountType",[["pct","%"],["eur","€"]]);
+  dType.addEventListener("change", updSummary);
+  const dVal = catIn(x,"discountValue",{type:"text", inputmode:"decimal", placeholder:"0"},"discount");
+  dVal.addEventListener("input", updSummary);
+  f4.appendChild(kField("Rabatt", el("div",{style:"display:grid;grid-template-columns:1fr 76px;gap:8px;"},[dVal, dType])));
+  if(x.mode !== "pickup"){
+    const fee = catIn(x,"deliveryFee",{type:"text", inputmode:"decimal", placeholder:"0,00"},"fee");
+    fee.addEventListener("input", updSummary);
+    f4.appendChild(kField("Liefergebühr €", fee));
+  }
+  colB.appendChild(catSection("Positionen & Preise", "calculator", [itemsBox, f4, summary]));
+
+  // 5) Zahlung
+  const f5 = el("div",{class:"k-form"});
+  f5.appendChild(kField("Zahlungsart", kSel(x,"paymentMethod", K_PAY_METHODS)));
+  f5.appendChild(kField("Zahlungsziel", catIn(x,"dueDate",{type:"date"},"dueDate")));
+  const payBox = el("div",{});
+  payBox.appendChild(el("div",{class:"cat-sub-title", style:"margin-top:16px;"}, "Zahlungseingänge"));
+  if(!Array.isArray(x.payments)) x.payments = [];
+  if(!x.payments.length) payBox.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);margin-bottom:6px;"}, "Noch keine Zahlung eingegangen."));
+  x.payments.forEach((p,i)=>{
+    const amt = catIn(p,"amount",{type:"text", inputmode:"decimal", placeholder:"0,00"},`pay-amt-${i}`);
+    amt.addEventListener("input", updSummary);
+    payBox.appendChild(el("div",{class:"cat-pay-row"},[
+      catIn(p,"date",{type:"date"},`pay-date-${i}`), amt, kSel(p,"method", K_PAY_METHODS),
+      el("button",{type:"button", class:"del-btn", "aria-label":"Zahlung entfernen", onclick:()=>{ x.payments.splice(i,1); render(); }},[ic("x")])
+    ]));
+  });
+  const today = toDateKey(new Date());
+  payBox.appendChild(el("div",{style:"display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;"},[
+    el("button",{type:"button", class:"link-btn", onclick:()=>{ x.payments.push({id:"p" + Date.now().toString(36), date:today, amount:"", method:x.paymentMethod || "cash", note:""}); render(); }}, "+ Zahlung / Anzahlung"),
+    el("button",{type:"button", class:"link-btn", onclick:()=>{
+      const k = cateringCalc(x);
+      if(k.open <= 0.004){ alert("Es ist nichts mehr offen."); return; }
+      x.payments.push({id:"p" + Date.now().toString(36), date:today, amount:kNumStr(k.open), method:x.paymentMethod || "cash", note:""}); render();
+    }}, "Restbetrag als bezahlt")
+  ]));
+  payBox.appendChild(payOpenEl);
+  payBox.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-top:8px;"}, "Jede Zahlung landet beim Speichern mit ihrem Datum als Umsatz in „Finanzen“."));
+  colB.appendChild(catSection("Zahlung", "wallet", [f5, payBox]));
+  updSummary();
+
+  grid.appendChild(colA); grid.appendChild(colB);
+  wrap.appendChild(grid);
+
+  // Aktionen
+  const bar = el("div",{class:"cat-actions"});
+  bar.appendChild(el("button",{class:"btn btn-primary", style:"width:auto;padding:12px 26px;", onclick: saveCateringEditor}, ed.id ? "Änderungen speichern" : "Catering speichern"));
+  bar.appendChild(el("button",{class:"btn-cancel", style:"padding:11px 20px;", onclick: closeCateringEditor}, "Abbrechen"));
+  if(ed.id && old){
+    bar.appendChild(el("span",{style:"flex:1;"}));
+    bar.appendChild(el("button",{class:"btn-cancel", style:"padding:11px 16px;", onclick:()=> printKitchenSheet(old)}, icl("printer","Küchenzettel")));
+    bar.appendChild(el("button",{class:"btn-cancel", style:"padding:11px 16px;", onclick:()=> duplicateCatering(old)}, icl("plus","Duplizieren")));
+    bar.appendChild(el("button",{class:"btn-cancel cat-del", style:"padding:11px 16px;", onclick:()=> deleteCatering(ed.id, old)}, icl("trash","Löschen")));
+  }
+  wrap.appendChild(bar);
   return wrap;
 }
 
-function kCateringRow(id, c, isPast){
-  const dim = c.status === "canceled" || (isPast && c.status === "paid");
-  const row = el("div",{class:"team-row", style:`flex-wrap:wrap;${dim ? "opacity:.55;" : ""}`});
-  const n = (c.items || []).length;
-  row.appendChild(el("div",{style:"flex:1;min-width:200px;"},[
-    el("div",{class:"name"}, cateringCustomerLabel(c)),
-    el("div",{style:"font-size:12.5px;color:var(--text-muted);margin-top:2px;"},
-      `${cateringDateStr(c)}${c.time ? ` · ${c.time} Uhr` : ""} · ${c.mode === "pickup" ? "Abholung" : "Lieferung"} · ${n} ${n === 1 ? "Position" : "Positionen"} · ${fmtMoney(cateringTotal(c))}`)
-  ]));
-  const acts = el("div",{style:"display:flex;align-items:center;gap:4px;flex-wrap:wrap;"});
-  const st = el("select",{class:"select-emp cat-status", title:"Status"});
-  K_CATERING_STATUS.forEach(([v,l])=> st.appendChild(el("option",{value:v}, l)));
-  st.value = c.status || "requested";
-  st.addEventListener("change", ()=> setCateringStatus(id, st.value));
-  acts.appendChild(st);
-  acts.appendChild(el("button",{class:"icon-btn", title:"Bearbeiten", "aria-label":"Bearbeiten", onclick:()=> kStartEdit("catering", id, Object.assign(kClone(K_CATERING_DEFAULTS), kClone(c), {
-    time:c.time || "", address:c.address || "", notes:c.notes || "", newCustomer:kClone(K_CUSTOMER_DEFAULTS),
-    items:(c.items || []).map(i=> ({name:i.name || "", qty:kNumStr(i.qty), price:kNumStr(i.price)}))
-  }))},[ic("pencil")]));
-  acts.appendChild(el("button",{class:"del-btn", title:"Löschen", "aria-label":"Löschen", onclick:async ()=>{
-    if(!confirm(`Catering „${cateringCustomerLabel(c)}“ am ${cateringDateStr(c)} löschen?${c.status === "paid" ? " Der Umsatz in „Finanzen“ wird dabei auch entfernt." : ""}`)) return;
-    await remove(ref(db, `kitchen/caterings/${id}`));
-    await syncCateringRevenue(id, null);
-  }},[ic("trash")]));
-  row.appendChild(acts);
-  return row;
+async function saveCateringEditor(){
+  const ui = catUi();
+  const ed = ui.edit; const x = ed.data;
+  const customers = state.kitchen.customers || {};
+  let customerId = x.customerId;
+  const nc = {};
+  Object.keys(K_CUSTOMER_DEFAULTS).forEach(k=> nc[k] = typeof K_CUSTOMER_DEFAULTS[k] === "boolean" ? false : String((x.newCustomer || {})[k] || "").trim());
+  if(customerId === "__new"){
+    if(!nc.name && !nc.company){ alert("Bitte Name oder Firma des neuen Kunden eingeben."); return; }
+  } else if(!customerId || !customers[customerId]){ alert("Bitte einen Kunden wählen."); return; }
+  if(!x.date){ alert("Bitte ein Datum wählen."); return; }
+  if(x.shift === "frueh" && WEEKEND.includes(dayKeyOf(localDateFromKey(x.date)))){ alert("Am Wochenende gibt es nur die Abendschicht. Bitte „Abend“ oder „Ganzer Tag“ wählen."); return; }
+  const items = x.items.map(i=> ({name:String(i.name || "").trim(), qty:kNum(i.qty) || 1, price:kRound(kNum(i.price))})).filter(i=> i.name);
+  if(!items.length){ alert("Bitte mindestens eine Position eintragen."); return; }
+  const address = x.mode === "pickup" ? "" : String(x.address || "").trim();
+  if(x.mode !== "pickup" && !address){ alert("Bitte eine Lieferadresse eingeben."); return; }
+  const payments = {};
+  for(const p of (x.payments || [])){
+    const amount = kRound(kNum(p.amount));
+    if(!amount) continue;
+    if(!p.date){ alert("Bitte bei jeder Zahlung ein Datum eintragen."); return; }
+    payments[p.id || ("p" + Date.now().toString(36))] = {date:p.date, amount, method:p.method || "cash", note:String(p.note || "").trim()};
+  }
+
+  if(customerId === "__new"){
+    const cr = push(ref(db, "kitchen/customers"));
+    await set(cr, {...nc, createdAt:Date.now()});
+    customerId = cr.key;
+  }
+  const old = ed.id ? (state.kitchen.caterings || {})[ed.id] : null;
+  const rec = {
+    customerId, customerLabel: customers[customerId] ? customerLabel(customers[customerId]) : customerLabel(nc),
+    occasion:String(x.occasion || "").trim(), guests: Math.max(0, Math.round(kNum(x.guests))) || null, status:x.status,
+    date:x.date, time:x.time || null, readyTime:x.readyTime || null, shift:x.shift, mode:x.mode,
+    address: address || null, driverId: (x.mode !== "pickup" && x.driverId) ? x.driverId : null,
+    items, vatRate: Number(x.vatRate) || 7, discountType: x.discountType === "eur" ? "eur" : "pct",
+    discountValue: kRound(kNum(x.discountValue)) || null, deliveryFee: x.mode !== "pickup" ? (kRound(kNum(x.deliveryFee)) || null) : null,
+    paymentMethod:x.paymentMethod, dueDate:x.dueDate || null, payments: Object.keys(payments).length ? payments : null,
+    loanItems: (x.loanItems || []).map(l=> ({name:String(l.name || "").trim(), qty:kNum(l.qty) || 1, returned:!!l.returned})).filter(l=> l.name),
+    returnDue:x.returnDue || null, dietary:String(x.dietary || "").trim(), notes:String(x.notes || "").trim(),
+    internalNotes:String(x.internalNotes || "").trim(), paidDate:null, updatedAt:Date.now()
+  };
+  if(!rec.loanItems.length){ rec.loanItems = null; rec.returnDue = null; }
+  let id = ed.id;
+  if(id){
+    if(!old || !old.number) rec.number = nextCateringNumber(Number(x.date.slice(0,4)));
+    await update(ref(db, `kitchen/caterings/${id}`), rec);
+  } else {
+    rec.number = nextCateringNumber(Number(x.date.slice(0,4)));
+    const r = push(ref(db, "kitchen/caterings"));
+    await set(r, {...rec, createdAt:Date.now()});
+    id = r.key;
+  }
+  await syncCateringRevenue(id, Object.assign({}, old || {}, rec), old);
+  ui.edit = null;
+  render();
+  window.scrollTo({top:0});
 }
 
-function renderKAdminCustomers(){
-  const wrap = el("div",{});
-  const d = kDraft("customer", K_CUSTOMER_DEFAULTS); const x = d.data;
-  const fc = el("div",{class:"card"});
-  fc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, d.id ? "Kunde bearbeiten" : "+ Neuer Kunde"));
-  const form = el("div",{class:"k-form"});
-  form.appendChild(kField("Name (Ansprechpartner)", kIn(x,"name",{type:"text", placeholder:"z. B. Anna Müller"})));
-  form.appendChild(kField("Firma (optional)", kIn(x,"company",{type:"text", placeholder:"z. B. Firma XY GmbH"})));
-  form.appendChild(kField("Telefon", kIn(x,"phone",{type:"tel", placeholder:"z. B. 0151 …"})));
-  form.appendChild(kField("E-Mail", kIn(x,"email",{type:"email", placeholder:"z. B. anna@firma.de"})));
-  form.appendChild(kField("Adresse", kIn(x,"address",{type:"text", placeholder:"Straße, PLZ Ort"}), true));
-  form.appendChild(kField("Notizen (optional)", kTa(x,"notes","z. B. zahlt per Rechnung, mag keinen Koriander", 2), true));
-  fc.appendChild(form);
-  fc.appendChild(kFormActions(d, async ()=>{
-    const rec = {};
-    Object.keys(K_CUSTOMER_DEFAULTS).forEach(k=> rec[k] = String(x[k] || "").trim());
-    if(!rec.name && !rec.company){ alert("Bitte Name oder Firma eingeben."); return; }
-    if(d.id) await update(ref(db, `kitchen/customers/${d.id}`), rec);
-    else await set(push(ref(db, "kitchen/customers")), {...rec, createdAt:Date.now()});
-    state.kDraft = null; render();
-  }));
-  wrap.appendChild(fc);
+function duplicateCatering(c){
+  const preset = {};
+  ["customerId","occasion","shift","mode","address","driverId","dietary","notes","internalNotes","paymentMethod","discountType"].forEach(k=> preset[k] = c[k] || K_CATERING_DEFAULTS[k]);
+  preset.guests = c.guests ? String(c.guests) : "";
+  preset.vatRate = String(c.vatRate || 7);
+  preset.discountValue = kNumStr(c.discountValue);
+  preset.deliveryFee = kNumStr(c.deliveryFee);
+  preset.items = (c.items || []).map(i=> ({name:i.name || "", qty:kNumStr(i.qty), price:kNumStr(i.price)}));
+  preset.loanItems = (c.loanItems || []).filter(Boolean).map(l=> ({name:l.name, qty:kNumStr(l.qty), returned:false}));
+  preset.time = c.time || ""; preset.readyTime = c.readyTime || "";
+  preset.status = "requested"; preset.date = ""; preset.payments = [];
+  openCateringEditor(null, preset);
+  alert("Kopie erstellt – bitte noch das neue Datum eintragen.");
+}
 
-  const caterings = Object.values(state.kitchen.caterings || {}).filter(Boolean);
-  const all = Object.entries(state.kitchen.customers || {}).sort((a,b)=> customerLabel(a[1]).localeCompare(customerLabel(b[1])));
-  const lc = el("div",{class:"card"});
-  lc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, `Alle Kunden (${all.length})`));
-  if(all.length){
-    const search = el("input",{type:"search", id:"k-cust-search", class:"select-emp", style:"width:100%;margin-bottom:10px;", placeholder:"Kunde suchen …"});
-    search.value = state.kCustSearch || "";
-    search.addEventListener("input", ()=>{ state.kCustSearch = search.value; render(); });
-    lc.appendChild(search);
-  } else {
-    lc.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Noch keine Kunden angelegt."));
-  }
-  const q = (state.kCustSearch || "").trim().toLowerCase();
-  all.filter(([id,cu])=> !q || [cu.name, cu.company, cu.phone, cu.email, cu.address].join(" ").toLowerCase().includes(q)).forEach(([id,cu])=>{
-    const mine = caterings.filter(c=> c.customerId === id && c.status !== "canceled");
-    const sum = mine.reduce((s,c)=> s + cateringTotal(c), 0);
-    const sub = [cu.phone, cu.email, cu.address, mine.length ? `${mine.length} ${mine.length === 1 ? "Catering" : "Caterings"} · ${fmtMoney(sum)}` : "noch kein Catering"].filter(Boolean).join(" · ");
-    lc.appendChild(kListRow({
-      title: customerLabel(cu),
-      sub: sub + (cu.notes ? ` · ${cu.notes}` : ""),
-      onEdit: ()=> kStartEdit("customer", id, Object.assign(kClone(K_CUSTOMER_DEFAULTS), kClone(cu))),
-      onDelete: ()=>{
-        const txt = mine.length ? ` Die ${mine.length} Caterings bleiben erhalten (mit dem gespeicherten Namen).` : "";
-        if(confirm(`Kunde „${customerLabel(cu)}“ löschen?${txt}`)) remove(ref(db, `kitchen/customers/${id}`));
-      }
-    }));
+async function deleteCatering(id, c){
+  const pays = Object.keys(paymentList(c)).length;
+  if(!confirm(`Catering ${c.number || ""} (${cateringCustomerLabel(c)}) löschen?${pays ? ` Die ${pays} Zahlung(en) werden auch aus „Finanzen“ entfernt.` : ""}`)) return;
+  await remove(ref(db, `kitchen/caterings/${id}`));
+  await syncCateringRevenue(id, null, c);
+  catUi().edit = null;
+  render();
+}
+
+// Küchenzettel: Produktions- und Packliste zum Ausdrucken (ohne Preise)
+function printKitchenSheet(c){
+  const esc = (s)=> String(s == null ? "" : s).replace(/[&<>"]/g, ch=> ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+  const items = (c.items || []).filter(i=> i && i.name).map(i=> `<tr><td class="q">${esc(kNumStr(i.qty))}×</td><td>${esc(i.name)}</td><td class="box"></td></tr>`).join("");
+  const loans = (c.loanItems || []).filter(l=> l && l.name).map(l=> `<tr><td class="q">${esc(kNumStr(l.qty))}×</td><td>${esc(l.name)}</td><td class="box"></td></tr>`).join("");
+  const row = (l, v)=> v ? `<div class="r"><span>${esc(l)}</span><b>${esc(v)}</b></div>` : "";
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Küchenzettel ${esc(c.number || "")}</title><style>
+    body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#111;margin:28px;}
+    h1{font-size:24px;margin:0 0 2px;} .sub{color:#555;margin-bottom:18px;}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 28px;margin-bottom:18px;}
+    .r{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:5px 0;font-size:14px;} .r span{color:#555;}
+    h2{font-size:16px;margin:20px 0 6px;} table{width:100%;border-collapse:collapse;font-size:15px;}
+    td{padding:7px 4px;border-bottom:1px solid #ddd;} td.q{width:60px;font-weight:700;} td.box{width:26px;}
+    td.box:after{content:"";display:inline-block;width:16px;height:16px;border:1.5px solid #333;border-radius:3px;}
+    .warn{border:2px solid #c5402e;border-radius:8px;padding:10px 12px;font-weight:600;margin:14px 0;}
+    .note{background:#f3f3f3;border-radius:8px;padding:10px 12px;white-space:pre-wrap;}
+  </style></head><body>
+    <h1>Küchenzettel · ${esc(c.number || "Catering")}</h1>
+    <div class="sub">${esc(cateringCustomerLabel(c))} · ${esc(cateringDateStr(c))}</div>
+    <div class="grid">
+      ${row(c.mode === "pickup" ? "Abholung um" : "Lieferung um", c.time ? c.time + " Uhr" : "")}
+      ${row("Fertig bis", c.readyTime ? c.readyTime + " Uhr" : "")}
+      ${row("Personen", c.guests ? String(c.guests) : "")}
+      ${row("Anlass", c.occasion)}
+      ${row("Fahrer", c.mode !== "pickup" ? empName(c.driverId) : "")}
+      ${row("Lieferadresse", c.mode !== "pickup" ? c.address : "")}
+    </div>
+    ${c.dietary ? `<div class="warn">⚠ ${esc(c.dietary)}</div>` : ""}
+    <h2>Produktion</h2><table>${items}</table>
+    ${loans ? `<h2>Mitnehmen / Leihmaterial</h2><table>${loans}</table>` : ""}
+    ${c.notes ? `<h2>Notiz</h2><div class="note">${esc(c.notes)}</div>` : ""}
+  </body></html>`;
+  const fr = document.createElement("iframe");
+  fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+  document.body.appendChild(fr);
+  const doc = fr.contentWindow.document;
+  doc.open(); doc.write(html); doc.close();
+  setTimeout(()=>{ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(err){} setTimeout(()=> fr.remove(), 1500); }, 250);
+}
+
+// ---------- Kunden ----------
+function customerStats(id){
+  const list = Object.entries(state.kitchen.caterings || {}).filter(([cid,c])=> c && c.customerId === id);
+  const active = list.filter(([cid,c])=> c.status !== "canceled");
+  let paid = 0, open = 0, last = "";
+  active.forEach(([cid,c])=>{
+    const k = cateringCalc(c);
+    paid += k.paid;
+    if(c.status !== "requested") open += Math.max(0, k.open);
+    if((c.date || "") > last) last = c.date || "";
   });
-  wrap.appendChild(lc);
+  return {list, count: active.length, paid: kRound(paid), open: kRound(open), last};
+}
+function renderCustomerList(){
+  const ui = catUi();
+  const wrap = el("div",{});
+  const all = Object.entries(state.kitchen.customers || {}).sort((a,b)=> customerLabel(a[1]).localeCompare(customerLabel(b[1])));
+  const search = el("input",{type:"search", id:"cat-cust-search", class:"select-emp", style:"width:100%;margin-bottom:14px;", placeholder:"Kunde suchen …"});
+  search.value = ui.custQ || "";
+  search.addEventListener("input", ()=>{ ui.custQ = search.value; render(); });
+  if(all.length) wrap.appendChild(search);
+  const q = (ui.custQ || "").trim().toLowerCase();
+  const card = el("div",{class:"card", style:"padding:8px;"});
+  if(!all.length) card.appendChild(el("div",{class:"empty-state", style:"padding:36px 20px;"}, "Noch keine Kunden. Leg oben rechts den ersten an."));
+  all.filter(([id,cu])=> !q || [cu.name, cu.company, cu.phone, cu.email, cu.address].join(" ").toLowerCase().includes(q)).forEach(([id,cu])=>{
+    const s = customerStats(id);
+    const row = el("button",{type:"button", class:"cat-row", onclick:()=>{ ui.customerId = id; render(); window.scrollTo({top:0}); }});
+    row.appendChild(el("div",{class:"cat-avatar"}, initials(cu.company || cu.name)));
+    row.appendChild(el("div",{class:"cat-row-main"},[
+      el("div",{class:"cat-row-title"},[ el("span",{}, customerLabel(cu)) ]),
+      el("div",{class:"cat-row-sub"}, [cu.phone, cu.email].filter(Boolean).join(" · ") || cu.address || "")
+    ]));
+    row.appendChild(el("div",{class:"cat-row-pills"},[ s.open > 0.004 ? catPill(`offen ${fmtMoney(s.open)}`, "pay-open") : null ]));
+    row.appendChild(el("div",{class:"cat-row-sum"},[
+      el("div",{class:"t"}, fmtMoney(s.paid)),
+      el("div",{class:"o"}, `${s.count} ${s.count === 1 ? "Auftrag" : "Aufträge"}`)
+    ]));
+    card.appendChild(row);
+  });
+  wrap.appendChild(card);
+  return wrap;
+}
+
+function renderCustomerProfile(id){
+  const ui = catUi();
+  const cu = state.kitchen.customers[id];
+  const s = customerStats(id);
+  const wrap = el("div",{});
+  wrap.appendChild(el("button",{class:"link-btn", style:"margin-bottom:10px;", onclick:()=>{ ui.customerId = null; render(); }}, "← Alle Kunden"));
+  wrap.appendChild(el("div",{class:"section-head"},[
+    el("div",{style:"display:flex;align-items:center;gap:14px;"},[
+      el("div",{class:"cat-avatar big"}, initials(cu.company || cu.name)),
+      el("div",{},[
+        el("h2",{class:"section-title"}, cu.company || cu.name),
+        cu.company && cu.name ? el("p",{class:"section-sub", style:"margin-top:4px;"}, `Ansprechpartner: ${cu.name}`) : null
+      ])
+    ]),
+    el("div",{style:"display:flex;gap:8px;flex-wrap:wrap;"},[
+      el("button",{class:"btn-cancel", style:"padding:10px 16px;", onclick:()=> openCustomerEditor(id)}, icl("pencil","Bearbeiten")),
+      el("button",{class:"btn btn-primary", style:"width:auto;padding:10px 18px;", onclick:()=> openCateringEditor(null, {customerId:id, address:cu.address || ""})}, icl("plus","Neues Catering"))
+    ])
+  ]));
+
+  const tiles = el("div",{class:"dash-grid"});
+  const tile = (icon, value, label, cls)=> el("div",{class:`dash-tile ${cls || ""}`, style:"cursor:default;"},[ el("span",{class:"dash-icon"},[ic(icon)]), el("div",{class:"dash-value"}, value), el("div",{class:"dash-label"}, label) ]);
+  tiles.appendChild(tile("clipboard", String(s.count), s.count === 1 ? "Auftrag" : "Aufträge"));
+  tiles.appendChild(tile("wallet", fmtMoney(s.paid), "Umsatz (bezahlt)", "good"));
+  tiles.appendChild(tile("coins", fmtMoney(s.open), "Offene Beträge", s.open > 0.004 ? "warn" : ""));
+  tiles.appendChild(tile("calendar", s.last ? fmtDateKey(s.last) : "–", "Letzte Bestellung"));
+  wrap.appendChild(tiles);
+
+  const grid = el("div",{class:"cat-editor-grid profile"});
+  const info = el("div",{class:"card cat-section"});
+  info.appendChild(el("h3",{class:"cat-section-title"}, icl("user","Kontakt")));
+  const line = (icon, label, value, href)=> value ? info.appendChild(el("div",{class:"cat-info"},[ ic(icon), el("div",{},[ el("div",{class:"l"}, label), href ? el("a",{href, class:"v"}, value) : el("div",{class:"v"}, value) ]) ])) : null;
+  line("user", "Name", cu.name);
+  line("send", "Telefon", cu.phone, cu.phone ? "tel:" + cu.phone.replace(/[^\d+]/g,"") : null);
+  line("send", "E-Mail", cu.email, cu.email ? "mailto:" + cu.email : null);
+  line("mapPin", "Lieferadresse", cu.address);
+  line("wallet", "Rechnungsadresse", cu.billingDifferent && cu.billingAddress ? cu.billingAddress : (cu.address ? "wie Lieferadresse" : ""));
+  line("clipboard", "Notizen", cu.notes);
+  grid.appendChild(info);
+
+  const orders = el("div",{class:"card cat-section", style:"padding-bottom:10px;"});
+  orders.appendChild(el("h3",{class:"cat-section-title"}, icl("utensils","Aufträge")));
+  const list = s.list.slice().sort((a,b)=> ((b[1].date||"") + (b[1].time||"")).localeCompare((a[1].date||"") + (a[1].time||"")));
+  if(!list.length) orders.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Noch keine Aufträge."));
+  list.forEach(([cid,c])=> orders.appendChild(renderOrderRow(cid, c, true)));
+  grid.appendChild(orders);
+  wrap.appendChild(grid);
+
+  wrap.appendChild(el("div",{class:"cat-actions"},[
+    el("button",{class:"btn-cancel cat-del", style:"padding:10px 16px;", onclick:()=>{
+      const txt = s.list.length ? ` Die ${s.list.length} Aufträge bleiben erhalten (mit dem gespeicherten Namen).` : "";
+      if(!confirm(`Kunde „${customerLabel(cu)}“ löschen?${txt}`)) return;
+      remove(ref(db, `kitchen/customers/${id}`));
+      ui.customerId = null; render();
+    }}, icl("trash","Kunde löschen"))
+  ]));
+  return wrap;
+}
+
+function openCustomerEditor(id){
+  const ui = catUi();
+  const cu = id ? (state.kitchen.customers || {})[id] : null;
+  ui.custEdit = {id: id || null, data: Object.assign(kClone(K_CUSTOMER_DEFAULTS), cu ? kClone(cu) : {})};
+  render();
+  window.scrollTo({top:0});
+}
+function renderCustomerEditor(){
+  const ui = catUi();
+  const ed = ui.custEdit; const x = ed.data;
+  const close = ()=>{ ui.custEdit = null; render(); };
+  const wrap = el("div",{});
+  wrap.appendChild(el("button",{class:"link-btn", style:"margin-bottom:10px;", onclick: close}, ed.id ? "← Zurück zum Profil" : "← Alle Kunden"));
+  wrap.appendChild(el("div",{class:"section-head"},[ el("h2",{class:"section-title"}, ed.id ? "Kunde bearbeiten" : "Neuer Kunde") ]));
+  const f = el("div",{class:"k-form"});
+  f.appendChild(kField("Name (Ansprechpartner)", catIn(x,"name",{type:"text", placeholder:"z. B. Anna Müller"},"cu-name")));
+  f.appendChild(kField("Firma (optional)", catIn(x,"company",{type:"text", placeholder:"z. B. Firma XY GmbH"},"cu-company")));
+  f.appendChild(kField("Telefon", catIn(x,"phone",{type:"tel", placeholder:"z. B. 0151 …"},"cu-phone")));
+  f.appendChild(kField("E-Mail", catIn(x,"email",{type:"email", placeholder:"z. B. anna@firma.de"},"cu-email")));
+  f.appendChild(kField("Lieferadresse", catIn(x,"address",{type:"text", placeholder:"Straße, PLZ Ort"},"cu-address"), true));
+  const cb = el("input",{type:"checkbox"}); cb.checked = !!x.billingDifferent;
+  cb.addEventListener("change", ()=>{ x.billingDifferent = cb.checked; render(); });
+  f.appendChild(el("label",{class:"cat-check", style:"grid-column:1/-1;"},[cb, "Abweichende Rechnungsadresse"]));
+  if(x.billingDifferent) f.appendChild(kField("Rechnungsadresse", kTa(x,"billingAddress","Firma\nStraße\nPLZ Ort", 3), true));
+  f.appendChild(kField("Notizen", kTa(x,"notes","z. B. zahlt per Rechnung, mag keinen Koriander", 2), true));
+  const card = el("div",{class:"card cat-section"},[f]);
+  wrap.appendChild(card);
+  wrap.appendChild(el("div",{class:"cat-actions"},[
+    el("button",{class:"btn btn-primary", style:"width:auto;padding:12px 26px;", onclick: async ()=>{
+      const rec = {};
+      Object.keys(K_CUSTOMER_DEFAULTS).forEach(k=> rec[k] = typeof K_CUSTOMER_DEFAULTS[k] === "boolean" ? !!x[k] : String(x[k] || "").trim());
+      if(!rec.name && !rec.company){ alert("Bitte Name oder Firma eingeben."); return; }
+      if(!rec.billingDifferent) rec.billingAddress = "";
+      let id = ed.id;
+      if(id) await update(ref(db, `kitchen/customers/${id}`), rec);
+      else { const r = push(ref(db, "kitchen/customers")); await set(r, {...rec, createdAt:Date.now()}); id = r.key; }
+      ui.custEdit = null; ui.view = "customers"; ui.customerId = id; render();
+    }}, "Speichern"),
+    el("button",{class:"btn-cancel", style:"padding:11px 20px;", onclick: close}, "Abbrechen")
+  ]));
   return wrap;
 }
 
