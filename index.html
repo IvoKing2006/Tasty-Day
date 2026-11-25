@@ -1211,6 +1211,31 @@
   .fin-lock .ic{width:16px;height:16px;}
   .fin-legend small{font-size:12px;color:var(--text-muted);font-weight:500;}
   .fin-row-date{width:84px;}
+  /* Vorbereitungsliste (Soll / Ist) */
+  .k-prep{align-items:stretch;}
+  .k-prep-list{display:flex;flex-direction:column;gap:10px;margin-top:12px;}
+  .k-prep-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--bg-elevated-2);}
+  .k-prep-row.ok{background:var(--avocado-soft);border-color:rgba(47,138,87,.35);}
+  .k-prep-name{font-size:18px;font-weight:650;}
+  .k-prep-status{font-size:15px;font-weight:600;color:#B26A12;margin-top:2px;}
+  .k-prep-row.ok .k-prep-status{color:var(--avocado);}
+  :root[data-theme="dark"] .k-prep-status{color:#EDA850;}
+  .k-prep-bar{height:7px;border-radius:4px;background:var(--bg-elevated);margin-top:8px;overflow:hidden;}
+  .k-prep-bar > div{height:100%;border-radius:4px;background:var(--mango);transition:width .4s var(--ease);}
+  .k-prep-row.ok .k-prep-bar > div{background:var(--avocado);}
+  .k-prep-count{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .k-prep-count b{font-size:28px;font-weight:750;letter-spacing:-0.03em;}
+  .k-prep-count span{font-size:18px;color:var(--text-muted);font-weight:600;}
+  .k-prep-count small{display:block;font-size:13px;color:var(--text-muted);}
+  .k-prep-btns{display:flex;gap:8px;}
+  .k-prep-btn{width:56px;height:56px;border-radius:14px;border:1px solid var(--line-strong);background:var(--bg-elevated);color:var(--text);font:inherit;font-size:26px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .k-prep-btn:active{transform:scale(.94);}
+  .k-prep-btn.fill{background:var(--avocado);border-color:var(--avocado);color:#fff;}
+  .k-prep-btn.fill .ic{width:26px;height:26px;}
+  .k-prep-btn.fill.on{opacity:.45;}
+  @media(max-width:700px){ .k-prep-row{grid-template-columns:minmax(0,1fr) auto;} .k-prep-btns{grid-column:1 / -1;} .k-prep-btn{flex:1;} }
+  .k-prep-edit{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) 80px 36px;gap:8px;align-items:center;margin-bottom:8px;}
+  .k-prep-edit.head{font-size:12px;color:var(--text-muted);margin-bottom:4px;}
 </style>
 </head>
 <body>
@@ -7309,7 +7334,7 @@ function openInventoryLabelsOverlay(items){
 
 // =====================================================================
 // Küchen-Modus (iPad) — eigener Account mit role "kitchen"
-// Daten in Firebase unter /kitchen: tasks, taskDone/{datum}, taskChecks/{datum}, recipes, alarms, alarmLog, customers, caterings
+// Daten in Firebase unter /kitchen: tasks, taskDone/{datum}, taskChecks/{datum}, prepState/{datum}, recipes, alarms, alarmLog, customers, caterings
 // =====================================================================
 function isStaff(e){ return !!e && e.role !== "chef" && e.role !== "kitchen"; }
 function kitchenAccounts(){ return Object.entries(state.employees).filter(([id,e])=> e && e.role === "kitchen"); }
@@ -7934,7 +7959,79 @@ function renderKitchenTasks(){
   return wrap;
 }
 
+// ---------- Vorbereitungsliste (Soll / Ist) ----------
+// Tagesstand: kitchen/prepState/{datum}/{aufgabeId}/{zeile} = Ist-Menge
+function kPrepItems(t){ return (t.prep || []).filter(it=> it && it.name).map(it=> ({...it, target: kNum(it.target)})); }
+function kPrepIst(dateKey, id, i){ const m = (state.kitchen.prepState && state.kitchen.prepState[dateKey] && state.kitchen.prepState[dateKey][id]) || {}; return kNum(m[i]); }
+function kPrepFmt(n){ return String(Math.round(n * 100) / 100).replace(".", ","); }
+// Ist-Menge setzen und „erledigt“ automatisch mitführen
+function kPrepSet(id, t, today, i, value){
+  const items = kPrepItems(t);
+  const v = Math.max(0, Math.round(value * 100) / 100);
+  const updates = {[`kitchen/prepState/${today}/${id}/${i}`]: v || null};
+  const full = items.every((it,j)=> (j === i ? v : kPrepIst(today, id, j)) >= it.target);
+  const wasDone = !!kDoneMap(today)[id];
+  if(full && !wasDone){
+    updates[`kitchen/taskDone/${today}/${id}`] = {by:"", byName:"Alles vorbereitet", at:Date.now()};
+    state.kJustDone = {id, at:Date.now()};
+    setTimeout(()=>{ if(state.kJustDone && state.kJustDone.id === id){ state.kJustDone = null; render(); } }, 1700);
+  }
+  if(!full && wasDone) updates[`kitchen/taskDone/${today}/${id}`] = null;
+  update(ref(db), updates);
+}
+function renderKPrepCard(id, t, d, today, later){
+  const items = kPrepItems(t);
+  const fullN = items.filter((it,i)=> kPrepIst(today, id, i) >= it.target).length;
+  const nowMin = (()=>{ const n = new Date(); return n.getHours()*60 + n.getMinutes(); })();
+  const dueIn = t.dueTime ? hmToMin(t.dueTime) - nowMin : null;
+  const overdue = !d && !later && dueIn !== null && dueIn < 0;
+  const soon = !d && !later && dueIn !== null && dueIn >= 0 && dueIn <= 30;
+  const just = state.kJustDone && state.kJustDone.id === id && Date.now() - state.kJustDone.at < 1600;
+  const cat = kTaskCat(t);
+  const card = el("div",{class:`k-task k-prep ${d ? "done" : ""} ${overdue ? "overdue" : ""} ${soon ? "soon" : ""} ${later ? "later" : ""} ${just ? "just-done" : ""}`, style:`--cat:${kCatColor(cat)};`});
+  const body = el("div",{class:"k-task-body"});
+  const who = kAssigneeLabel(t);
+  body.appendChild(el("div",{class:"k-task-top"},[ el("span",{class:"k-task-cat"}, cat), who ? el("span",{class:"k-task-who"},[ic("user"), who]) : null ]));
+  body.appendChild(el("div",{class:"k-task-title"}, t.title));
+  if(t.description) body.appendChild(el("div",{class:"k-task-desc"}, t.description));
+  if(!later){
+    const list = el("div",{class:"k-prep-list"});
+    items.forEach((it,i)=>{
+      const ist = kPrepIst(today, id, i);
+      const ok = ist >= it.target;
+      const missing = Math.max(0, it.target - ist);
+      const pct = Math.min(100, it.target ? ist / it.target * 100 : 0);
+      list.appendChild(el("div",{class:`k-prep-row ${ok ? "ok" : ""}`},[
+        el("div",{class:"k-prep-info"},[
+          el("div",{class:"k-prep-name"}, it.name),
+          el("div",{class:"k-prep-status"}, ok ? `Voll · ${kPrepFmt(ist)} ${it.unit}` : `Noch ${kPrepFmt(missing)} ${it.unit} vorbereiten`),
+          el("div",{class:"k-prep-bar"},[ el("div",{style:`width:${pct}%;`}) ])
+        ]),
+        el("div",{class:"k-prep-count"},[ el("b",{}, kPrepFmt(ist)), el("span",{}, ` / ${kPrepFmt(it.target)}`), el("small",{}, it.unit) ]),
+        el("div",{class:"k-prep-btns"},[
+          el("button",{type:"button", class:"k-prep-btn", "aria-label":`${it.name} weniger`, onclick:()=> kPrepSet(id, t, today, i, ist - 1)}, "−"),
+          el("button",{type:"button", class:"k-prep-btn", "aria-label":`${it.name} mehr`, onclick:()=> kPrepSet(id, t, today, i, ist + 1)}, "+"),
+          el("button",{type:"button", class:`k-prep-btn fill ${ok ? "on" : ""}`, "aria-label":`${it.name} aufgefüllt`, title:"Aufgefüllt – Soll erreicht", onclick:()=> kPrepSet(id, t, today, i, Math.max(ist, it.target))},[ic("check")])
+        ])
+      ]));
+    });
+    body.appendChild(list);
+  }
+  const meta = el("div",{class:"k-task-meta"});
+  if(later) meta.appendChild(el("span",{class:"k-chip"}, icl("clock", `ab ${t.startTime} Uhr`)));
+  if(t.dueTime && !d && !later){
+    if(overdue) meta.appendChild(el("span",{class:"k-chip warn pulse"}, `Überfällig · seit ${kDurLabel(-dueIn)}`));
+    else if(soon) meta.appendChild(el("span",{class:"k-chip soon"}, `noch ${kDurLabel(dueIn)} · bis ${t.dueTime} Uhr`));
+    else meta.appendChild(el("span",{class:"k-chip"}, `bis ${t.dueTime} Uhr`));
+  }
+  meta.appendChild(el("span",{class:`k-chip ${fullN === items.length ? "ok" : ""}`}, d ? icl("check", "Alles vorbereitet") : `${fullN}/${items.length} voll`));
+  body.appendChild(meta);
+  card.appendChild(body);
+  return card;
+}
+
 function renderKitchenTaskCard(id, t, d, today, later){
+  if(t.type === "prep") return renderKPrepCard(id, t, d, today, later);
   const nowMin = (()=>{ const n = new Date(); return n.getHours()*60 + n.getMinutes(); })();
   const dueIn = t.dueTime ? hmToMin(t.dueTime) - nowMin : null;
   const overdue = !d && !later && dueIn !== null && dueIn < 0;
@@ -8119,7 +8216,7 @@ function renderKitchenRecipeDetail(r){
 // =====================================================================
 // Verwaltung (Chef) — Bereich „Küchen-Modus“
 // =====================================================================
-const K_TASK_DEFAULTS = {title:"", description:"", category:"", assignee:"all", repeat:"recurring", date:"", days:["mon","tue","wed","thu","fri","sat","sun"], every:"2", startDate:"", monthDay:"1", shift:"both", startTime:"", dueTime:"", priority:"normal", checklist:[]};
+const K_TASK_DEFAULTS = {title:"", description:"", category:"", assignee:"all", repeat:"recurring", date:"", days:["mon","tue","wed","thu","fri","sat","sun"], every:"2", startDate:"", monthDay:"1", shift:"both", startTime:"", dueTime:"", priority:"normal", checklist:[], type:"normal", prep:[]};
 const K_RECIPE_DEFAULTS = {name:"", category:"", yield:"", ingredients:[{amount:"", unit:"", name:""}], steps:[""], notes:""};
 const K_ALARM_DEFAULTS = {title:"", text:"", type:"times", times:["15:00"], days:["mon","tue","wed","thu","fri","sat","sun"], every:"60", from:"11:00", to:"22:00", date:"", time:"", sound:"glocke", volume:"0.8", repeat:true};
 const kLabelStyle = "display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;font-weight:550;";
@@ -8243,7 +8340,7 @@ function renderKAdminTasks(){
     tc.appendChild(el("div",{class:"team-row", style:"flex-wrap:wrap;"},[
       el("span",{class:"k-cat-dot", style:`background:${kCatColor(kTaskCat(t))};`}),
       el("div",{style:"flex:1;min-width:160px;"},[ el("div",{class:"name"}, t.title), el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, `${kTaskCat(t)} · ${kTaskWhen(t)}`) ]),
-      dd ? el("span",{class:"avail-pill yes"}, `${dd.byName} · ${fmtTime(dd.at)} Uhr`) : el("span",{class:"avail-pill no"}, cl.length ? `offen · ${nChecked}/${cl.length}` : "offen")
+      dd ? el("span",{class:"avail-pill yes"}, `${dd.byName} · ${fmtTime(dd.at)} Uhr`) : el("span",{class:"avail-pill no"}, t.type === "prep" ? `offen · ${kPrepItems(t).filter((it,i)=> kPrepIst(today, id, i) >= it.target).length}/${kPrepItems(t).length} voll` : (cl.length ? `offen · ${nChecked}/${cl.length}` : "offen"))
     ]));
   });
   wrap.appendChild(tc);
@@ -8252,8 +8349,12 @@ function renderKAdminTasks(){
   if(!Array.isArray(x.checklist)) x.checklist = [];
   const fc = el("div",{class:"card"});
   fc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, d.id ? "Aufgabe bearbeiten" : "+ Neue Aufgabe"));
+  if(!Array.isArray(x.prep)) x.prep = [];
   const form = el("div",{class:"k-form"});
-  form.appendChild(kField("Aufgabe", kIn(x,"title",{type:"text", placeholder:"z. B. Tomaten vorschneiden"}), true));
+  const typeSel = kSel(x,"type",[["normal","Normale Aufgabe"],["prep","Vorbereitungsliste (Soll / Ist)"]], true);
+  if(x.type === "prep"){ if(!x.title) x.title = "Vorbereitung"; if(!x.category) x.category = "Vorbereitung"; if(!x.prep.length) x.prep.push({name:"", unit:"Boxen", target:""}); }
+  form.appendChild(kField("Art", typeSel, true));
+  form.appendChild(kField("Aufgabe", kIn(x,"title",{type:"text", placeholder: x.type === "prep" ? "z. B. Vorbereitung Frühschicht" : "z. B. Tomaten vorschneiden"}), true));
   form.appendChild(kField("Beschreibung (optional)", kTa(x,"description","z. B. 2 Kisten, in Würfel, in die blaue Box", 2), true));
   const existingCats = kSortCats([...new Set([...K_TASK_CATS, ...Object.values(state.kitchen.tasks || {}).map(t=> t && t.category).filter(Boolean)])]);
   const catIn = kIn(x,"category",{type:"text", placeholder:"z. B. Reinigung", list:"k-task-cats"});
@@ -8278,7 +8379,25 @@ function renderKAdminTasks(){
   if(x.repeat === "recurring") form.appendChild(kField("An diesen Tagen", kDayPicker(x), true));
   fc.appendChild(form);
 
-  fc.appendChild(el("div",{style:"font-weight:650;font-size:14px;margin:18px 0 8px;"}, "Checkliste (optional)"));
+  if(x.type === "prep"){
+    fc.appendChild(el("div",{style:"font-weight:650;font-size:14px;margin:18px 0 8px;"}, "Was soll vorbereitet sein? (Soll-Menge)"));
+    fc.appendChild(el("div",{class:"k-prep-edit head"},[ el("span",{}, "Zutat / Vorbereitung"), el("span",{}, "Einheit"), el("span",{}, "Soll"), el("span",{}) ]));
+    const pr = el("div",{class:"k-rows"});
+    x.prep.forEach((it,i)=>{
+      pr.appendChild(el("div",{class:"k-prep-edit"},[
+        kIn(it,"name",{type:"text", placeholder:"z. B. Avocado vorgeschnitten"}),
+        kIn(it,"unit",{type:"text", placeholder:"Boxen", list:"k-prep-units"}),
+        kIn(it,"target",{type:"text", inputmode:"decimal", placeholder:"4"}),
+        el("button",{type:"button", class:"del-btn", "aria-label":"Zutat entfernen", onclick:()=>{ x.prep.splice(i,1); render(); }},[ic("x")])
+      ]));
+    });
+    const ul = el("datalist",{id:"k-prep-units"});
+    ["Boxen","Behälter","Bleche","Portionen","Stück","kg","Liter","Flaschen"].forEach(u=> ul.appendChild(el("option",{value:u})));
+    fc.appendChild(pr); fc.appendChild(ul);
+    fc.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-top:8px;", onclick:()=>{ x.prep.push({name:"", unit:"Boxen", target:""}); render(); }}, "+ Zutat"));
+    fc.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-top:4px;"}, "Am iPad sieht das Team pro Zutat „Ist / Soll“ und was noch fehlt. Jeder Tag beginnt bei 0 – Reste vom Vortag trägt das Team mit + ein. Sind alle Zutaten voll, ist die Aufgabe automatisch erledigt."));
+  }
+  if(x.type !== "prep") fc.appendChild(el("div",{style:"font-weight:650;font-size:14px;margin:18px 0 8px;"}, "Checkliste (optional)"));
   const rows = el("div",{class:"k-rows"});
   x.checklist.forEach((item,i)=>{
     rows.appendChild(el("div",{class:"k-step-row"},[
@@ -8287,9 +8406,11 @@ function renderKAdminTasks(){
       el("button",{type:"button", class:"del-btn", "aria-label":"Punkt entfernen", onclick:()=>{ x.checklist.splice(i,1); render(); }},[ic("x")])
     ]));
   });
-  fc.appendChild(rows);
-  fc.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-top:8px;", onclick:()=>{ x.checklist.push(""); render(); }}, "+ Punkt"));
-  fc.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-top:4px;"}, "Die Punkte werden am iPad einzeln abgehakt, z. B. für Öffnen oder Schließen."));
+  if(x.type !== "prep"){
+    fc.appendChild(rows);
+    fc.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-top:8px;", onclick:()=>{ x.checklist.push(""); render(); }}, "+ Punkt"));
+    fc.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-top:4px;"}, "Die Punkte werden am iPad einzeln abgehakt, z. B. für Öffnen oder Schließen."));
+  }
 
   fc.appendChild(kFormActions(d, async ()=>{
     const title = (x.title || "").trim();
@@ -8298,7 +8419,13 @@ function renderKAdminTasks(){
     if(x.repeat === "recurring" && !sortDays(x.days).length){ alert("Bitte mindestens einen Tag wählen."); return; }
     if(x.repeat === "everyN" && (!(Number(x.every) >= 1) || !x.startDate)){ alert("Bitte „Alle … Tage“ (mindestens 1) und ein Startdatum eintragen."); return; }
     if(x.startTime && x.dueTime && hmToMin(x.startTime) >= hmToMin(x.dueTime)){ alert("„Sichtbar ab“ muss vor „Erledigt bis“ liegen."); return; }
+    const prep = x.type === "prep" ? x.prep.map(it=> ({name:String(it.name || "").trim(), unit:String(it.unit || "").trim(), target:kNum(it.target)})).filter(it=> it.name) : [];
+    if(x.type === "prep"){
+      if(!prep.length){ alert("Bitte mindestens eine Zutat eintragen."); return; }
+      if(prep.some(it=> !(it.target > 0))){ alert("Bitte bei jeder Zutat eine Soll-Menge größer 0 eintragen."); return; }
+    }
     const rec = {
+      type: x.type === "prep" ? "prep" : null, prep: prep.length ? prep : null,
       title, description:(x.description || "").trim(), category:(x.category || "").trim() || "Sonstiges",
       assignee: x.assignee || "all", repeat:x.repeat,
       date: x.repeat === "once" ? x.date : null,
@@ -8307,7 +8434,7 @@ function renderKAdminTasks(){
       startDate: x.repeat === "everyN" ? x.startDate : null,
       monthDay: x.repeat === "monthly" ? Number(x.monthDay) || 1 : null,
       shift:x.shift, startTime: x.startTime || null, dueTime: x.dueTime || null, priority:x.priority,
-      checklist: x.checklist.map(s=> String(s || "").trim()).filter(Boolean)
+      checklist: x.type === "prep" ? [] : x.checklist.map(s=> String(s || "").trim()).filter(Boolean)
     };
     if(!rec.checklist.length) rec.checklist = null;
     if(d.id) await update(ref(db, `kitchen/tasks/${d.id}`), rec);
@@ -8334,7 +8461,8 @@ function renderKAdminTasks(){
         onEdit: ()=> kStartEdit("task", id, Object.assign(kClone(K_TASK_DEFAULTS), kClone(t), {
           date:t.date || "", dueTime:t.dueTime || "", startTime:t.startTime || "", days:t.days || [],
           category:t.category || "", assignee:t.assignee || "all", every:String(t.every || 2), startDate:t.startDate || "",
-          monthDay:String(t.monthDay || 1), checklist:(t.checklist || []).slice(), repeat:t.repeat || "recurring"
+          monthDay:String(t.monthDay || 1), checklist:(t.checklist || []).slice(), repeat:t.repeat || "recurring",
+          type:t.type === "prep" ? "prep" : "normal", prep:(t.prep || []).filter(Boolean).map(it=> ({name:it.name || "", unit:it.unit || "", target:kNumStr(it.target)}))
         })),
         onDelete: ()=>{ if(confirm(`Aufgabe „${t.title}“ löschen?`)) remove(ref(db, `kitchen/tasks/${id}`)); }
       }));
