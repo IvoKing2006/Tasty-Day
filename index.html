@@ -833,6 +833,14 @@
   .k-tabs{display:flex;gap:12px;padding:18px max(22px,env(safe-area-inset-right)) 0 max(22px,env(safe-area-inset-left));max-width:1100px;width:100%;margin:0 auto;}
   .k-tab{flex:1;min-height:64px;border-radius:18px;border:1px solid var(--line);background:var(--bg-elevated);font-size:19px;font-weight:650;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--text);}
   .k-tab .ic{width:24px;height:24px;}
+  .k-tab-badge{min-width:28px;padding:2px 9px;border-radius:999px;background:var(--mango);color:#fff;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .k-cat-row{display:flex;align-items:center;gap:16px;width:100%;text-align:left;font:inherit;color:var(--text);background:var(--bg-elevated);border:1px solid var(--line);border-radius:18px;padding:14px 18px;margin-bottom:10px;box-shadow:var(--shadow-sm);cursor:pointer;}
+  .k-cat-row-date{width:58px;flex-shrink:0;text-align:center;border-radius:14px;background:var(--mango-soft);padding:8px 0;}
+  .k-cat-row-date .dd{font-size:24px;font-weight:750;line-height:1.1;font-variant-numeric:tabular-nums;}
+  .k-cat-row-date .mm{font-size:13px;font-weight:700;color:var(--mango);text-transform:uppercase;}
+  .k-cat-row .t{font-size:19px;font-weight:650;}
+  .k-cat-row .s{font-size:15.5px;color:var(--text-muted);margin-top:3px;}
+  .k-cat-row-chev{width:22px;height:22px;color:var(--text-muted);flex-shrink:0;}
   .k-tab.active{background:var(--brand);border-color:var(--brand);color:#fff;}
   :root[data-theme="dark"] .k-tab.active{background:#2B855E;border-color:#2B855E;}
   .k-main{flex:1;padding:18px max(22px,env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left));max-width:1100px;width:100%;margin:0 auto;}
@@ -5980,13 +5988,15 @@ function renderKitchen(){
   ]));
 
   const tabs = el("div",{class:"k-tabs"});
-  [["tasks","clipboard","Aufgaben"],["recipes","bowl","Rezepte"]].forEach(([k,icn,l])=>{
-    tabs.appendChild(el("button",{class:`k-tab ${ui.view===k?"active":""}`, onclick:()=>{ ui.view = k; ui.recipeId = null; render(); window.scrollTo({top:0}); }},[ic(icn), l]));
+  const catN = kUpcomingCaterings().length;
+  [["tasks","clipboard","Aufgaben"],["caterings","utensils","Catering"],["recipes","bowl","Rezepte"]].forEach(([k,icn,l])=>{
+    tabs.appendChild(el("button",{class:`k-tab ${ui.view===k?"active":""}`, onclick:()=>{ ui.view = k; ui.recipeId = null; render(); window.scrollTo({top:0}); }},
+      [ic(icn), l, k === "caterings" && catN ? el("span",{class:"k-tab-badge"}, String(catN)) : null]));
   });
   shell.appendChild(tabs);
 
   const main = el("main",{class:"k-main"});
-  main.appendChild(ui.view === "recipes" ? renderKitchenRecipes() : renderKitchenTasks());
+  main.appendChild(ui.view === "recipes" ? renderKitchenRecipes() : (ui.view === "caterings" ? renderKitchenCaterings() : renderKitchenTasks()));
   shell.appendChild(main);
 
   if(state.kCelebrate) shell.appendChild(renderKCelebrate());
@@ -6209,8 +6219,8 @@ function renderKitchenTasks(){
 
   wrap.appendChild(el("div",{class:"k-hero"},[ renderKRing(doneCount, tasks.length), renderKNextUp(tasks, done) ]));
 
-  // Caterings von heute (nur bestätigte/erledigte)
-  const cats = cateringsForDate(today);
+  // Caterings von heute (auch angefragte, die sind markiert)
+  const cats = cateringsForDate(today, null, true);
   if(cats.length){
     wrap.appendChild(el("div",{class:"k-section-title"}, cats.length === 1 ? "Catering heute" : `${cats.length} Caterings heute`));
     cats.forEach(([cid,c])=> wrap.appendChild(renderCateringNote(c, {big:true, showShift:true})));
@@ -6329,6 +6339,50 @@ function renderKitchenTaskCard(id, t, d, today, later){
     }}, icl("check","Erledigt")));
   }
   return card;
+}
+
+// Alle kommenden Caterings fürs iPad (ab heute, ohne stornierte)
+function kUpcomingCaterings(){
+  const today = toDateKey(new Date());
+  return Object.entries(state.kitchen.caterings || {})
+    .filter(([id,c])=> c && c.date && c.date >= today && c.status !== "canceled")
+    .sort((a,b)=> ((a[1].date) + (a[1].time || "99:99")).localeCompare(b[1].date + (b[1].time || "99:99")));
+}
+function renderKitchenCaterings(){
+  const wrap = el("div",{});
+  const list = kUpcomingCaterings();
+  if(!list.length){
+    wrap.appendChild(el("div",{class:"k-progress", style:"text-align:center;padding:40px 20px;font-size:18px;color:var(--text-muted);"}, "Keine kommenden Caterings eingetragen."));
+    return wrap;
+  }
+  const today = toDateKey(new Date());
+  const tm = new Date(); tm.setDate(tm.getDate() + 1);
+  const tomorrow = toDateKey(tm);
+  const byDate = {};
+  list.forEach(([id,c])=> (byDate[c.date] = byDate[c.date] || []).push(c));
+  Object.keys(byDate).sort().forEach(dk=>{
+    const d = localDateFromKey(dk);
+    const label = dk === today ? "Heute" : (dk === tomorrow ? "Morgen" : d.toLocaleDateString("de-DE",{weekday:"long", day:"2-digit", month:"2-digit"}));
+    wrap.appendChild(el("div",{class:"k-section-title"}, `${label} · ${byDate[dk].length === 1 ? "1 Catering" : `${byDate[dk].length} Caterings`}`));
+    if(dk === today || dk === tomorrow){
+      byDate[dk].forEach(c=> wrap.appendChild(renderCateringNote(c, {big:true, showShift:true})));
+    } else {
+      byDate[dk].forEach(c=>{
+        const facts = [
+          c.time ? `${c.mode === "pickup" ? "Abholung" : "Lieferung"} ${c.time} Uhr` : (c.mode === "pickup" ? "Abholung" : "Lieferung"),
+          c.guests ? `${c.guests} Personen` : null,
+          c.occasion || null,
+          c.status === "requested" ? "noch angefragt" : null
+        ].filter(Boolean).join(" · ");
+        wrap.appendChild(el("button",{type:"button", class:"k-cat-row", onclick:()=> openCateringDetail([c])},[
+          el("div",{class:"k-cat-row-date"},[ el("div",{class:"dd"}, String(d.getDate()).padStart(2,"0")), el("div",{class:"mm"}, d.toLocaleDateString("de-DE",{month:"short"}).replace(".","")) ]),
+          el("div",{style:"flex:1;min-width:0;"},[ el("div",{class:"t"}, `Catering · ${cateringShortName(c)}`), el("div",{class:"s"}, facts) ]),
+          ic("chevronRight","k-cat-row-chev")
+        ]));
+      });
+    }
+  });
+  return wrap;
 }
 
 function renderKitchenRecipes(){
