@@ -1277,6 +1277,16 @@
   :root[data-theme="dark"] .k-ptile:not(.ok) .k-ptile-status{color:#EDA850;}
   .k-ptile-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:auto;}
   .k-ptile-btns .k-prep-btn{width:100%;}
+  .k-ptile.q{border-top-color:var(--line-strong);background:var(--bg-elevated);}
+  .k-ptile.q .k-ptile-count b{color:var(--text-muted);}
+  .k-ptile.q .k-ptile-status{color:var(--text-muted);}
+  :root[data-theme="dark"] .k-ptile.q .k-ptile-status{color:var(--text-muted);}
+  .k-prep-btn.txt{font-size:16px;font-weight:700;padding:0 4px;}
+  .k-prep-btn.txt.full{background:var(--avocado-soft);border-color:rgba(47,138,87,.45);color:var(--avocado);}
+  .k-prep-sum-n.count{color:var(--text);}
+  .k-round-chip{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--bg-elevated-2);color:var(--text);letter-spacing:.01em;}
+  .k-count-hint{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;margin:0 0 14px;border-radius:14px;background:var(--bg-elevated-2);font-size:15px;line-height:1.4;color:var(--text);}
+  .k-count-hint .ic{width:20px;height:20px;flex-shrink:0;margin-top:1px;}
   .k-sheet-empty{grid-column:1 / -1;text-align:center;padding:50px 20px;}
   @media(max-width:700px){ .k-sheet-backdrop{padding:10px;} .k-sheet{padding:16px;border-radius:20px;} .k-sheet-title{font-size:22px;} .k-ptile-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;} .k-ptile-count b{font-size:32px;} }
   .k-done-toggle{display:flex;align-items:center;gap:12px;width:100%;min-height:62px;margin:22px 0 12px;padding:0 20px;border-radius:18px;border:1px solid rgba(47,138,87,.3);background:var(--avocado-soft);color:var(--avocado);font:inherit;font-size:18px;font-weight:700;text-align:left;cursor:pointer;}
@@ -7641,9 +7651,24 @@ function kTaskOnDate(t, dateKey){
   }
   return (t.days || []).includes(dayKeyOf(d));
 }
+// Vorbereitungsliste mit 2. Runde → zwei Einträge: Frühschicht (id) und Spätschicht (id__r2), getrennt gespeichert
+function kExpandRounds(id, t){
+  if(t.type !== "prep" || !t.round2 || !t.round2.startTime) return [[id, t]];
+  return [
+    [id, {...t, shift:"frueh", _round:"Frühschicht"}],
+    [id + "__r2", {...t, shift:"abend", startTime:t.round2.startTime, dueTime:t.round2.dueTime || null, _round:"Spätschicht", _base:id}]
+  ];
+}
+function kTaskByVid(vid){
+  const base = String(vid).split("__")[0];
+  const t = (state.kitchen.tasks || {})[base];
+  if(!t) return null;
+  const hit = kExpandRounds(base, t).find(([i])=> i === vid);
+  return hit ? hit[1] : null;
+}
 function kTasksForDate(dateKey){
   const prio = (t)=> t.priority === "high" ? 0 : 1;
-  return Object.entries(state.kitchen.tasks || {}).filter(([id,t])=> kTaskOnDate(t, dateKey))
+  return Object.entries(state.kitchen.tasks || {}).filter(([id,t])=> kTaskOnDate(t, dateKey)).flatMap(([id,t])=> kExpandRounds(id, t))
     .sort((a,b)=> prio(a[1]) - prio(b[1]) || (a[1].dueTime||"99:99").localeCompare(b[1].dueTime||"99:99") || a[1].title.localeCompare(b[1].title));
 }
 function kDoneMap(dateKey){ return (state.kitchen.taskDone && state.kitchen.taskDone[dateKey]) || {}; }
@@ -7678,6 +7703,7 @@ function kTaskWhen(t){
   return [
     kRepeatSummary(t), K_SHIFT_LABEL[t.shift] || "Ganzer Tag",
     t.startTime ? `ab ${t.startTime} Uhr` : null, t.dueTime ? `bis ${t.dueTime} Uhr` : null,
+    (t.type === "prep" && t.round2 && t.round2.startTime && !t._round) ? `+ Spätschicht ab ${t.round2.startTime}${t.round2.dueTime ? ` bis ${t.round2.dueTime}` : ""} Uhr` : null,
     who ? `für ${who}` : null, t.priority === "high" ? "Wichtig" : null
   ].filter(Boolean).join(" · ");
 }
@@ -8025,14 +8051,18 @@ function renderKitchenTasks(){
 // ---------- Vorbereitungsliste (Soll / Ist) ----------
 // Tagesstand: kitchen/prepState/{datum}/{aufgabeId}/{zeile} = Ist-Menge
 function kPrepItems(t){ return (t.prep || []).filter(it=> it && it.name).map(it=> ({...it, target: kNum(it.target)})); }
-function kPrepIst(dateKey, id, i){ const m = (state.kitchen.prepState && state.kitchen.prepState[dateKey] && state.kitchen.prepState[dateKey][id]) || {}; return kNum(m[i]); }
+function kPrepRaw(dateKey, id){ return (state.kitchen.prepState && state.kitchen.prepState[dateKey] && state.kitchen.prepState[dateKey][id]) || {}; }
+function kPrepIst(dateKey, id, i){ return kNum(kPrepRaw(dateKey, id)[i]); }
+function kPrepCounted(dateKey, id, i){ const v = kPrepRaw(dateKey, id)[i]; return v !== undefined && v !== null; }
+// Zeilen mit Ist, gezählt?, voll?
+function kPrepRows(t, dateKey, id){ return kPrepItems(t).map((it,i)=>{ const c = kPrepCounted(dateKey, id, i); const ist = kPrepIst(dateKey, id, i); return {...it, i, counted:c, ist, ok: c && ist >= it.target}; }); }
 function kPrepFmt(n){ return String(Math.round(n * 100) / 100).replace(".", ","); }
 // Ist-Menge setzen und „erledigt“ automatisch mitführen
 function kPrepSet(id, t, today, i, value){
   const items = kPrepItems(t);
   const v = Math.max(0, Math.round(value * 100) / 100);
-  const updates = {[`kitchen/prepState/${today}/${id}/${i}`]: v || null};
-  const full = items.every((it,j)=> (j === i ? v : kPrepIst(today, id, j)) >= it.target);
+  const updates = {[`kitchen/prepState/${today}/${id}/${i}`]: v}; // 0 = gezählt, leer
+  const full = items.every((it,j)=> j === i ? v >= it.target : (kPrepCounted(today, id, j) && kPrepIst(today, id, j) >= it.target));
   const wasDone = !!kDoneMap(today)[id];
   if(full && !wasDone){
     updates[`kitchen/taskDone/${today}/${id}`] = {by:"", byName:"Alles vorbereitet", at:Date.now()};
@@ -8044,25 +8074,30 @@ function kPrepSet(id, t, today, i, value){
 }
 // Kompakte Stations-Karte in der Aufgabenliste – Details öffnen sich im Stations-Fenster
 function renderKPrepCard(id, t, d, today, later){
-  const items = kPrepItems(t);
-  const missing = items.map((it,i)=> ({...it, i, ist:kPrepIst(today, id, i)})).filter(it=> it.ist < it.target);
-  const fullN = items.length - missing.length;
+  const rows = kPrepRows(t, today, id);
+  const items = rows;
+  const uncounted = rows.filter(it=> !it.counted);
+  const missing = rows.filter(it=> it.counted && it.ist < it.target);
+  const fullN = rows.filter(it=> it.ok).length;
   const nowMin = (()=>{ const n = new Date(); return n.getHours()*60 + n.getMinutes(); })();
   const dueIn = t.dueTime ? hmToMin(t.dueTime) - nowMin : null;
   const overdue = !d && !later && dueIn !== null && dueIn < 0;
   const soon = !d && !later && dueIn !== null && dueIn >= 0 && dueIn <= 30;
   const just = state.kJustDone && state.kJustDone.id === id && Date.now() - state.kJustDone.at < 1600;
   const cat = kTaskCat(t);
-  const open = ()=>{ if(later) return; state.kPrepOpen = {id, filter: missing.length ? "missing" : "all", keep:[]}; render(); };
+  const open = ()=>{ if(later) return; state.kPrepOpen = {id, filter: (missing.length || uncounted.length) ? "missing" : "all", keep:[]}; render(); };
   const card = el("div",{class:`k-task k-prep-card ${d ? "done" : ""} ${overdue ? "overdue" : ""} ${soon ? "soon" : ""} ${later ? "later" : ""} ${just ? "just-done" : ""}`, style:`--cat:${kCatColor(cat)};`, onclick: open});
   const body = el("div",{class:"k-task-body"});
   const who = kAssigneeLabel(t);
-  body.appendChild(el("div",{class:"k-task-top"},[ el("span",{class:"k-task-cat"}, cat), who ? el("span",{class:"k-task-who"},[ic("user"), who]) : null ]));
+  body.appendChild(el("div",{class:"k-task-top"},[ el("span",{class:"k-task-cat"}, cat), t._round ? el("span",{class:"k-round-chip"}, t._round) : null, who ? el("span",{class:"k-task-who"},[ic("user"), who]) : null ]));
   body.appendChild(el("div",{class:"k-task-title"}, t.title));
   if(!later){
+    const head = uncounted.length
+      ? el("span",{class:"k-prep-sum-n count"}, uncounted.length === items.length ? "Bestand zählen" : `Noch ${uncounted.length} zählen`)
+      : el("span",{class:`k-prep-sum-n ${missing.length ? "" : "ok"}`}, missing.length ? `${missing.length} fehlen` : "Alles voll");
     body.appendChild(el("div",{class:"k-prep-sum"},[
-      el("span",{class:`k-prep-sum-n ${missing.length ? "" : "ok"}`}, missing.length ? `${missing.length} fehlen` : "Alles voll"),
-      el("span",{class:"k-prep-sum-of"}, `${fullN} von ${items.length} Zutaten voll`)
+      head,
+      el("span",{class:"k-prep-sum-of"}, uncounted.length ? `${items.length - uncounted.length} von ${items.length} gezählt${missing.length ? ` · ${missing.length} fehlen` : ""}` : `${fullN} von ${items.length} Zutaten voll`)
     ]));
     body.appendChild(el("div",{class:"k-prep-bar big"},[ el("div",{style:`width:${items.length ? fullN / items.length * 100 : 0}%;`}) ]));
     if(missing.length){
@@ -8082,21 +8117,23 @@ function renderKPrepCard(id, t, d, today, later){
   if(d) meta.appendChild(el("span",{class:"k-chip ok"}, icl("check", "Alles vorbereitet")));
   if(meta.childNodes.length) body.appendChild(meta);
   card.appendChild(body);
-  if(!later) card.appendChild(el("button",{type:"button", class: d ? "k-undo-btn" : "k-done-btn", onclick:(e)=>{ e.stopPropagation(); open(); }}, d ? icl("eye","Ansehen") : icl("chevronRight","Öffnen")));
+  if(!later) card.appendChild(el("button",{type:"button", class: d ? "k-undo-btn" : "k-done-btn", onclick:(e)=>{ e.stopPropagation(); open(); }}, d ? icl("eye","Ansehen") : icl("chevronRight", uncounted.length === items.length ? "Zählen" : "Öffnen")));
   return card;
 }
 
 // Stations-Fenster: Kacheln statt langer Liste, standardmäßig nur was fehlt
 function renderKPrepSheet(){
   const st = state.kPrepOpen;
-  const t = (state.kitchen.tasks || {})[st.id];
+  const t = kTaskByVid(st.id);
   const close = ()=>{ state.kPrepOpen = null; render(); };
   if(!t){ state.kPrepOpen = null; return el("div",{}); }
   const today = toDateKey(new Date());
-  const items = kPrepItems(t).map((it,i)=> ({...it, i, ist:kPrepIst(today, st.id, i)}));
-  const missing = items.filter(it=> it.ist < it.target);
-  const fullN = items.length - missing.length;
-  const shown = st.filter === "all" ? items : items.filter(it=> it.ist < it.target || st.keep.includes(it.i));
+  const items = kPrepRows(t, today, st.id);
+  const uncounted = items.filter(it=> !it.counted);
+  const missing = items.filter(it=> it.counted && it.ist < it.target);
+  const openN = uncounted.length + missing.length;
+  const fullN = items.length - openN;
+  const shown = st.filter === "all" ? items : items.filter(it=> !it.ok || st.keep.includes(it.i));
   // Animation nur beim Öffnen; Scrollposition im Fenster bleibt bei jedem Antippen erhalten
   const first = !st.shown; st.shown = true;
   const ov = el("div",{class:`k-sheet-backdrop ${first ? "" : "no-anim"}`});
@@ -8104,29 +8141,46 @@ function renderKPrepSheet(){
   // Kopf
   const head = el("div",{class:"k-sheet-head"});
   head.appendChild(el("div",{style:"flex:1;min-width:0;"},[
-    el("div",{class:"k-sheet-title"}, t.title),
-    el("div",{class:"k-sheet-sub"}, missing.length ? `Noch ${missing.length} von ${items.length} Zutaten vorbereiten${t.dueTime ? ` · bis ${t.dueTime} Uhr` : ""}` : "Alles vorbereitet – super!")
+    el("div",{class:"k-sheet-title"}, t._round ? `${t.title} · ${t._round}` : t.title),
+    el("div",{class:"k-sheet-sub"}, openN
+      ? [uncounted.length ? `Noch ${uncounted.length} zählen` : null, missing.length ? `${missing.length} vorbereiten` : null].filter(Boolean).join(" · ") + (t.dueTime ? ` · bis ${t.dueTime} Uhr` : "")
+      : "Alles vorbereitet – super!")
   ]));
   head.appendChild(el("button",{type:"button", class:"k-sheet-close", onclick: close}, icl("check","Fertig")));
   sheet.appendChild(head);
   sheet.appendChild(el("div",{class:"k-prep-bar big", style:"margin:0 0 14px;"},[ el("div",{style:`width:${items.length ? fullN / items.length * 100 : 0}%;`}) ]));
   const seg = el("div",{class:"k-seg"});
-  [["missing",`Fehlt noch (${missing.length})`],["all",`Alle (${items.length})`]].forEach(([k,l])=>
+  [["missing",`Offen (${openN})`],["all",`Alle (${items.length})`]].forEach(([k,l])=>
     seg.appendChild(el("button",{type:"button", class:`k-seg-btn ${st.filter===k?"active":""}`, onclick:()=>{ st.filter = k; st.keep = []; render(); }}, l)));
   sheet.appendChild(seg);
   // Kacheln
   const grid = el("div",{class:"k-ptile-grid"});
+  if(uncounted.length) sheet.appendChild(el("div",{class:"k-count-hint"},[ ic("clipboard"), el("span",{}, "Erst zählen: Box ansehen und Leer, Halb oder Voll tippen (genauer mit − / +). Danach das Fehlende vorbereiten und mit ✓ abhaken.") ]));
   if(!shown.length) grid.appendChild(el("div",{class:"k-sheet-empty"},[ el("div",{class:"k-celebrate-icon", style:"width:72px;height:72px;margin:0 auto 12px;"},[ic("check")]), el("div",{style:"font-size:20px;font-weight:700;"}, "Alles vorbereitet"), el("div",{style:"color:var(--text-muted);margin-top:4px;"}, "Unter „Alle“ siehst du die komplette Station.") ]));
   shown.forEach(it=>{
-    const ok = it.ist >= it.target;
+    const ok = it.ok;
     const set = (v)=>{ if(!st.keep.includes(it.i)) st.keep.push(it.i); kPrepSet(st.id, t, today, it.i, v); };
+    if(!it.counted){
+      grid.appendChild(el("div",{class:"k-ptile q"},[
+        el("div",{class:"k-ptile-name"}, it.name),
+        el("div",{class:"k-ptile-count"},[ el("b",{}, "?"), el("span",{}, ` / ${kPrepFmt(it.target)}`) ]),
+        el("div",{class:"k-ptile-unit"}, it.unit),
+        el("div",{class:"k-ptile-status"}, "Wie viel ist da?"),
+        el("div",{class:"k-ptile-btns"},[
+          el("button",{type:"button", class:"k-prep-btn txt", "aria-label":`${it.name}: leer`, onclick:()=> set(0)}, "Leer"),
+          el("button",{type:"button", class:"k-prep-btn txt", "aria-label":`${it.name}: halb`, onclick:()=> set(it.target / 2)}, "Halb"),
+          el("button",{type:"button", class:"k-prep-btn txt full", "aria-label":`${it.name}: voll`, onclick:()=> set(it.target)}, "Voll")
+        ])
+      ]));
+      return;
+    }
     grid.appendChild(el("div",{class:`k-ptile ${ok ? "ok" : ""}`},[
       el("div",{class:"k-ptile-name"}, it.name),
       el("div",{class:"k-ptile-count"},[ el("b",{}, kPrepFmt(it.ist)), el("span",{}, ` / ${kPrepFmt(it.target)}`) ]),
       el("div",{class:"k-ptile-unit"}, it.unit),
       el("div",{class:"k-ptile-status"}, ok ? icl("check","voll") : `noch ${kPrepFmt(it.target - it.ist)}`),
       el("div",{class:"k-ptile-btns"},[
-        el("button",{type:"button", class:"k-prep-btn", "aria-label":`${it.name} weniger`, onclick:()=> set(it.ist - 1)}, "−"),
+        el("button",{type:"button", class:"k-prep-btn", "aria-label":`${it.name} weniger`, onclick:()=> set(Math.max(0, it.ist - 1))}, "−"),
         el("button",{type:"button", class:"k-prep-btn", "aria-label":`${it.name} mehr`, onclick:()=> set(it.ist + 1)}, "+"),
         el("button",{type:"button", class:`k-prep-btn fill ${ok ? "on" : ""}`, "aria-label":`${it.name} aufgefüllt`, onclick:()=> set(Math.max(it.ist, it.target))},[ic("check")])
       ])
@@ -8323,7 +8377,7 @@ function renderKitchenRecipeDetail(r){
 // =====================================================================
 // Verwaltung (Chef) — Bereich „Küchen-Modus“
 // =====================================================================
-const K_TASK_DEFAULTS = {title:"", description:"", category:"", assignee:"all", repeat:"recurring", date:"", days:["mon","tue","wed","thu","fri","sat","sun"], every:"2", startDate:"", monthDay:"1", shift:"both", startTime:"", dueTime:"", priority:"normal", checklist:[], type:"normal", prep:[]};
+const K_TASK_DEFAULTS = {title:"", description:"", category:"", assignee:"all", repeat:"recurring", date:"", days:["mon","tue","wed","thu","fri","sat","sun"], every:"2", startDate:"", monthDay:"1", shift:"both", startTime:"", dueTime:"", priority:"normal", checklist:[], type:"normal", prep:[], r2On:"no", r2Start:"15:00", r2Due:"17:00"};
 const K_RECIPE_DEFAULTS = {name:"", category:"", yield:"", ingredients:[{amount:"", unit:"", name:""}], steps:[""], notes:""};
 const K_ALARM_DEFAULTS = {title:"", text:"", type:"times", times:["15:00"], days:["mon","tue","wed","thu","fri","sat","sun"], every:"60", from:"11:00", to:"22:00", date:"", time:"", sound:"glocke", volume:"0.8", repeat:true};
 const kLabelStyle = "display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;font-weight:550;";
@@ -8450,12 +8504,12 @@ const K_PREP_TEMPLATE = [
     ["Erdbeer","Flaschen",1], ["Mango","Flaschen",1], ["Erdnuss","Flaschen",2], ["Lotus","Flaschen",2], ["Schoko","Flaschen",2], ["Pistazie","Flaschen",1], ["Raffaello","Flaschen",2]]}
 ];
 const K_PREP_VARIANTS = [
-  {days:["mon","tue","wed","thu","fri"], startTime:"09:00", dueTime:"11:00"},
+  {days:["mon","tue","wed","thu","fri"], startTime:"09:00", dueTime:"11:00", round2:{startTime:"15:00", dueTime:"17:00"}},
   {days:["sat","sun"], startTime:"14:00", dueTime:"16:00"}
 ];
 async function kSeedPrepTemplate(){
   const n = K_PREP_TEMPLATE.length * K_PREP_VARIANTS.length;
-  if(!confirm(`${n} Vorbereitungslisten anlegen (5 Stationen, je Mo–Fr 9–11 Uhr und Sa+So 14–16 Uhr)? Bestehende Aufgaben bleiben unverändert.`)) return;
+  if(!confirm(`${n} Vorbereitungslisten anlegen (5 Stationen, je Mo–Fr 9–11 + 15–17 Uhr und Sa+So 14–16 Uhr)? Bestehende Aufgaben bleiben unverändert.`)) return;
   const updates = {};
   let k = 0;
   K_PREP_VARIANTS.forEach(v=> K_PREP_TEMPLATE.forEach(t=>{
@@ -8463,22 +8517,44 @@ async function kSeedPrepTemplate(){
     updates[`kitchen/tasks/${id}`] = {
       title:t.title, description:"", category:"Vorbereitung", assignee:"all", type:"prep",
       prep: t.prep.map(([name,unit,target])=> ({name, unit, target})),
-      repeat:"recurring", days:v.days, shift:"both", startTime:v.startTime, dueTime:v.dueTime, priority:"normal",
+      repeat:"recurring", days:v.days, shift:"both", startTime:v.startTime, dueTime:v.dueTime, round2:v.round2 || null, priority:"normal",
       active:true, createdAt:Date.now() + (k++)
     };
   }));
   updates["kitchen/seed/prepTemplate1"] = true;
+  updates["kitchen/seed/prepRound2"] = true;
   await update(ref(db), updates);
   alert(`${n} Vorbereitungslisten angelegt. Du findest sie unten unter „Alle Aufgaben“ → Vorbereitung.`);
 }
 
+// Bereits angelegte Mo–Fr-Listen bekommen die Spätschicht-Runde (15–17 Uhr)
+function kRound2Candidates(){
+  const wd = ["mon","tue","wed","thu","fri"];
+  return Object.entries(state.kitchen.tasks || {}).filter(([id,t])=> t && t.type === "prep" && !(t.round2 && t.round2.startTime) && t.repeat === "recurring" && (t.days || []).length && (t.days || []).every(d=> wd.includes(d)));
+}
+async function kAddRound2(){
+  const list = kRound2Candidates();
+  if(!confirm(`${list.length} Vorbereitungslisten (Mo–Fr) bekommen eine zweite Runde für die Spätschicht: sichtbar ab 15:00, erledigt bis 17:00 Uhr. Fortfahren?`)) return;
+  const updates = {"kitchen/seed/prepRound2": true};
+  list.forEach(([id])=> updates[`kitchen/tasks/${id}/round2`] = {startTime:"15:00", dueTime:"17:00"});
+  await update(ref(db), updates);
+}
 function renderKAdminTasks(){
   const wrap = el("div",{});
+  if(state.kitchen.seed && state.kitchen.seed.prepTemplate1 && !state.kitchen.seed.prepRound2 && kRound2Candidates().length){
+    wrap.appendChild(el("div",{class:"card k-seed"},[
+      el("div",{style:"flex:1;min-width:220px;"},[
+        el("h3",{style:"margin:0 0 4px;font-size:15px;"}, "Spätschicht-Runde hinzufügen"),
+        el("div",{style:"font-size:13px;color:var(--text-muted);"}, `Deine ${kRound2Candidates().length} Mo–Fr-Listen werden zusätzlich ab 15:00 Uhr (bis 17:00 Uhr) nochmal gezählt und aufgefüllt. Später in jeder Liste änderbar.`)
+      ]),
+      el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 20px;", onclick: kAddRound2}, icl("plus","Spätschicht-Runde hinzufügen"))
+    ]));
+  }
   if(!(state.kitchen.seed && state.kitchen.seed.prepTemplate1)){
     wrap.appendChild(el("div",{class:"card k-seed"},[
       el("div",{style:"flex:1;min-width:220px;"},[
         el("h3",{style:"margin:0 0 4px;font-size:15px;"}, "Vorbereitungslisten anlegen"),
-        el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Bowl Station, Soßen & Marinade, Wrap Station, Acai Station und Acai-Soßen – je Mo–Fr (9–11 Uhr) und Sa+So (14–16 Uhr). Einmalig, danach wie jede Aufgabe bearbeitbar.")
+        el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Bowl Station, Soßen & Marinade, Wrap Station, Acai Station und Acai-Soßen – je Mo–Fr (Frühschicht 9–11 Uhr, Spätschicht 15–17 Uhr) und Sa+So (14–16 Uhr). Einmalig, danach wie jede Aufgabe bearbeitbar.")
       ]),
       el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 20px;", onclick: kSeedPrepTemplate}, icl("plus","10 Listen anlegen"))
     ]));
@@ -8496,8 +8572,8 @@ function renderKAdminTasks(){
     const nChecked = cl.filter((x,i)=> kChecksMap(today, id)[i]).length;
     tc.appendChild(el("div",{class:"team-row", style:"flex-wrap:wrap;"},[
       el("span",{class:"k-cat-dot", style:`background:${kCatColor(kTaskCat(t))};`}),
-      el("div",{style:"flex:1;min-width:160px;"},[ el("div",{class:"name"}, t.title), el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, `${kTaskCat(t)} · ${kTaskWhen(t)}`) ]),
-      dd ? el("span",{class:"avail-pill yes"}, `${dd.byName} · ${fmtTime(dd.at)} Uhr`) : el("span",{class:"avail-pill no"}, t.type === "prep" ? `offen · ${kPrepItems(t).filter((it,i)=> kPrepIst(today, id, i) >= it.target).length}/${kPrepItems(t).length} voll` : (cl.length ? `offen · ${nChecked}/${cl.length}` : "offen"))
+      el("div",{style:"flex:1;min-width:160px;"},[ el("div",{class:"name"}, t._round ? `${t.title} · ${t._round}` : t.title), el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, `${kTaskCat(t)} · ${kTaskWhen(t)}`) ]),
+      dd ? el("span",{class:"avail-pill yes"}, `${dd.byName} · ${fmtTime(dd.at)} Uhr`) : el("span",{class:"avail-pill no"}, t.type === "prep" ? `offen · ${kPrepRows(t, today, id).filter(it=> it.ok).length}/${kPrepItems(t).length} voll` : (cl.length ? `offen · ${nChecked}/${cl.length}` : "offen"))
     ]));
   });
   wrap.appendChild(tc);
@@ -8552,7 +8628,15 @@ function renderKAdminTasks(){
     ["Boxen","Behälter","Bleche","Portionen","Stück","kg","Liter","Flaschen"].forEach(u=> ul.appendChild(el("option",{value:u})));
     fc.appendChild(pr); fc.appendChild(ul);
     fc.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-top:8px;", onclick:()=>{ x.prep.push({name:"", unit:"Boxen", target:""}); render(); }}, "+ Zutat"));
-    fc.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-top:4px;"}, "Am iPad sieht das Team pro Zutat „Ist / Soll“ und was noch fehlt. Jeder Tag beginnt bei 0 – Reste vom Vortag trägt das Team mit + ein. Sind alle Zutaten voll, ist die Aufgabe automatisch erledigt."));
+    fc.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-top:4px;"}, "Am iPad startet jede Runde mit „?“: Das Team zählt erst den Bestand (Leer / Halb / Voll oder genau mit − / +), bereitet dann das Fehlende vor und hakt es mit ✓ ab. Sind alle Zutaten gezählt und voll, ist die Aufgabe automatisch erledigt."));
+    const r2 = el("div",{class:"k-form", style:"margin-top:16px;"});
+    r2.appendChild(kField("Zweite Runde zur Spätschicht", kSel(x,"r2On",[["no","Nein – nur eine Runde"],["yes","Ja – Spätschicht zählt nochmal"]], true), true));
+    if(x.r2On === "yes"){
+      r2.appendChild(kField("Spätschicht: sichtbar ab", kIn(x,"r2Start",{type:"time"})));
+      r2.appendChild(kField("Spätschicht: erledigt bis (optional)", kIn(x,"r2Due",{type:"time"})));
+    }
+    fc.appendChild(r2);
+    if(x.r2On === "yes") fc.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-top:4px;"}, "„Sichtbar ab / Erledigt bis“ oben gelten dann für die Frühschicht. Beide Runden nutzen dieselben Zutaten und Soll-Mengen, werden aber getrennt gezählt."));
   }
   if(x.type !== "prep") fc.appendChild(el("div",{style:"font-weight:650;font-size:14px;margin:18px 0 8px;"}, "Checkliste (optional)"));
   const rows = el("div",{class:"k-rows"});
@@ -8577,6 +8661,12 @@ function renderKAdminTasks(){
     if(x.repeat === "everyN" && (!(Number(x.every) >= 1) || !x.startDate)){ alert("Bitte „Alle … Tage“ (mindestens 1) und ein Startdatum eintragen."); return; }
     if(x.startTime && x.dueTime && hmToMin(x.startTime) >= hmToMin(x.dueTime)){ alert("„Sichtbar ab“ muss vor „Erledigt bis“ liegen."); return; }
     const prep = x.type === "prep" ? x.prep.map(it=> ({name:String(it.name || "").trim(), unit:String(it.unit || "").trim(), target:kNum(it.target)})).filter(it=> it.name) : [];
+    const useR2 = x.type === "prep" && x.r2On === "yes";
+    if(useR2){
+      if(!x.r2Start){ alert("Bitte eintragen, ab wann die Spätschicht-Runde sichtbar ist."); return; }
+      if(x.r2Due && hmToMin(x.r2Start) >= hmToMin(x.r2Due)){ alert("Spätschicht: „sichtbar ab“ muss vor „erledigt bis“ liegen."); return; }
+      if(x.startTime && hmToMin(x.r2Start) <= hmToMin(x.startTime)){ alert("Die Spätschicht-Runde muss nach der Frühschicht-Runde beginnen."); return; }
+    }
     if(x.type === "prep"){
       if(!prep.length){ alert("Bitte mindestens eine Zutat eintragen."); return; }
       if(prep.some(it=> !(it.target > 0))){ alert("Bitte bei jeder Zutat eine Soll-Menge größer 0 eintragen."); return; }
@@ -8591,6 +8681,7 @@ function renderKAdminTasks(){
       startDate: x.repeat === "everyN" ? x.startDate : null,
       monthDay: x.repeat === "monthly" ? Number(x.monthDay) || 1 : null,
       shift:x.shift, startTime: x.startTime || null, dueTime: x.dueTime || null, priority:x.priority,
+      round2: useR2 ? {startTime:x.r2Start, dueTime:x.r2Due || null} : null,
       checklist: x.type === "prep" ? [] : x.checklist.map(s=> String(s || "").trim()).filter(Boolean)
     };
     if(!rec.checklist.length) rec.checklist = null;
@@ -8619,7 +8710,8 @@ function renderKAdminTasks(){
           date:t.date || "", dueTime:t.dueTime || "", startTime:t.startTime || "", days:t.days || [],
           category:t.category || "", assignee:t.assignee || "all", every:String(t.every || 2), startDate:t.startDate || "",
           monthDay:String(t.monthDay || 1), checklist:(t.checklist || []).slice(), repeat:t.repeat || "recurring",
-          type:t.type === "prep" ? "prep" : "normal", prep:(t.prep || []).filter(Boolean).map(it=> ({name:it.name || "", unit:it.unit || "", target:kNumStr(it.target)}))
+          type:t.type === "prep" ? "prep" : "normal", prep:(t.prep || []).filter(Boolean).map(it=> ({name:it.name || "", unit:it.unit || "", target:kNumStr(it.target)})),
+          r2On: t.round2 && t.round2.startTime ? "yes" : "no", r2Start:(t.round2 && t.round2.startTime) || "15:00", r2Due:(t.round2 && t.round2.dueTime) || "17:00"
         })),
         onDelete: ()=>{ if(confirm(`Aufgabe „${t.title}“ löschen?`)) remove(ref(db, `kitchen/tasks/${id}`)); }
       }));
