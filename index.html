@@ -1284,6 +1284,8 @@
   .k-prep-btn.txt{font-size:16px;font-weight:700;padding:0 4px;}
   .k-prep-btn.txt.full{background:var(--avocado-soft);border-color:rgba(47,138,87,.45);color:var(--avocado);}
   .k-prep-sum-n.count{color:var(--text);}
+  .k-prep-card.missed{cursor:default;}
+  .k-prep-card.missed .k-task-title{text-decoration:none;}
   .k-round-chip{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--bg-elevated-2);color:var(--text);letter-spacing:.01em;}
   .k-count-hint{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;margin:0 0 14px;border-radius:14px;background:var(--bg-elevated-2);font-size:15px;line-height:1.4;color:var(--text);}
   .k-count-hint .ic{width:20px;height:20px;flex-shrink:0;margin-top:1px;}
@@ -7977,8 +7979,12 @@ function renderKitchenTasks(){
   const ui = state.kUi;
   const wrap = el("div",{});
   const today = toDateKey(new Date());
-  const tasks = kTasksForDate(today);
   const done = kDoneMap(today);
+  // Frühschicht-Runde, die nicht fertig wurde, wird von der Spätschicht-Runde abgelöst (die zählt sowieso neu)
+  const nowM = (()=>{ const n = new Date(); return n.getHours()*60 + n.getMinutes(); })();
+  const allToday = kTasksForDate(today);
+  const missed = allToday.filter(([id,t])=> t._round === "Frühschicht" && !done[id] && t.round2 && hmToMin(t.round2.startTime) <= nowM);
+  const tasks = allToday.filter(x=> !missed.includes(x));
   const doneCount = tasks.filter(([id])=> done[id]).length;
   kCheckAllDone(tasks.length, doneCount);
 
@@ -8038,11 +8044,15 @@ function renderKitchenTasks(){
     wrap.appendChild(el("div",{class:"k-section-title"}, "Später heute"));
     later.forEach(([id,t])=> wrap.appendChild(renderKitchenTaskCard(id, t, null, today, true)));
   }
-  if(doneItems.length){
+  const missedShown = missed.filter(([id,t])=> ui.taskCat === "Alle" || kTaskCat(t) === ui.taskCat);
+  if(doneItems.length || missedShown.length){
     wrap.appendChild(el("button",{type:"button", class:`k-done-toggle ${state.kShowDone ? "open" : ""}`, onclick:()=>{ state.kShowDone = !state.kShowDone; render(); }},[
-      ic("check"), el("span",{style:"flex:1;"}, `Erledigt (${doneItems.length})`), el("span",{class:"k-done-toggle-hint"}, state.kShowDone ? "einklappen" : "anzeigen"), ic("chevronRight","k-done-chev")
+      ic("check"), el("span",{style:"flex:1;"}, `Erledigt (${doneItems.length})${missedShown.length ? ` · ${missedShown.length} nicht geschafft` : ""}`), el("span",{class:"k-done-toggle-hint"}, state.kShowDone ? "einklappen" : "anzeigen"), ic("chevronRight","k-done-chev")
     ]));
-    if(state.kShowDone) doneItems.forEach(([id,t])=> wrap.appendChild(renderKitchenTaskCard(id, t, done[id], today)));
+    if(state.kShowDone){
+      doneItems.forEach(([id,t])=> wrap.appendChild(renderKitchenTaskCard(id, t, done[id], today)));
+      missedShown.forEach(([id,t])=> wrap.appendChild(renderKPrepCard(id, {...t, _missed:true}, null, today)));
+    }
   }
   if(!visible.length && !later.length) wrap.appendChild(el("div",{class:"k-progress"}, "In dieser Kategorie gibt es heute nichts."));
   return wrap;
@@ -8074,6 +8084,16 @@ function kPrepSet(id, t, today, i, value){
 }
 // Kompakte Stations-Karte in der Aufgabenliste – Details öffnen sich im Stations-Fenster
 function renderKPrepCard(id, t, d, today, later){
+  if(t._missed){
+    const rows = kPrepRows(t, today, id);
+    return el("div",{class:"k-task k-prep-card done missed", style:`--cat:${kCatColor(kTaskCat(t))};`},[
+      el("div",{class:"k-task-body"},[
+        el("div",{class:"k-task-top"},[ el("span",{class:"k-task-cat"}, kTaskCat(t)), el("span",{class:"k-round-chip"}, t._round) ]),
+        el("div",{class:"k-task-title"}, t.title),
+        el("div",{class:"k-task-meta"},[ el("span",{class:"k-chip warn"}, `Nicht geschafft · ${rows.filter(r=> r.ok).length} von ${rows.length} voll – Spätschicht zählt neu`) ])
+      ])
+    ]);
+  }
   const rows = kPrepRows(t, today, id);
   const items = rows;
   const uncounted = rows.filter(it=> !it.counted);
@@ -8128,6 +8148,9 @@ function renderKPrepSheet(){
   const close = ()=>{ state.kPrepOpen = null; render(); };
   if(!t){ state.kPrepOpen = null; return el("div",{}); }
   const today = toDateKey(new Date());
+  // z. B. über Mitternacht offen geblieben: Runde ist (noch) nicht dran → Fenster zu
+  const nowM = new Date().getHours()*60 + new Date().getMinutes();
+  if(!kTaskOnDate(t, today) || (t.startTime && hmToMin(t.startTime) > nowM && !kDoneMap(today)[st.id])){ state.kPrepOpen = null; return el("div",{}); }
   const items = kPrepRows(t, today, st.id);
   const uncounted = items.filter(it=> !it.counted);
   const missing = items.filter(it=> it.counted && it.ist < it.target);
@@ -8146,7 +8169,7 @@ function renderKPrepSheet(){
       ? [uncounted.length ? `Noch ${uncounted.length} zählen` : null, missing.length ? `${missing.length} vorbereiten` : null].filter(Boolean).join(" · ") + (t.dueTime ? ` · bis ${t.dueTime} Uhr` : "")
       : "Alles vorbereitet – super!")
   ]));
-  head.appendChild(el("button",{type:"button", class:"k-sheet-close", onclick: close}, icl("check","Fertig")));
+  head.appendChild(el("button",{type:"button", class:"k-sheet-close", onclick: close}, openN ? icl("x","Schließen") : icl("check","Fertig")));
   sheet.appendChild(head);
   sheet.appendChild(el("div",{class:"k-prep-bar big", style:"margin:0 0 14px;"},[ el("div",{style:`width:${items.length ? fullN / items.length * 100 : 0}%;`}) ]));
   const seg = el("div",{class:"k-seg"});
