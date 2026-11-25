@@ -1396,6 +1396,8 @@
   .k-count-done .ic{width:26px;height:26px;}
   .k-sheet-all{min-height:52px;padding:0 18px;border-radius:14px;border:1px solid rgba(47,138,87,.45);background:var(--avocado-soft);color:var(--avocado);font:inherit;font-size:16px;font-weight:700;display:inline-flex;align-items:center;gap:6px;margin-right:8px;flex-shrink:0;}
   .k-sheet-all .ic{width:20px;height:20px;}
+  .k-sheet-fix{min-height:52px;padding:0 16px;border-radius:14px;border:1px solid var(--line-strong);background:var(--bg-elevated);color:var(--text);font:inherit;font-size:15.5px;font-weight:650;display:inline-flex;align-items:center;gap:6px;margin-right:8px;flex-shrink:0;}
+  .k-sheet-fix .ic{width:18px;height:18px;}
   .k-prep-card.counting{box-shadow:inset 5px 0 0 var(--ink), var(--shadow-sm);}
   @media(max-width:700px){ .k-sheet-foot{margin:14px -16px -16px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));bottom:-16px;} .k-sheet-head{flex-wrap:wrap;} }
   .k-count-edit{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--bg-elevated-2);}
@@ -8296,6 +8298,18 @@ function kPrepCountFinish(id, t, v){
   update(ref(db), updates);
   if(allOk) kJust(id);
 }
+// Zählung korrigieren: letzte Zählung wieder öffnen, mit den eingetragenen Zahlen als Startwert
+function kPrepRecount(id, v){
+  const st = v.st; if(!st) return;
+  const filledN = Object.keys(st.filled || {}).length;
+  if(!confirm(`Zählung von ${kDayTimeLabel(st.at)} korrigieren?\nDie eingetragenen Zahlen bleiben als Startwert stehen – nur ändern, was falsch war, und wieder „Zählung fertig“ tippen.${filledN ? `\n\nAchtung: ${filledN} schon abgehakte Auffüllung(en) werden dabei zurückgesetzt.` : ""}`)) return;
+  const vals = {}; v.rows.forEach(r=> vals[r.i] = r.counted);
+  const updates = {};
+  updates[`kitchen/prepDraft/${id}`] = {slot: st.slot, vals};
+  updates[`kitchen/prepStock/${id}`] = null;
+  update(ref(db), updates);
+  state.kPrepOpen = {id, filter:"all", keep:[]};
+}
 // Auffüllen: Zutat als aufgefüllt markieren (oder zurücknehmen)
 function kPrepFill(id, v, idxs, on){
   const updates = {};
@@ -8394,6 +8408,7 @@ function renderKPrepSheet(){
     v.missing.forEach(r=>{ if(!st.keep.includes(r.i)) st.keep.push(r.i); });
     kPrepFill(st.id, v, v.missing.map(r=> r.i), true);
   }}, icl("check","Alles aufgefüllt")));
+  if(!counting && v.st) head.appendChild(el("button",{type:"button", class:"k-sheet-fix", onclick:()=> kPrepRecount(st.id, v)}, icl("pencil","Zählung korrigieren")));
   head.appendChild(el("button",{type:"button", class:"k-sheet-close", onclick: close}, (counting || v.missing.length) ? icl("x","Schließen") : icl("check","Fertig")));
   sheet.appendChild(head);
 
