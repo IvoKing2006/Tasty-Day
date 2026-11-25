@@ -1236,6 +1236,7 @@
   @media(max-width:700px){ .k-prep-row{grid-template-columns:minmax(0,1fr) auto;} .k-prep-btns{grid-column:1 / -1;} .k-prep-btn{flex:1;} }
   .k-prep-edit{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) 80px 36px;gap:8px;align-items:center;margin-bottom:8px;}
   .k-prep-edit.head{font-size:12px;color:var(--text-muted);margin-bottom:4px;}
+  .k-seed{display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-color:rgba(47,138,87,.35);background:linear-gradient(135deg, var(--avocado-soft), var(--bg-elevated) 70%);}
 </style>
 </head>
 <body>
@@ -8324,8 +8325,58 @@ function renderKitchenAdmin(){
 }
 
 // ---------- Aufgaben verwalten ----------
+// ---------- Vorlage: Tasty-Day-Vorbereitungslisten (einmalig per Knopf anlegen) ----------
+const K_PREP_TEMPLATE = [
+  {title:"Bowl Station", prep:[
+    ["Quinoa","Boxen",1], ["Tomate","große Boxen",2], ["Gurke","große Boxen",2], ["Mango","kleine Boxen",4], ["Lauch","kleine Boxen",2],
+    ["Avocado","kleine Boxen",6], ["Granatapfel","kleine Boxen",2], ["Lachs","kleine Boxen",3], ["Thunfisch","kleine Boxen",2], ["Tofu","kleine Boxen",2],
+    ["Rote Zwiebel","Boxen",2], ["Sprossen","Boxen",2], ["Erdbeere","Boxen",1], ["Dosenthunfisch","Boxen",2], ["Kartoffel","Boxen",5]]},
+  {title:"Soßen & Marinade", prep:[
+    ["Honig-Senf","Flaschen",3], ["Curry-Mango","Flaschen",3], ["BBQ","Flaschen",2], ["Sesamsoße","Flaschen",2], ["Kräuterjoghurt","Flaschen",3],
+    ["Wasabi","Flaschen",2], ["Erdnusssoße","Flaschen",2], ["Chili-Mayo","Flaschen",3], ["Teriyaki","Flaschen",4], ["Marinade (jede Sorte)","Flaschen",1]]},
+  {title:"Wrap Station", prep:[
+    ["Gurkenscheiben","Boxen",2], ["Tomatenscheiben","Boxen",2], ["Avocadoscheiben","Boxen",0.5]]},
+  {title:"Acai Station", prep:[
+    ["Eis Acai","Behälter",2], ["Eis Mango","Packungen",1], ["Eis Matcha","Packungen",1], ["Eis Drachenfrucht","Behälter",1],
+    ["Chia Pudding","Boxen",2], ["Chia Pudding Zimt","Boxen",1], ["Joghurt","Boxen",2], ["Dubai Schokolade","Boxen",0.5],
+    ["Erdbeeren","Boxen",3], ["Mango","Boxen",2], ["Blaubeeren","Boxen",1], ["Himbeeren","Packungen",4], ["Bananen","Bund",8], ["Maracuja","Stück",6]]},
+  {title:"Acai-Soßen", prep:[
+    ["Erdbeer","Flaschen",1], ["Mango","Flaschen",1], ["Erdnuss","Flaschen",2], ["Lotus","Flaschen",2], ["Schoko","Flaschen",2], ["Pistazie","Flaschen",1], ["Raffaello","Flaschen",2]]}
+];
+const K_PREP_VARIANTS = [
+  {days:["mon","tue","wed","thu","fri"], startTime:"09:00", dueTime:"11:00"},
+  {days:["sat","sun"], startTime:"14:00", dueTime:"16:00"}
+];
+async function kSeedPrepTemplate(){
+  const n = K_PREP_TEMPLATE.length * K_PREP_VARIANTS.length;
+  if(!confirm(`${n} Vorbereitungslisten anlegen (5 Stationen, je Mo–Fr 9–11 Uhr und Sa+So 14–16 Uhr)? Bestehende Aufgaben bleiben unverändert.`)) return;
+  const updates = {};
+  let k = 0;
+  K_PREP_VARIANTS.forEach(v=> K_PREP_TEMPLATE.forEach(t=>{
+    const id = push(ref(db, "kitchen/tasks")).key;
+    updates[`kitchen/tasks/${id}`] = {
+      title:t.title, description:"", category:"Vorbereitung", assignee:"all", type:"prep",
+      prep: t.prep.map(([name,unit,target])=> ({name, unit, target})),
+      repeat:"recurring", days:v.days, shift:"both", startTime:v.startTime, dueTime:v.dueTime, priority:"normal",
+      active:true, createdAt:Date.now() + (k++)
+    };
+  }));
+  updates["kitchen/seed/prepTemplate1"] = true;
+  await update(ref(db), updates);
+  alert(`${n} Vorbereitungslisten angelegt. Du findest sie unten unter „Alle Aufgaben“ → Vorbereitung.`);
+}
+
 function renderKAdminTasks(){
   const wrap = el("div",{});
+  if(!(state.kitchen.seed && state.kitchen.seed.prepTemplate1)){
+    wrap.appendChild(el("div",{class:"card k-seed"},[
+      el("div",{style:"flex:1;min-width:220px;"},[
+        el("h3",{style:"margin:0 0 4px;font-size:15px;"}, "Vorbereitungslisten anlegen"),
+        el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Bowl Station, Soßen & Marinade, Wrap Station, Acai Station und Acai-Soßen – je Mo–Fr (9–11 Uhr) und Sa+So (14–16 Uhr). Einmalig, danach wie jede Aufgabe bearbeitbar.")
+      ]),
+      el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 20px;", onclick: kSeedPrepTemplate}, icl("plus","10 Listen anlegen"))
+    ]));
+  }
   const today = toDateKey(new Date());
   const todays = kTasksForDate(today);
   const done = kDoneMap(today);
