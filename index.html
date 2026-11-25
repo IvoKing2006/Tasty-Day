@@ -1054,6 +1054,16 @@
   .cat-pay-open strong{font-size:17px;}
   .cat-pay-open .neg{color:var(--chili);} .cat-pay-open .pos{color:var(--avocado);}
   .cat-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px;}
+  .cat-loan-card{padding:16px 18px;}
+  .cat-loan-card.overdue{border-color:rgba(197,64,46,.45);}
+  .cat-loan-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px;}
+  .cat-loan-items{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
+  .cat-loan-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--bg-elevated-2);font-size:15px;font-weight:550;cursor:pointer;}
+  .cat-loan-item input{width:20px;height:20px;accent-color:var(--brand);flex-shrink:0;}
+  .cat-loan-item .q{font-weight:700;min-width:30px;font-variant-numeric:tabular-nums;}
+  .cat-loan-item.back{opacity:.6;}
+  .cat-loan-item.back span:not(.cat-loan-back){text-decoration:line-through;}
+  .cat-loan-back{margin-left:auto;font-size:12.5px;font-weight:650;color:var(--avocado);}
   .cat-del:hover{color:var(--chili);border-color:var(--chili);}
   .cat-info{display:flex;gap:12px;align-items:flex-start;padding:9px 0;}
   .cat-info + .cat-info{border-top:1px solid var(--line);}
@@ -6925,7 +6935,7 @@ function renderOrderList(){
   const filters = [
     ["upcoming","Kommend", ([id,c])=> (c.date||"") >= today && c.status !== "canceled"],
     ["unpaid","Offene Zahlungen", ([id,c])=> c.status !== "canceled" && cateringCalc(c).open > 0.004 && c.status !== "requested"],
-    ["loans","Leihmaterial offen", ([id,c])=> loanOpen(c)],
+    ["loans","Leihmaterial offen", ([id,c])=> loanOpen(c) && (c.date||"") <= today],
     ["past","Vergangen", ([id,c])=> (c.date||"") < today],
     ["all","Alle", ()=> true]
   ];
@@ -6946,6 +6956,14 @@ function renderOrderList(){
   const desc = ui.filter === "past" || ui.filter === "all";
   list.sort((a,b)=>{ const x = (a[1].date||"") + (a[1].time||""), y = (b[1].date||"") + (b[1].time||""); return desc ? y.localeCompare(x) : x.localeCompare(y); });
 
+  // Leihmaterial: nur wer, wo, was – direkt abhaken, ohne den Auftrag zu öffnen
+  if(ui.filter === "loans"){
+    if(!list.length) wrap.appendChild(el("div",{class:"card"},[ el("div",{class:"empty-state", style:"padding:36px 20px;"}, "Alles Leihmaterial ist zurück.") ]));
+    list.sort((a,b)=> (a[1].returnDue || a[1].date || "").localeCompare(b[1].returnDue || b[1].date || ""));
+    list.forEach(([id,c])=> wrap.appendChild(renderLoanCard(id, c)));
+    return wrap;
+  }
+
   const card = el("div",{class:"card", style:"padding:8px;"});
   if(!list.length){
     card.appendChild(el("div",{class:"empty-state", style:"padding:36px 20px;"}, all.length ? "Keine Aufträge in dieser Ansicht." : "Noch keine Caterings. Leg oben rechts das erste an."));
@@ -6953,6 +6971,40 @@ function renderOrderList(){
   list.forEach(([id,c])=> card.appendChild(renderOrderRow(id, c)));
   wrap.appendChild(card);
   return wrap;
+}
+
+function renderLoanCard(id, c){
+  const cu = cateringCustomer(c) || {};
+  const today = toDateKey(new Date());
+  const overdue = c.returnDue && c.returnDue < today;
+  const where = c.mode !== "pickup" && c.address ? c.address : (cu.address || "");
+  const card = el("div",{class:`card cat-loan-card ${overdue ? "overdue" : ""}`});
+  card.appendChild(el("div",{class:"cat-loan-head"},[
+    el("div",{class:"cat-avatar"}, initials(cu.company || cu.name || cateringShortName(c))),
+    el("div",{style:"flex:1;min-width:0;"},[
+      el("div",{class:"cat-row-title"}, cateringCustomerLabel(c)),
+      el("div",{class:"cat-row-sub"}, `Catering am ${fmtDateKey(c.date)}${c.number ? ` · ${c.number}` : ""}`)
+    ]),
+    c.returnDue ? catPill(overdue ? `Rückgabe überfällig (${fmtDateKey(c.returnDue)})` : `zurück bis ${fmtDateKey(c.returnDue)}`, overdue ? "pay-overdue" : "pay-open") : null
+  ]));
+  if(cu.phone) card.appendChild(el("div",{class:"cat-info"},[ ic("send"), el("div",{},[ el("div",{class:"l"}, "Telefon"), el("a",{class:"v", href:"tel:" + cu.phone.replace(/[^\d+]/g,"")}, cu.phone) ]) ]));
+  if(where) card.appendChild(el("div",{class:"cat-info"},[ ic("mapPin"), el("div",{},[ el("div",{class:"l"}, c.mode === "pickup" ? "Adresse (abgeholt)" : "Geliefert an"), el("div",{class:"v"}, where) ]) ]));
+  const items = el("div",{class:"cat-loan-items"});
+  (c.loanItems || []).forEach((l,i)=>{
+    if(!l || !l.name) return;
+    const cb = el("input",{type:"checkbox"}); cb.checked = !!l.returned;
+    cb.addEventListener("change", ()=> update(ref(db, `kitchen/caterings/${id}/loanItems/${i}`), {returned: cb.checked}));
+    items.appendChild(el("label",{class:`cat-loan-item ${l.returned ? "back" : ""}`},[ cb, el("span",{class:"q"}, `${kNumStr(l.qty) || "1"}×`), el("span",{}, l.name), l.returned ? el("span",{class:"cat-loan-back"}, "zurück") : null ]));
+  });
+  card.appendChild(items);
+  card.appendChild(el("div",{class:"cat-actions", style:"margin-top:10px;"},[
+    el("button",{class:"btn-cancel", style:"padding:9px 16px;", onclick:()=>{
+      const upd = {};
+      (c.loanItems || []).forEach((l,i)=>{ if(l && l.name) upd[`kitchen/caterings/${id}/loanItems/${i}/returned`] = true; });
+      update(ref(db), upd);
+    }}, icl("check","Alles zurück"))
+  ]));
+  return card;
 }
 function renderOrderRow(id, c, inProfile){
   const calc = cateringCalc(c);
