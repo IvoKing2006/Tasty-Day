@@ -1237,6 +1237,54 @@
   .k-prep-edit{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) 80px 36px;gap:8px;align-items:center;margin-bottom:8px;}
   .k-prep-edit.head{font-size:12px;color:var(--text-muted);margin-bottom:4px;}
   .k-seed{display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-color:rgba(47,138,87,.35);background:linear-gradient(135deg, var(--avocado-soft), var(--bg-elevated) 70%);}
+  /* Vorbereitung: kompakte Karte + Stations-Fenster */
+  .k-prep-card{cursor:pointer;}
+  .k-prep-sum{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-top:6px;}
+  .k-prep-sum-n{font-size:22px;font-weight:750;color:#B26A12;letter-spacing:-0.02em;}
+  .k-prep-sum-n.ok{color:var(--avocado);}
+  :root[data-theme="dark"] .k-prep-sum-n:not(.ok){color:#EDA850;}
+  .k-prep-sum-of{font-size:15px;color:var(--text-muted);font-weight:550;}
+  .k-prep-bar.big{height:10px;border-radius:6px;background:var(--bg-elevated-2);}
+  .k-prep-bar.big > div{background:var(--avocado);}
+  .k-prep-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .k-prep-pchip{font-size:15px;padding:6px 12px;border-radius:999px;background:var(--mango-soft);color:var(--text);}
+  .k-prep-pchip b{color:#B26A12;}
+  :root[data-theme="dark"] .k-prep-pchip b{color:#EDA850;}
+  .k-prep-pchip.more{background:var(--bg-elevated-2);color:var(--text-muted);}
+  .k-sheet-backdrop{position:fixed;inset:0;z-index:180;background:rgba(18,25,21,.45);display:flex;align-items:stretch;justify-content:center;padding:28px;animation:kFadeIn .2s ease;}
+  @keyframes kFadeIn{from{opacity:0;}to{opacity:1;}}
+  .k-sheet{width:100%;max-width:1180px;background:var(--bg);border-radius:26px;box-shadow:var(--shadow-lg);padding:22px 24px;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:kRise .3s cubic-bezier(.2,.9,.25,1.1);}
+  .k-sheet-head{display:flex;align-items:center;gap:16px;margin-bottom:12px;}
+  .k-sheet-title{font-size:28px;font-weight:750;letter-spacing:-0.03em;}
+  .k-sheet-sub{font-size:16px;color:var(--text-muted);margin-top:2px;}
+  .k-sheet-close{display:inline-flex;align-items:center;gap:8px;min-height:56px;padding:0 24px;border-radius:16px;border:none;background:var(--ink);color:var(--bg-elevated);font:inherit;font-size:18px;font-weight:700;cursor:pointer;flex-shrink:0;}
+  .k-sheet-close .ic{width:22px;height:22px;}
+  .k-seg{display:inline-flex;gap:4px;padding:4px;border-radius:14px;background:var(--bg-elevated-2);margin-bottom:16px;}
+  .k-seg-btn{min-height:46px;padding:0 18px;border-radius:11px;border:none;background:none;font:inherit;font-size:16px;font-weight:650;color:var(--text-muted);cursor:pointer;}
+  .k-seg-btn.active{background:var(--bg-elevated);color:var(--text);box-shadow:var(--shadow-sm);}
+  .k-ptile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
+  .k-ptile{display:flex;flex-direction:column;gap:4px;padding:16px;border-radius:20px;background:var(--bg-elevated);border:1px solid var(--line);box-shadow:var(--shadow-sm);border-top:5px solid var(--mango);transition:background .2s, border-color .2s;}
+  .k-ptile.ok{background:var(--avocado-soft);border-color:rgba(47,138,87,.35);border-top-color:var(--avocado);}
+  .k-ptile-name{font-size:19px;font-weight:700;line-height:1.2;min-height:46px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .k-ptile-count{font-variant-numeric:tabular-nums;margin-top:2px;}
+  .k-ptile-count b{font-size:40px;font-weight:800;letter-spacing:-0.04em;}
+  .k-ptile-count span{font-size:22px;font-weight:650;color:var(--text-muted);}
+  .k-ptile-unit{font-size:14px;color:var(--text-muted);font-weight:550;margin-top:-4px;}
+  .k-ptile-status{font-size:16px;font-weight:700;color:#B26A12;margin:6px 0 10px;}
+  .k-ptile-status .ic{width:17px;height:17px;margin-right:4px;}
+  .k-ptile.ok .k-ptile-status{color:var(--avocado);}
+  :root[data-theme="dark"] .k-ptile:not(.ok) .k-ptile-status{color:#EDA850;}
+  .k-ptile-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:auto;}
+  .k-ptile-btns .k-prep-btn{width:100%;}
+  .k-sheet-empty{grid-column:1 / -1;text-align:center;padding:50px 20px;}
+  @media(max-width:700px){ .k-sheet-backdrop{padding:10px;} .k-sheet{padding:16px;border-radius:20px;} .k-sheet-title{font-size:22px;} .k-ptile-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;} .k-ptile-count b{font-size:32px;} }
+  .k-done-toggle{display:flex;align-items:center;gap:12px;width:100%;min-height:62px;margin:22px 0 12px;padding:0 20px;border-radius:18px;border:1px solid rgba(47,138,87,.3);background:var(--avocado-soft);color:var(--avocado);font:inherit;font-size:18px;font-weight:700;text-align:left;cursor:pointer;}
+  .k-done-toggle .ic{width:22px;height:22px;flex-shrink:0;}
+  .k-done-toggle-hint{font-size:15px;font-weight:600;opacity:.8;}
+  .k-done-chev{transition:transform .2s;}
+  .k-done-toggle.open .k-done-chev{transform:rotate(90deg);}
+  .k-all-done{display:flex;align-items:center;gap:10px;justify-content:center;padding:22px;margin:14px 0;border-radius:18px;background:var(--avocado-soft);color:var(--avocado);font-size:18px;font-weight:700;}
+  .k-all-done .ic{width:24px;height:24px;}
 </style>
 </head>
 <body>
@@ -7686,6 +7734,7 @@ function renderKitchen(){
   main.appendChild(ui.view === "recipes" ? renderKitchenRecipes() : (ui.view === "caterings" ? renderKitchenCaterings() : renderKitchenTasks()));
   shell.appendChild(main);
 
+  if(state.kPrepOpen) shell.appendChild(renderKPrepSheet());
   if(state.kCelebrate) shell.appendChild(renderKCelebrate());
   if(state.kitchenActive.length) shell.appendChild(renderKitchenAlarmOverlay());
   if(state.kNamePicker) shell.appendChild(renderKNamePicker());
@@ -7944,17 +7993,27 @@ function renderKitchenTasks(){
     {key:"both", label:"Ganzer Tag"},
     ...dayShifts.filter(s=> s.key !== cur.key).map(s=> ({key:s.key, label:s.label}))
   ];
+  // Offene Aufgaben nach Schicht; erledigte wandern in den eingeklappten Bereich „Erledigt“
+  // (gerade abgehakte bleiben kurz für die Animation stehen)
+  const isJust = (id)=> state.kJustDone && state.kJustDone.id === id && Date.now() - state.kJustDone.at < 1600;
+  const openItems = visible.filter(([id])=> !done[id] || isJust(id));
+  const doneItems = visible.filter(([id])=> done[id] && !isJust(id)).sort((a,b)=> (done[b[0]].at || 0) - (done[a[0]].at || 0));
   groups.forEach(g=>{
-    const items = visible.filter(([id,t])=> (validKeys.includes(t.shift) ? t.shift : "both") === g.key);
+    const items = openItems.filter(([id,t])=> (validKeys.includes(t.shift) ? t.shift : "both") === g.key);
     if(!items.length) return;
-    items.sort((a,b)=> (done[a[0]]?1:0) - (done[b[0]]?1:0)); // erledigte nach unten
-    const openN = items.filter(([id])=> !done[id]).length;
-    wrap.appendChild(el("div",{class:"k-section-title"}, `${g.label} · ${openN ? `${openN} offen` : "alles erledigt"}`));
+    wrap.appendChild(el("div",{class:"k-section-title"}, `${g.label} · ${items.length} offen`));
     items.forEach(([id,t])=> wrap.appendChild(renderKitchenTaskCard(id, t, done[id], today)));
   });
+  if(!openItems.length && visible.length) wrap.appendChild(el("div",{class:"k-all-done"},[ ic("check"), el("span",{}, later.length ? "Alles Aktuelle erledigt – weiter geht's später." : "Alles erledigt!") ]));
   if(later.length){
     wrap.appendChild(el("div",{class:"k-section-title"}, "Später heute"));
     later.forEach(([id,t])=> wrap.appendChild(renderKitchenTaskCard(id, t, null, today, true)));
+  }
+  if(doneItems.length){
+    wrap.appendChild(el("button",{type:"button", class:`k-done-toggle ${state.kShowDone ? "open" : ""}`, onclick:()=>{ state.kShowDone = !state.kShowDone; render(); }},[
+      ic("check"), el("span",{style:"flex:1;"}, `Erledigt (${doneItems.length})`), el("span",{class:"k-done-toggle-hint"}, state.kShowDone ? "einklappen" : "anzeigen"), ic("chevronRight","k-done-chev")
+    ]));
+    if(state.kShowDone) doneItems.forEach(([id,t])=> wrap.appendChild(renderKitchenTaskCard(id, t, done[id], today)));
   }
   if(!visible.length && !later.length) wrap.appendChild(el("div",{class:"k-progress"}, "In dieser Kategorie gibt es heute nichts."));
   return wrap;
@@ -7980,43 +8039,35 @@ function kPrepSet(id, t, today, i, value){
   if(!full && wasDone) updates[`kitchen/taskDone/${today}/${id}`] = null;
   update(ref(db), updates);
 }
+// Kompakte Stations-Karte in der Aufgabenliste – Details öffnen sich im Stations-Fenster
 function renderKPrepCard(id, t, d, today, later){
   const items = kPrepItems(t);
-  const fullN = items.filter((it,i)=> kPrepIst(today, id, i) >= it.target).length;
+  const missing = items.map((it,i)=> ({...it, i, ist:kPrepIst(today, id, i)})).filter(it=> it.ist < it.target);
+  const fullN = items.length - missing.length;
   const nowMin = (()=>{ const n = new Date(); return n.getHours()*60 + n.getMinutes(); })();
   const dueIn = t.dueTime ? hmToMin(t.dueTime) - nowMin : null;
   const overdue = !d && !later && dueIn !== null && dueIn < 0;
   const soon = !d && !later && dueIn !== null && dueIn >= 0 && dueIn <= 30;
   const just = state.kJustDone && state.kJustDone.id === id && Date.now() - state.kJustDone.at < 1600;
   const cat = kTaskCat(t);
-  const card = el("div",{class:`k-task k-prep ${d ? "done" : ""} ${overdue ? "overdue" : ""} ${soon ? "soon" : ""} ${later ? "later" : ""} ${just ? "just-done" : ""}`, style:`--cat:${kCatColor(cat)};`});
+  const open = ()=>{ if(later) return; state.kPrepOpen = {id, filter: missing.length ? "missing" : "all", keep:[]}; render(); };
+  const card = el("div",{class:`k-task k-prep-card ${d ? "done" : ""} ${overdue ? "overdue" : ""} ${soon ? "soon" : ""} ${later ? "later" : ""} ${just ? "just-done" : ""}`, style:`--cat:${kCatColor(cat)};`, onclick: open});
   const body = el("div",{class:"k-task-body"});
   const who = kAssigneeLabel(t);
   body.appendChild(el("div",{class:"k-task-top"},[ el("span",{class:"k-task-cat"}, cat), who ? el("span",{class:"k-task-who"},[ic("user"), who]) : null ]));
   body.appendChild(el("div",{class:"k-task-title"}, t.title));
-  if(t.description) body.appendChild(el("div",{class:"k-task-desc"}, t.description));
   if(!later){
-    const list = el("div",{class:"k-prep-list"});
-    items.forEach((it,i)=>{
-      const ist = kPrepIst(today, id, i);
-      const ok = ist >= it.target;
-      const missing = Math.max(0, it.target - ist);
-      const pct = Math.min(100, it.target ? ist / it.target * 100 : 0);
-      list.appendChild(el("div",{class:`k-prep-row ${ok ? "ok" : ""}`},[
-        el("div",{class:"k-prep-info"},[
-          el("div",{class:"k-prep-name"}, it.name),
-          el("div",{class:"k-prep-status"}, ok ? `Voll · ${kPrepFmt(ist)} ${it.unit}` : `Noch ${kPrepFmt(missing)} ${it.unit} vorbereiten`),
-          el("div",{class:"k-prep-bar"},[ el("div",{style:`width:${pct}%;`}) ])
-        ]),
-        el("div",{class:"k-prep-count"},[ el("b",{}, kPrepFmt(ist)), el("span",{}, ` / ${kPrepFmt(it.target)}`), el("small",{}, it.unit) ]),
-        el("div",{class:"k-prep-btns"},[
-          el("button",{type:"button", class:"k-prep-btn", "aria-label":`${it.name} weniger`, onclick:()=> kPrepSet(id, t, today, i, ist - 1)}, "−"),
-          el("button",{type:"button", class:"k-prep-btn", "aria-label":`${it.name} mehr`, onclick:()=> kPrepSet(id, t, today, i, ist + 1)}, "+"),
-          el("button",{type:"button", class:`k-prep-btn fill ${ok ? "on" : ""}`, "aria-label":`${it.name} aufgefüllt`, title:"Aufgefüllt – Soll erreicht", onclick:()=> kPrepSet(id, t, today, i, Math.max(ist, it.target))},[ic("check")])
-        ])
-      ]));
-    });
-    body.appendChild(list);
+    body.appendChild(el("div",{class:"k-prep-sum"},[
+      el("span",{class:`k-prep-sum-n ${missing.length ? "" : "ok"}`}, missing.length ? `${missing.length} fehlen` : "Alles voll"),
+      el("span",{class:"k-prep-sum-of"}, `${fullN} von ${items.length} Zutaten voll`)
+    ]));
+    body.appendChild(el("div",{class:"k-prep-bar big"},[ el("div",{style:`width:${items.length ? fullN / items.length * 100 : 0}%;`}) ]));
+    if(missing.length){
+      const prev = el("div",{class:"k-prep-preview"});
+      missing.slice(0, 4).forEach(it=> prev.appendChild(el("span",{class:"k-prep-pchip"},[ el("b",{}, kPrepFmt(it.target - it.ist)), ` ${it.name}` ])));
+      if(missing.length > 4) prev.appendChild(el("span",{class:"k-prep-pchip more"}, `+ ${missing.length - 4} weitere`));
+      body.appendChild(prev);
+    }
   }
   const meta = el("div",{class:"k-task-meta"});
   if(later) meta.appendChild(el("span",{class:"k-chip"}, icl("clock", `ab ${t.startTime} Uhr`)));
@@ -8025,10 +8076,60 @@ function renderKPrepCard(id, t, d, today, later){
     else if(soon) meta.appendChild(el("span",{class:"k-chip soon"}, `noch ${kDurLabel(dueIn)} · bis ${t.dueTime} Uhr`));
     else meta.appendChild(el("span",{class:"k-chip"}, `bis ${t.dueTime} Uhr`));
   }
-  meta.appendChild(el("span",{class:`k-chip ${fullN === items.length ? "ok" : ""}`}, d ? icl("check", "Alles vorbereitet") : `${fullN}/${items.length} voll`));
-  body.appendChild(meta);
+  if(d) meta.appendChild(el("span",{class:"k-chip ok"}, icl("check", "Alles vorbereitet")));
+  if(meta.childNodes.length) body.appendChild(meta);
   card.appendChild(body);
+  if(!later) card.appendChild(el("button",{type:"button", class: d ? "k-undo-btn" : "k-done-btn", onclick:(e)=>{ e.stopPropagation(); open(); }}, d ? icl("eye","Ansehen") : icl("chevronRight","Öffnen")));
   return card;
+}
+
+// Stations-Fenster: Kacheln statt langer Liste, standardmäßig nur was fehlt
+function renderKPrepSheet(){
+  const st = state.kPrepOpen;
+  const t = (state.kitchen.tasks || {})[st.id];
+  const close = ()=>{ state.kPrepOpen = null; render(); };
+  if(!t){ state.kPrepOpen = null; return el("div",{}); }
+  const today = toDateKey(new Date());
+  const items = kPrepItems(t).map((it,i)=> ({...it, i, ist:kPrepIst(today, st.id, i)}));
+  const missing = items.filter(it=> it.ist < it.target);
+  const fullN = items.length - missing.length;
+  const shown = st.filter === "all" ? items : items.filter(it=> it.ist < it.target || st.keep.includes(it.i));
+  const ov = el("div",{class:"k-sheet-backdrop"});
+  const sheet = el("div",{class:"k-sheet", role:"dialog", "aria-label":t.title});
+  // Kopf
+  const head = el("div",{class:"k-sheet-head"});
+  head.appendChild(el("div",{style:"flex:1;min-width:0;"},[
+    el("div",{class:"k-sheet-title"}, t.title),
+    el("div",{class:"k-sheet-sub"}, missing.length ? `Noch ${missing.length} von ${items.length} Zutaten vorbereiten${t.dueTime ? ` · bis ${t.dueTime} Uhr` : ""}` : "Alles vorbereitet – super!")
+  ]));
+  head.appendChild(el("button",{type:"button", class:"k-sheet-close", onclick: close}, icl("check","Fertig")));
+  sheet.appendChild(head);
+  sheet.appendChild(el("div",{class:"k-prep-bar big", style:"margin:0 0 14px;"},[ el("div",{style:`width:${items.length ? fullN / items.length * 100 : 0}%;`}) ]));
+  const seg = el("div",{class:"k-seg"});
+  [["missing",`Fehlt noch (${missing.length})`],["all",`Alle (${items.length})`]].forEach(([k,l])=>
+    seg.appendChild(el("button",{type:"button", class:`k-seg-btn ${st.filter===k?"active":""}`, onclick:()=>{ st.filter = k; st.keep = []; render(); }}, l)));
+  sheet.appendChild(seg);
+  // Kacheln
+  const grid = el("div",{class:"k-ptile-grid"});
+  if(!shown.length) grid.appendChild(el("div",{class:"k-sheet-empty"},[ el("div",{class:"k-celebrate-icon", style:"width:72px;height:72px;margin:0 auto 12px;"},[ic("check")]), el("div",{style:"font-size:20px;font-weight:700;"}, "Alles vorbereitet"), el("div",{style:"color:var(--text-muted);margin-top:4px;"}, "Unter „Alle“ siehst du die komplette Station.") ]));
+  shown.forEach(it=>{
+    const ok = it.ist >= it.target;
+    const set = (v)=>{ if(!st.keep.includes(it.i)) st.keep.push(it.i); kPrepSet(st.id, t, today, it.i, v); };
+    grid.appendChild(el("div",{class:`k-ptile ${ok ? "ok" : ""}`},[
+      el("div",{class:"k-ptile-name"}, it.name),
+      el("div",{class:"k-ptile-count"},[ el("b",{}, kPrepFmt(it.ist)), el("span",{}, ` / ${kPrepFmt(it.target)}`) ]),
+      el("div",{class:"k-ptile-unit"}, it.unit),
+      el("div",{class:"k-ptile-status"}, ok ? icl("check","voll") : `noch ${kPrepFmt(it.target - it.ist)}`),
+      el("div",{class:"k-ptile-btns"},[
+        el("button",{type:"button", class:"k-prep-btn", "aria-label":`${it.name} weniger`, onclick:()=> set(it.ist - 1)}, "−"),
+        el("button",{type:"button", class:"k-prep-btn", "aria-label":`${it.name} mehr`, onclick:()=> set(it.ist + 1)}, "+"),
+        el("button",{type:"button", class:`k-prep-btn fill ${ok ? "on" : ""}`, "aria-label":`${it.name} aufgefüllt`, onclick:()=> set(Math.max(it.ist, it.target))},[ic("check")])
+      ])
+    ]));
+  });
+  sheet.appendChild(grid);
+  ov.appendChild(sheet);
+  return ov;
 }
 
 function renderKitchenTaskCard(id, t, d, today, later){
