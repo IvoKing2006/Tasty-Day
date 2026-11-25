@@ -1253,6 +1253,7 @@
   .k-prep-pchip.more{background:var(--bg-elevated-2);color:var(--text-muted);}
   .k-sheet-backdrop{position:fixed;inset:0;z-index:180;background:rgba(18,25,21,.45);display:flex;align-items:stretch;justify-content:center;padding:28px;animation:kFadeIn .2s ease;}
   @keyframes kFadeIn{from{opacity:0;}to{opacity:1;}}
+  .k-sheet-backdrop.no-anim, .k-sheet-backdrop.no-anim .k-sheet{animation:none;}
   .k-sheet{width:100%;max-width:1180px;background:var(--bg);border-radius:26px;box-shadow:var(--shadow-lg);padding:22px 24px;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:kRise .3s cubic-bezier(.2,.9,.25,1.1);}
   .k-sheet-head{display:flex;align-items:center;gap:16px;margin-bottom:12px;}
   .k-sheet-title{font-size:28px;font-weight:750;letter-spacing:-0.03em;}
@@ -1404,13 +1405,15 @@ function draftInput(input, key, fallback){
 function clearDrafts(...keys){ keys.forEach(k=> delete inputDrafts[k]); }
 
 function captureUiState(root){
-  const k = {focusId:null, selS:null, selE:null, scroll:{}};
+  const k = {focusId:null, selS:null, selE:null, scroll:{}, winY: window.scrollY};
   const a = document.activeElement;
   if(a && a.id && root.contains(a)){ k.focusId = a.id; try{ k.selS = a.selectionStart; k.selE = a.selectionEnd; }catch(e){} }
   root.querySelectorAll("[data-scroll-key]").forEach(n=>{ k.scroll[n.dataset.scrollKey] = n.scrollTop; });
   return k;
 }
 function restoreUiState(k){
+  // Seite bleibt an der gleichen Stelle (render() baut alles neu, sonst springt sie nach oben)
+  if(k.winY && Math.abs(window.scrollY - k.winY) > 1) window.scrollTo(0, k.winY);
   Object.entries(k.scroll).forEach(([key,top])=>{ const n = document.querySelector(`[data-scroll-key="${key}"]`); if(n) n.scrollTop = top; });
   if(k.focusId){
     const n = document.getElementById(k.focusId);
@@ -8094,8 +8097,10 @@ function renderKPrepSheet(){
   const missing = items.filter(it=> it.ist < it.target);
   const fullN = items.length - missing.length;
   const shown = st.filter === "all" ? items : items.filter(it=> it.ist < it.target || st.keep.includes(it.i));
-  const ov = el("div",{class:"k-sheet-backdrop"});
-  const sheet = el("div",{class:"k-sheet", role:"dialog", "aria-label":t.title});
+  // Animation nur beim Öffnen; Scrollposition im Fenster bleibt bei jedem Antippen erhalten
+  const first = !st.shown; st.shown = true;
+  const ov = el("div",{class:`k-sheet-backdrop ${first ? "" : "no-anim"}`});
+  const sheet = el("div",{class:"k-sheet", role:"dialog", "aria-label":t.title, "data-scroll-key":"kprep-"+st.id});
   // Kopf
   const head = el("div",{class:"k-sheet-head"});
   head.appendChild(el("div",{style:"flex:1;min-width:0;"},[
