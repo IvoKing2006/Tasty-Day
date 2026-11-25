@@ -1175,6 +1175,42 @@
   .fin-row-amt span{font-size:12px;color:var(--text-muted);}
   .fin-note{display:flex;gap:8px;align-items:flex-start;margin-top:12px;padding:11px 14px;border-radius:12px;background:var(--bg-elevated-2);font-size:13px;color:var(--text-muted);line-height:1.5;}
   .fin-note .ic{width:16px;height:16px;flex-shrink:0;margin-top:2px;}
+  .fin-subtabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px;padding:4px;border-radius:14px;background:var(--bg-elevated-2);}
+  .fin-subtab{border:none;background:none;font:inherit;font-size:13.5px;font-weight:600;color:var(--text-muted);padding:8px 13px;border-radius:10px;cursor:pointer;}
+  .fin-subtab.active{background:var(--bg-elevated);color:var(--text);box-shadow:var(--shadow-sm);}
+  .fin-set-row{display:grid;grid-template-columns:1.2fr 1fr 1fr 36px;gap:10px;align-items:end;margin-bottom:10px;}
+  .fin-set-emp{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-weight:600;font-size:14px;}
+  .fin-set-emp select{max-width:240px;}
+  .fin-cat-table{min-width:760px;}
+  .fin-cat-row{display:grid;grid-template-columns:1.3fr 1.3fr 1fr .7fr 1.3fr 50px;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line);}
+  .fin-cat-row.head{border-top:none;font-size:12px;font-weight:650;color:var(--text-muted);}
+  .fin-cat-row.arch{opacity:.5;}
+  .fin-cat-row .k{font-size:13.5px;font-weight:600;}
+  .fin-cat-row input, .fin-cat-row select{min-width:0;}
+  .fin-cat-acc{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .fin-month-goals{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
+  .fin-month-goal{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:12px;background:var(--bg-elevated-2);}
+  .fin-month-goal b{font-size:13px;}
+  .fin-save-bar{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));display:flex;gap:10px;flex-wrap:wrap;padding:12px;margin-top:6px;border-radius:16px;background:var(--bg-elevated);border:1px solid var(--line);box-shadow:var(--shadow-lg);z-index:5;}
+  @media(max-width:900px){ .fin-save-bar{bottom:calc(84px + env(safe-area-inset-bottom));} }
+  @media(max-width:600px){ .fin-save-bar{padding:8px;gap:8px;flex-wrap:nowrap;border-radius:14px;} .fin-save-bar .btn{flex:1;padding:10px 12px !important;font-size:14.5px;} .fin-save-bar .btn-cancel{padding:9px 12px !important;font-size:14px;} }
+  .fin-export-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:14px;}
+  .fin-export{display:flex;flex-direction:column;gap:8px;background:var(--bg-elevated);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow-sm);}
+  .fin-export-ic{width:44px;height:44px;border-radius:12px;background:var(--avocado-soft);color:var(--avocado);display:flex;align-items:center;justify-content:center;}
+  .fin-export-ic .ic{width:22px;height:22px;}
+  .fin-export-t{font-weight:700;font-size:16px;}
+  .fin-export-d{font-size:13px;color:var(--text-muted);line-height:1.5;}
+  .fin-export-n{font-size:12.5px;color:#9A5A0C;background:var(--mango-soft);border-radius:10px;padding:7px 10px;margin-bottom:4px;}
+  :root[data-theme="dark"] .fin-export-n{color:#EDA850;}
+  .fin-due{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;margin-bottom:14px;background:var(--avocado-soft);color:var(--text);font-size:13.5px;}
+  .fin-due .ic{width:22px;height:22px;color:var(--avocado);flex-shrink:0;}
+  .fin-due b{font-size:15px;display:block;margin-bottom:2px;}
+  .fin-due.soon{background:var(--mango-soft);} .fin-due.soon .ic{color:var(--mango);}
+  .fin-beleg{font-size:10.5px;font-weight:600;color:var(--text-muted);opacity:.85;margin-top:2px;white-space:nowrap;}
+  .fin-lock{display:inline-flex;width:32px;justify-content:center;color:var(--text-muted);}
+  .fin-lock .ic{width:16px;height:16px;}
+  .fin-legend small{font-size:12px;color:var(--text-muted);font-weight:500;}
+  .fin-row-date{width:84px;}
 </style>
 </head>
 <body>
@@ -1895,6 +1931,8 @@ function startSessionListeners(){
   onValue(ref(db, "revenue"), (snap)=>{ state.revenue = snap.val() || {}; render(); });
   onValue(ref(db, "expenses"), (snap)=>{ state.expenses = snap.val() || {}; render(); });
   onValue(ref(db, "financeRecurring"), (snap)=>{ state.financeRecurring = snap.val() || {}; render(); });
+  onValue(ref(db, "financeTrash"), (snap)=>{ state.financeTrash = snap.val() || {}; render(); });
+  onValue(ref(db, "dayCloseOrders"), (snap)=>{ state.dayCloseOrders = snap.val() || {}; render(); });
   onValue(ref(db, "recipes"), (snap)=>{ state.recipes = snap.val() || {}; render(); });
   onValue(ref(db, "settings"), (snap)=>{ state.settings = snap.val() || {}; render(); });
   onValue(ref(db, "pushSubs"), (snap)=>{ state.pushSubs = snap.val() || {}; render(); });
@@ -3803,14 +3841,12 @@ function renderTeam(){
     resetButton("Nur Passwort-Anfragen löschen", ()=> remove(ref(db, "passwordResets"))),
     resetButton("Nur Lagerbestand löschen", ()=>{ remove(ref(db, "inventory")); remove(ref(db, "inventoryLog")); remove(ref(db, "inventoryWaste")); remove(ref(db, "inventoryCounts")); }),
     resetButton("Nur Verbrauchshistorie zurücksetzen", ()=> remove(ref(db, "inventoryLog"))),
-    resetButton("Nur Umsatz löschen", ()=> remove(ref(db, "revenue"))),
-    resetButton("Nur Ausgaben löschen", ()=> remove(ref(db, "expenses"))),
   ]);
   resetCard.appendChild(selectiveRow);
 
   const fullResetBtn = el("button",{class:"btn-danger", style:"width:auto;padding:11px 20px;font-size:14px;border-radius:9px;font-weight:700;background:var(--chili);color:#fff;"}, icl("trash","Komplett alles zurücksetzen (inkl. Mitarbeiter-Accounts)"));
   fullResetBtn.addEventListener("click", ()=>{
-    const typed = prompt('Das löscht WIRKLICH ALLES (alle Accounts, Wochenpläne, Zeiten, Auszahlungen, Lagerbestand, Finanzen). Tippe "RESET" um zu bestätigen:');
+    const typed = prompt('Das löscht WIRKLICH ALLES (alle Accounts, Wochenpläne, Zeiten, Auszahlungen, Lagerbestand). Finanzdaten bleiben erhalten. Tippe "RESET" um zu bestätigen:');
     if(typed === "RESET"){
       remove(ref(db, "employees"));
       remove(ref(db, "weeks"));
@@ -3823,8 +3859,7 @@ function renderTeam(){
       remove(ref(db, "inventoryLog"));
       remove(ref(db, "inventoryWaste"));
       remove(ref(db, "inventoryCounts"));
-      remove(ref(db, "revenue"));
-      remove(ref(db, "expenses"));
+      // Finanzdaten (Umsätze, Ausgaben, Fixkosten, Papierkorb) bleiben bewusst immer erhalten
       remove(ref(db, "pushSubs"));
       remove(ref(db, "kitchen"));
       remove(ref(db, "kitchenPresence"));
@@ -4213,12 +4248,12 @@ function periodKeysForView(view, endOffset, count){
 }
 
 // ---------- Finanzen: Rechenlogik ----------
-// Umsätze stehen brutto unter revenue/{id}: {date, amount, vat (7|19), channel (kasse|lieferando|catering|sonstiges), source}
-//   Tagesabschluss: revenue/dc_{datum}_{kanal}_{satz}  (z. B. dc_2026-11-25_kasse_7)
-// Ausgaben stehen brutto unter expenses/{id}: {date, amount, vat (0|7|19), category, supplier, method, note, recurringId}
+// Umsätze stehen brutto unter revenue/{id}: {date, amount, vat, channel, source}
+//   Tagesabschluss: revenue/dc_{datum}_{kanal}_{7|19}  (Endung = Satzart: 7 = ermäßigt, 19 = regulär)
+//   Bestellanzahl je Tag/Kanal: dayCloseOrders/{datum}/{kanal}
+// Ausgaben stehen brutto unter expenses/{id}: {date, amount, vat, category, supplier, invoiceNo, beleg, method, note, recurringId}
 //   Fixkosten-Buchungen: expenses/rec_{fixkostenId}_{JJJJMM}
-// Wiederkehrende Fixkosten: financeRecurring/{id}; Einstellungen: settings/finance
-// Personalkosten kommen aus den Arbeitszeiten (Stunden × Lohn) plus Lohnnebenkosten-Zuschlag.
+// Wiederkehrende Fixkosten: financeRecurring/{id}; Papierkorb: financeTrash; Einstellungen: settings/finance
 const FIN_CATS = [
   {key:"Wareneinsatz", type:"ware", vat:7},
   {key:"Verpackung", type:"var", vat:19},
@@ -4236,62 +4271,183 @@ const FIN_CATS = [
 ];
 const FIN_CAT_ALIAS = {"Wareneinkauf":"Wareneinsatz", "Tanken":"Fahrzeug & Sprit", "Miete":"Miete & Nebenkosten"};
 const FIN_TYPE_LABEL = {ware:"Wareneinsatz", var:"Variable Kosten", personal:"Personal", fix:"Fixkosten"};
-const FIN_CHANNELS = [["kasse","Kasse"],["lieferando","Lieferando"],["catering","Catering"],["sonstiges","Sonstiges"]];
+const FIN_CHANNELS = [["kasse","Kasse"],["lieferando","Lieferando"],["uber","Uber Eats"],["wolt","Wolt"],["website","Eigene Website"],["catering","Catering"],["sonstiges","Sonstiges"]];
+const FIN_PLATFORM_KEYS = ["lieferando","uber","wolt","website"];
+const FIN_DC_CHANNELS = [["kasse","Kasse (Z-Bon)"],["lieferando","Lieferando"],["uber","Uber Eats"],["wolt","Wolt"],["website","Eigene Website"]];
 const FIN_CHANNEL_LABEL = Object.fromEntries(FIN_CHANNELS);
-const FIN_CHANNEL_COLOR = {kasse:"#2F8A57", lieferando:"#E8862E", catering:"#6B5BD2", sonstiges:"#7A857E"};
+const FIN_CHANNEL_COLOR = {kasse:"#2F8A57", lieferando:"#E8862E", uber:"#3A3F3C", wolt:"#1FA3DC", website:"#6B5BD2", catering:"#B5527A", sonstiges:"#9AA39E"};
 const FIN_PAY_METHODS = [["bank","Überweisung/Lastschrift"],["card","Karte"],["cash","Bar"],["paypal","PayPal"]];
+// Standardkonten (DATEV-Kontenrahmen). Erlöskonten 8300/8400 bzw. 4300/4400 und Wareneingang 3300/3400 bzw. 5300/5400 sind Automatikkonten.
+const FIN_CHART = {
+  SKR03:{cash:"1000", bank:"1200", transit:"1360", rev7:"8300", rev19:"8400", rc:"3123",
+    cats:{"Wareneinsatz":{acc7:"3300", acc19:"3400", auto:true}, "Verpackung":{acc:"4710"}, "Provisionen & Gebühren":{acc:"4760"}, "Fahrzeug & Sprit":{acc:"4530"},
+      "Personal (sonstiges)":{acc:"4130"}, "Miete & Nebenkosten":{acc:"4210"}, "Energie":{acc:"4240"}, "Versicherungen":{acc:"4360"}, "Marketing":{acc:"4600"},
+      "Reparatur & Instandhaltung":{acc:"4805"}, "Software & Abos":{acc:"4806"}, "Verwaltung & Beratung":{acc:"4950"}, "Sonstiges":{acc:"4900"}}},
+  SKR04:{cash:"1600", bank:"1800", transit:"1460", rev7:"4300", rev19:"4400", rc:"5923",
+    cats:{"Wareneinsatz":{acc7:"5300", acc19:"5400", auto:true}, "Verpackung":{acc:"6710"}, "Provisionen & Gebühren":{acc:"6770"}, "Fahrzeug & Sprit":{acc:"6530"},
+      "Personal (sonstiges)":{acc:"6110"}, "Miete & Nebenkosten":{acc:"6310"}, "Energie":{acc:"6325"}, "Versicherungen":{acc:"6400"}, "Marketing":{acc:"6600"},
+      "Reparatur & Instandhaltung":{acc:"6470"}, "Software & Abos":{acc:"6495"}, "Verwaltung & Beratung":{acc:"6825"}, "Sonstiges":{acc:"6300"}}}
+};
 
 function fNum(v){ const n = parseFloat(String(v == null ? "" : v).replace(/\s/g,"").replace(",", ".")); return isFinite(n) ? n : 0; }
 function fRound(n){ return Math.round(n * 100) / 100; }
 function fPct(v, digits){ return isFinite(v) ? `${v.toLocaleString("de-DE",{maximumFractionDigits: digits == null ? 1 : digits, minimumFractionDigits: digits == null ? 1 : digits})} %` : "–"; }
-function finCat(name){
-  const n = FIN_CAT_ALIAS[name] || name || "Sonstiges";
-  return FIN_CATS.find(c=> c.key === n) || {key:n, type:"fix", vat:19, custom:true};
-}
+
+// Einstellungen mit Standardwerten (auch für ältere gespeicherte Werte)
 function finSettings(){
   const s = (state.settings && state.settings.finance) || {};
   const pos = (v, d)=> (v === undefined || v === null || v === "") ? d : Math.max(0, fNum(v));
+  const chart = s.chart === "SKR04" ? "SKR04" : "SKR03";
+  const C = FIN_CHART[chart];
+  const tax = s.tax || {};
+  const rates = (Array.isArray(tax.rates) && tax.rates.length ? tax.rates : [{from:"2026-01-01", reduced:7, standard:19}])
+    .map(r=> ({from:r.from || "2000-01-01", reduced:pos(r.reduced, 7), standard:pos(r.standard, 19)})).sort((a,b)=> a.from.localeCompare(b.from));
+  const acc = s.accounts || {};
+  const channels = {};
+  FIN_CHANNELS.forEach(([k])=>{
+    const c = (s.channels || {})[k] || {};
+    const oldPct = {lieferando:s.lieferandoPct, uber:s.uberPct, wolt:s.woltPct, website:s.websitePct}[k];
+    channels[k] = {
+      active: c.active !== false,
+      acc7: c.acc7 || "", acc19: c.acc19 || "", money: c.money || "",
+      pct: pos(c.pct !== undefined ? c.pct : oldPct, 0), fee: pos(c.fee, 0),
+      mode: c.mode === "invoice" ? "invoice" : "estimate", rc: !!c.rc
+    };
+  });
+  const lab = s.labor || {};
+  const oldSur = s.laborSurchargePct;
+  const tg = s.targets || {};
+  const gl = s.goals || {};
   return {
-    lieferandoPct: pos(s.lieferandoPct, 0), laborSurchargePct: pos(s.laborSurchargePct, 0),
-    targetFood: pos(s.targetFood, 30), targetLabor: pos(s.targetLabor, 30), targetPrime: pos(s.targetPrime, 60),
-    goalRevenue: pos(s.goalRevenue, 0), goalProfit: pos(s.goalProfit, 0),
+    raw: s, chart, C,
+    company: Object.assign({name:"Tasty Day", owner:"", street:"Mergenthalerallee 77", zip:"65760", city:"Eschborn", taxNo:"", vatId:"", taxOffice:"", email:"", phone:"", fyStart:1}, s.company || {}),
+    tax: {method: tax.method === "soll" ? "soll" : "ist", period: ["monthly","quarterly","yearly"].includes(tax.period) ? tax.period : "monthly", extension: !!tax.extension, rates},
+    accounts: {cash: acc.cash || C.cash, bank: acc.bank || C.bank, transit: acc.transit || C.transit, rc: acc.rc || C.rc, revAuto: acc.revAuto !== false},
+    channels,
+    labor: {regular: pos(lab.regular !== undefined ? lab.regular : oldSur, 0), mini: pos(lab.mini !== undefined ? lab.mini : oldSur, 0), emp: lab.emp || {}},
+    targetFood: pos(tg.food !== undefined ? tg.food : s.targetFood, 30), targetLabor: pos(tg.labor !== undefined ? tg.labor : s.targetLabor, 30),
+    targetPrime: pos(tg.prime !== undefined ? tg.prime : s.targetPrime, 60), tol: pos(tg.tol, 5),
+    goals: {revenue: pos(gl.revenue !== undefined ? gl.revenue : s.goalRevenue, 0), profit: pos(gl.profit !== undefined ? gl.profit : s.goalProfit, 0), months: gl.months || {}},
+    receipts: Object.assign({prefix:"A", reqSupplier:false, reqInvoice:false}, s.receipts || {}),
+    lockedUntil: s.lockedUntil || "",
+    datev: Object.assign({berater:"", mandant:"", len:4}, s.datev || {}),
+    cats: s.cats || {},
     legacyVat: Number(s.legacyVat) === 19 ? 19 : 7
   };
 }
+// Monatsziel (eigener Wert je Monat oder Standard)
+function finGoal(monthKey){
+  const fs = finSettings();
+  const m = fs.goals.months[monthKey.slice(5,7)] || {};
+  return {revenue: m.revenue ? fNum(m.revenue) : fs.goals.revenue, profit: m.profit ? fNum(m.profit) : fs.goals.profit};
+}
+// Steuersätze, die an einem Datum gelten
+function finRates(dateKey){
+  const r = finSettings().tax.rates;
+  let cur = r[0];
+  r.forEach(x=>{ if(x.from <= dateKey) cur = x; });
+  return cur;
+}
+function finIsLocked(dateKey){ const l = finSettings().lockedUntil; return !!(l && dateKey && dateKey <= l); }
+function finLockAlert(dateKey){
+  if(!finIsLocked(dateKey)) return false;
+  alert(`Der Zeitraum bis ${fmtDateKey(finSettings().lockedUntil)} ist festgeschrieben. Änderungen sind dort nicht mehr möglich (Einstellungen → Belege & Sperre).`);
+  return true;
+}
+// Kategorie mit Einstellungen (Name, Art, MwSt., Konten, archiviert)
+function finCat(name){
+  const n = FIN_CAT_ALIAS[name] || name || "Sonstiges";
+  const fs = finSettings();
+  const base = FIN_CATS.find(c=> c.key === n) || {key:n, type:"fix", vat:19, custom:true};
+  const ov = fs.cats[n] || {};
+  const chartDef = fs.C.cats[n] || fs.C.cats["Sonstiges"];
+  return {
+    key:n, label: ov.label || n, custom: !!base.custom,
+    type: ["ware","var","personal","fix"].includes(ov.type) ? ov.type : base.type,
+    vat: ov.vat !== undefined && ov.vat !== "" ? Number(ov.vat) : base.vat,
+    acc: ov.acc || chartDef.acc || "", acc7: ov.acc7 || chartDef.acc7 || "", acc19: ov.acc19 || chartDef.acc19 || "",
+    auto: ov.auto !== undefined ? !!ov.auto : !!chartDef.auto, archived: !!ov.archived
+  };
+}
+function finCatAccount(cat, vat){
+  if(cat.acc7 || cat.acc19) return (Number(vat) > 10 ? cat.acc19 : cat.acc7) || cat.acc || cat.acc19 || cat.acc7;
+  return cat.acc;
+}
+function finChannelAccounts(ch, vat){
+  const fs = finSettings();
+  const c = fs.channels[ch] || {};
+  const std = Number(vat) > 10;
+  return {
+    revenue: (std ? c.acc19 : c.acc7) || (std ? fs.C.rev19 : fs.C.rev7),
+    money: c.money || (ch === "kasse" || ch === "sonstiges" ? fs.accounts.cash : fs.accounts.bank)
+  };
+}
 
+// Daten werden pro Änderung nur einmal aufbereitet
+let finRowCache = {key:null, rev:null, exp:null};
+function finCacheCheck(){
+  const k = [state.revenue, state.expenses, state.settings, state.kitchen && state.kitchen.caterings];
+  if(!finRowCache.key || finRowCache.key.some((x,i)=> x !== k[i])) finRowCache = {key:k, rev:null, exp:null};
+}
 // Alle Umsätze einheitlich (brutto, netto, MwSt.)
 function finRevenueRows(){
+  finCacheCheck();
+  if(finRowCache.rev) return finRowCache.rev;
   const fs = finSettings();
-  return Object.entries(state.revenue || {}).filter(([id,r])=> r && r.date).map(([id,r])=>{
+  const caterings = (state.kitchen && state.kitchen.caterings) || {};
+  finRowCache.rev = Object.entries(state.revenue || {}).filter(([id,r])=> r && r.date).map(([id,r])=>{
     let vat = Number(r.vat);
     let channel = r.channel;
+    let date = r.date;
+    let beleg = "";
     if(r.source === "catering"){
       channel = "catering";
-      if(!vat){ const c = (state.kitchen.caterings || {})[r.cateringId]; vat = c ? (Number(c.vatRate) || 7) : 7; }
+      const c = caterings[r.cateringId];
+      if(!vat) vat = c ? (Number(c.vatRate) || 7) : 7;
+      if(fs.tax.method === "soll" && c && c.date) date = c.date; // Soll-Versteuerung: Leistungsdatum
+      beleg = (c && c.number) || "Catering";
     }
     if(!channel) channel = "kasse";
-    if(vat !== 7 && vat !== 19) vat = fs.legacyVat;
+    if(!(vat > 0)) vat = fs.legacyVat;
+    const source = r.source || (id.startsWith("dc_") ? "dayclose" : "manual");
+    if(source === "dayclose") beleg = `TA-${r.date.replace(/-/g,"")}`;
+    if(source === "manual") beleg = `UM-${r.date.replace(/-/g,"")}`;
     const gross = fNum(r.amount);
     const net = gross / (1 + vat / 100);
-    return {id, kind:"revenue", date:r.date, gross, net, tax: gross - net, vat, channel, source: r.source || (id.startsWith("dc_") ? "dayclose" : "manual"), note: r.note || ""};
+    return {id, kind:"revenue", date, gross, net, tax: gross - net, vat, std: vat > 10, channel, source, note: r.note || "", beleg};
   });
+  return finRowCache.rev;
 }
 // Alle Ausgaben einheitlich (alte Einträge ohne MwSt.-Angabe zählen als netto = brutto)
 function finExpenseRows(){
-  return Object.entries(state.expenses || {}).filter(([id,e])=> e && e.date).map(([id,e])=>{
-    const vat = [0,7,19].includes(Number(e.vat)) ? Number(e.vat) : 0;
+  finCacheCheck();
+  if(finRowCache.exp) return finRowCache.exp;
+  finRowCache.exp = Object.entries(state.expenses || {}).filter(([id,e])=> e && e.date).map(([id,e])=>{
+    const vat = Number(e.vat) > 0 ? Number(e.vat) : 0;
     const gross = fNum(e.amount);
     const net = gross / (1 + vat / 100);
     const cat = finCat(e.category);
-    return {id, kind:"expense", date:e.date, gross, net, tax: gross - net, vat, cat:cat.key, type:cat.type, supplier:e.supplier || "", method:e.method || "", note:e.note || "", recurringId:e.recurringId || null};
+    return {id, kind:"expense", date:e.date, gross, net, tax: gross - net, vat, cat:cat.key, catLabel:cat.label, type:cat.type, supplier:e.supplier || "", invoiceNo:e.invoiceNo || "", beleg:e.beleg || "", method:e.method || "", note:e.note || "", recurringId:e.recurringId || null, account: finCatAccount(cat, vat), auto: cat.auto};
   });
+  return finRowCache.exp;
+}
+// Nächste Belegnummer, z. B. A-2026-0007
+function finNextBeleg(dateKey, extraTaken){
+  const fs = finSettings();
+  const pre = `${fs.receipts.prefix || "A"}-${dateKey.slice(0,4)}-`;
+  let max = 0;
+  const scan = (b)=>{ if(b && b.startsWith(pre)){ const n = parseInt(b.slice(pre.length), 10); if(n > max) max = n; } };
+  Object.values(state.expenses || {}).forEach(e=> e && scan(e.beleg));
+  Object.values(state.financeTrash || {}).forEach(t=> t && t.data && scan(t.data.beleg));
+  (extraTaken || []).forEach(scan);
+  return pre + String(max + 1).padStart(4, "0");
 }
 
 // Zeiträume
 function finDaysInMonth(y, m){ return new Date(y, m + 1, 0).getDate(); }
 function finRange(period, offset){
   const now = new Date();
-  let from, to, label, key;
+  let from, to, label;
   if(period === "week"){
     const mon = getMonday(new Date()); mon.setDate(mon.getDate() + offset * 7);
     const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
@@ -4329,18 +4485,22 @@ function finAggregate(from, to){
   const inR = (k)=> k >= from && k <= to;
   const a = {
     from, to, revGross:0, revNet:0, vat7:0, vat19:0, base7:0, base19:0,
-    channels:{}, dailyNet:{}, catNet:{}, catType:{}, inputTax:0,
-    ware:0, var:0, fix:0, personalOther:0, labor:0, laborBase:0, laborHours:0, commission:0, commissionTax:0, lieferandoGross:0
+    channels:{}, dailyNet:{}, catNet:{}, catType:{}, inputTax:0, orders:{},
+    ware:0, var:0, fix:0, personalOther:0, labor:0, laborBase:0, laborHours:0,
+    commission:0, commissionTax:0, commissionBy:{}, rcBase:0, rcTax:0
   };
-  FIN_CHANNELS.forEach(([k])=> a.channels[k] = {gross:0, net:0});
+  FIN_CHANNELS.forEach(([k])=> a.channels[k] = {gross:0, net:0, orders:0});
   finRevenueRows().forEach(r=>{
     if(!inR(r.date)) return;
     a.revGross += r.gross; a.revNet += r.net;
-    if(r.vat === 19){ a.vat19 += r.tax; a.base19 += r.net; } else { a.vat7 += r.tax; a.base7 += r.net; }
-    const ch = a.channels[r.channel] || (a.channels[r.channel] = {gross:0, net:0});
+    if(r.std){ a.vat19 += r.tax; a.base19 += r.net; } else { a.vat7 += r.tax; a.base7 += r.net; }
+    const ch = a.channels[r.channel] || (a.channels[r.channel] = {gross:0, net:0, orders:0});
     ch.gross += r.gross; ch.net += r.net;
     a.dailyNet[r.date] = (a.dailyNet[r.date] || 0) + r.net;
-    if(r.channel === "lieferando") a.lieferandoGross += r.gross;
+  });
+  Object.entries(state.dayCloseOrders || {}).forEach(([d,m])=>{
+    if(!inR(d) || !m) return;
+    Object.entries(m).forEach(([ch,n])=>{ if(a.channels[ch]) a.channels[ch].orders += fNum(n); });
   });
   finExpenseRows().forEach(e=>{
     if(!inR(e.date)) return;
@@ -4352,14 +4512,28 @@ function finAggregate(from, to){
     else if(e.type === "personal") a.personalOther += e.net;
     else a.fix += e.net;
   });
-  // Lieferando-Provision: % vom Lieferando-Bruttoumsatz, darauf 19 % MwSt. (= Vorsteuer)
-  a.commission = a.lieferandoGross * fs.lieferandoPct / 100;
-  a.commissionTax = a.commission * 0.19;
+  // Plattform-Provisionen (nur wenn „automatisch schätzen“): % vom Brutto + Gebühr je Bestellung
+  FIN_PLATFORM_KEYS.forEach(ch=>{
+    const c = fs.channels[ch];
+    if(!c || c.mode !== "estimate") return;
+    const v = a.channels[ch].gross * c.pct / 100 + a.channels[ch].orders * c.fee;
+    if(v <= 0) return;
+    a.commissionBy[ch] = v;
+    a.commission += v;
+    if(c.rc){ a.rcBase += v; a.rcTax += v * 0.19; } // Reverse-Charge: USt und Vorsteuer heben sich auf
+    else { a.commissionTax += v * 0.19; }
+  });
   a.inputTax += a.commissionTax;
-  // Personal aus den Arbeitszeiten + Lohnnebenkosten-Zuschlag
-  const pc = computePersonnelCostMaps().dailyMap;
-  Object.entries(pc).forEach(([k,v])=>{ if(inR(k)){ a.laborBase += v.cost; a.laborHours += v.hours; } });
-  a.labor = a.laborBase * (1 + fs.laborSurchargePct / 100);
+  // Personal aus den Arbeitszeiten + Lohnnebenkosten je Beschäftigungsart
+  Object.keys(state.employees || {}).filter(id=> isStaff(state.employees[id])).forEach(id=>{
+    const cls = fs.labor.emp[id] || "regular";
+    const sur = cls === "mini" ? fs.labor.mini : (cls === "none" ? 0 : fs.labor.regular);
+    Object.values((state.timeEntries || {})[id] || {}).forEach(en=>{
+      if(!en || !inR(en.date)) return;
+      const cost = (en.hours || 0) * employeeWageAt(id, en.date);
+      a.laborBase += cost; a.labor += cost * (1 + sur / 100); a.laborHours += en.hours || 0;
+    });
+  });
 
   a.variableCost = a.ware + a.var + a.commission;
   a.fixedCost = a.fix + a.labor + a.personalOther;
@@ -4377,10 +4551,33 @@ function finAggregate(from, to){
   a.revDays = days.length;
   a.avgPerDay = days.length ? a.revNet / days.length : 0;
   a.perHour = a.laborHours > 0 ? a.revNet / a.laborHours : NaN;
+  a.totalOrders = Object.values(a.channels).reduce((s,c)=> s + c.orders, 0);
   return a;
 }
 
-// Fixkosten, die in einem Monat noch fällig werden, aber noch nicht gebucht sind
+// Umsatzsteuer-Voranmeldung: Zeitraum und Abgabefrist (10. des Folgemonats, mit Dauerfristverlängerung + 1 Monat; Wochenende → Montag)
+function finVaPeriods(year){
+  const fs = finSettings();
+  const out = [];
+  const mk = (fromM, toM, label)=>{
+    const from = toDateKey(new Date(year, fromM, 1)), to = toDateKey(new Date(year, toM + 1, 0));
+    const due = new Date(year, toM + 1 + (fs.tax.extension && fs.tax.period !== "yearly" ? 1 : 0), 10);
+    if(fs.tax.period === "yearly") due.setFullYear(year + 1, 6, 31); // Jahreserklärung: grob 31.7. des Folgejahres
+    while(due.getDay() === 0 || due.getDay() === 6) due.setDate(due.getDate() + 1);
+    out.push({from, to, label, due: toDateKey(due)});
+  };
+  if(fs.tax.period === "quarterly") for(let q = 0; q < 4; q++) mk(q * 3, q * 3 + 2, `${q + 1}. Quartal ${year}`);
+  else if(fs.tax.period === "yearly") mk(0, 11, `Jahr ${year}`);
+  else for(let m = 0; m < 12; m++) mk(m, m, new Date(year, m, 1).toLocaleDateString("de-DE",{month:"long", year:"numeric"}));
+  return out;
+}
+function finNextVa(){
+  const today = toDateKey(new Date());
+  const y = new Date().getFullYear();
+  return [...finVaPeriods(y - 1), ...finVaPeriods(y), ...finVaPeriods(y + 1)].find(p=> p.due >= today) || null;
+}
+
+// Fixkosten, die in einem Monat fällig sind
 function finRecurringDueInMonth(r, y, m){
   if(!r || r.active === false || !r.startMonth) return null;
   const [sy, sm] = r.startMonth.split("-").map(Number);
@@ -4397,12 +4594,13 @@ function finRecurringMonthlyNet(r){
   const net = fNum(r.amount) / (1 + (Number(r.vat) || 0) / 100);
   return net / (r.interval === "yearly" ? 12 : (r.interval === "quarterly" ? 3 : 1));
 }
-// Fällige Fixkosten automatisch als Ausgabe buchen (nur einmal je Termin)
+// Fällige Fixkosten automatisch als Ausgabe buchen (nur einmal je Termin, nicht in festgeschriebenen Zeiträumen)
 const finBookingInFlight = new Set();
 const finDeletedKeys = new Set(); // in dieser Sitzung gelöschte Buchungen nie neu anlegen
 function finBookRecurring(){
   const today = toDateKey(new Date());
   const updates = {};
+  const taken = [];
   Object.entries(state.financeRecurring || {}).forEach(([id,r])=>{
     if(!r || r.active === false || !r.startMonth) return;
     const [sy, sm] = r.startMonth.split("-").map(Number);
@@ -4411,9 +4609,10 @@ function finBookRecurring(){
       const due = finRecurringDueInMonth(r, d.getFullYear(), d.getMonth());
       const mk = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2,"0")}`;
       const key = `rec_${id}_${mk}`;
-      if(due && due <= today && !(state.expenses || {})[key] && !(r.skip && r.skip[mk]) && !finBookingInFlight.has(key) && !finDeletedKeys.has(key)){
+      if(due && due <= today && !finIsLocked(due) && !(state.expenses || {})[key] && !(r.skip && r.skip[mk]) && !finBookingInFlight.has(key) && !finDeletedKeys.has(key)){
         finBookingInFlight.add(key);
-        updates[`expenses/${key}`] = {date:due, amount:fRound(fNum(r.amount)), vat:Number(r.vat) || 0, category:r.category || "Sonstiges", supplier:r.name || "", method:r.method || "bank", note:"Fixkosten (automatisch)", recurringId:id};
+        const beleg = finNextBeleg(due, taken); taken.push(beleg);
+        updates[`expenses/${key}`] = {date:due, amount:fRound(fNum(r.amount)), vat:Number(r.vat) || 0, category:r.category || "Sonstiges", supplier:r.name || "", invoiceNo:"", beleg, method:r.method || "bank", note:"Fixkosten (automatisch)", recurringId:id};
       }
       d.setMonth(d.getMonth() + 1);
     }
@@ -4472,7 +4671,7 @@ function finDelta(cur, prev, invert){
 }
 function finLevel(value, target){
   if(!isFinite(value)) return "";
-  return value <= target ? "good" : (value <= target + 5 ? "warn" : "bad");
+  return value <= target ? "good" : (value <= target + finSettings().tol ? "warn" : "bad");
 }
 function finPeriodBar(ui, periods){
   const row = el("div",{class:"fin-period"});
@@ -4501,10 +4700,10 @@ function renderFinance(){
     el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 20px;", onclick:()=>{ ui.tab = "dayclose"; ui.dcDate = toDateKey(new Date()); ui.dc = null; render(); }}, icl("plus","Tagesabschluss"))
   ]));
   const tabs = el("div",{class:"fin-tabs"});
-  [["overview","chart","Übersicht"],["dayclose","calendar","Tagesabschluss"],["expenses","wallet","Ausgaben"],["fixed","clock","Fixkosten"],["pnl","clipboard","Auswertung"],["tax","coins","Steuer"],["ledger","package","Kontobuch"],["settings","sliders","Einstellungen"]]
+  [["overview","chart","Übersicht"],["dayclose","calendar","Tagesabschluss"],["expenses","wallet","Ausgaben"],["fixed","clock","Fixkosten"],["pnl","clipboard","Auswertung"],["tax","coins","Steuer"],["ledger","package","Kontobuch"],["export","download","Export"],["settings","sliders","Einstellungen"]]
     .forEach(([k,icn,l])=> tabs.appendChild(el("button",{class:`tab ${ui.tab===k?"active":""}`, onclick:()=>{ ui.tab = k; render(); }}, icl(icn, l))));
   section.appendChild(tabs);
-  const view = {overview:renderFinOverview, dayclose:renderFinDayClose, expenses:renderFinExpenses, fixed:renderFinFixed, pnl:renderFinPnl, tax:renderFinTax, ledger:renderFinLedger, settings:renderFinSettings}[ui.tab] || renderFinOverview;
+  const view = {overview:renderFinOverview, dayclose:renderFinDayClose, expenses:renderFinExpenses, fixed:renderFinFixed, pnl:renderFinPnl, tax:renderFinTax, ledger:renderFinLedger, export:renderFinExport, settings:renderFinSettings}[ui.tab] || renderFinOverview;
   section.appendChild(view());
   return section;
 }
@@ -4520,6 +4719,12 @@ function renderFinOverview(){
   const p = finAggregate(prev.from, prev.to);
   const today = toDateKey(new Date());
 
+  // Hinweis: Umsatzsteuer-Voranmeldung bald fällig
+  const va = finNextVa();
+  if(va){
+    const dl = Math.round((localDateFromKey(va.due) - localDateFromKey(today)) / 86400000);
+    if(dl <= 7) wrap.appendChild(el("button",{class:"fin-hint", onclick:()=>{ ui.tab = "tax"; render(); }},[ic("clock"), el("span",{}, `Umsatzsteuer-Voranmeldung ${va.label} fällig ${dl === 0 ? "heute" : `in ${dl} Tag${dl === 1 ? "" : "en"}`} (${fmtDateKey(va.due)}) →`)]));
+  }
   // Hinweis: heute noch kein Tagesabschluss
   if(today >= r.from && today <= r.to){
     const has = Object.keys(state.revenue || {}).some(k=> k.startsWith(`dc_${today}_`));
@@ -4553,7 +4758,7 @@ function renderFinOverview(){
     ]);
   };
   quotes.appendChild(qrow("Wareneinsatz", a.foodPct, fs.targetFood, a.ware, "Lebensmittel & Getränke-Einkauf"));
-  quotes.appendChild(qrow("Personal", a.laborPct, fs.targetLabor, a.labor + a.personalOther, fs.laborSurchargePct ? `inkl. ${fPct(fs.laborSurchargePct,0)} Lohnnebenkosten` : "ohne Lohnnebenkosten (in Einstellungen ergänzen)"));
+  quotes.appendChild(qrow("Personal", a.laborPct, fs.targetLabor, a.labor + a.personalOther, (fs.labor.regular || fs.labor.mini) ? "inkl. Lohnnebenkosten" : "ohne Lohnnebenkosten (in Einstellungen → Personal ergänzen)"));
   quotes.appendChild(qrow("Prime Cost", a.primePct, fs.targetPrime, a.ware + a.labor + a.personalOther, "Ware + Personal – wichtigste Gastro-Kennzahl"));
   if(!a.revNet) quotes.appendChild(el("div",{class:"fin-muted"}, "Noch kein Umsatz in diesem Zeitraum – trag einen Tagesabschluss ein."));
   wrap.appendChild(quotes);
@@ -4574,8 +4779,9 @@ function renderFinOverview(){
         el("div",{class:"fin-quote-sub"}, `${fPct(pct,0)} erreicht${proj != null ? ` · Hochrechnung ${finMoney(proj)} (${fPct(Math.max(0, proj / target * 100),0)})` : ""}`)
       ]);
     };
-    goal.appendChild(gbar("Nettoumsatz", a.revNet, fs.goalRevenue, o.isCurrent ? o.projRev : null));
-    goal.appendChild(gbar("Betriebsergebnis", a.result, fs.goalProfit, o.isCurrent ? o.projResult : null));
+    const gm = finGoal(r.from.slice(0,7));
+    goal.appendChild(gbar("Nettoumsatz", a.revNet, gm.revenue, o.isCurrent ? o.projRev : null));
+    goal.appendChild(gbar("Betriebsergebnis", a.result, gm.profit, o.isCurrent ? o.projResult : null));
     if(o.isCurrent) goal.appendChild(el("div",{class:"fin-muted", style:"margin-top:8px;"}, `Hochrechnung auf ${o.dim} Tage aus den ersten ${o.elapsed} Tagen, inkl. noch fälliger Fixkosten.`));
     grid.appendChild(goal);
 
@@ -4604,8 +4810,11 @@ function renderFinOverview(){
     const bar = el("div",{class:"fin-stack"});
     chs.forEach(([k,l,v])=> bar.appendChild(el("div",{style:`width:${v / a.revNet * 100}%;background:${FIN_CHANNEL_COLOR[k]};`, title:`${l}: ${finMoney(v)}`})));
     mix.appendChild(bar);
-    chs.forEach(([k,l,v])=> mix.appendChild(el("div",{class:"fin-legend"},[ el("span",{class:"dot", style:`background:${FIN_CHANNEL_COLOR[k]};`}), el("span",{class:"n"}, l), el("span",{class:"p"}, fPct(v / a.revNet * 100)), el("b",{}, finMoney(v)) ])));
-    if(a.commission > 0) mix.appendChild(el("div",{class:"fin-muted", style:"margin-top:8px;"}, `Lieferando-Provision: ${finMoney(a.commission)} (${fPct(finSettings().lieferandoPct,1)} vom Lieferando-Bruttoumsatz)`));
+    chs.forEach(([k,l,v])=>{
+      const c = a.channels[k];
+      mix.appendChild(el("div",{class:"fin-legend"},[ el("span",{class:"dot", style:`background:${FIN_CHANNEL_COLOR[k]};`}), el("span",{class:"n"},[ l, c.orders ? el("small",{}, ` · ${c.orders} Best. · Ø ${finMoney(c.gross / c.orders)}`) : null ]), el("span",{class:"p"}, fPct(v / a.revNet * 100)), el("b",{}, finMoney(v)) ]));
+    });
+    if(a.commission > 0) mix.appendChild(el("div",{class:"fin-muted", style:"margin-top:8px;"}, `Plattform-Provisionen: ${Object.entries(a.commissionBy).map(([ch,v])=> `${FIN_CHANNEL_LABEL[ch]} ${finMoney(v)}`).join(" · ")}`));
   }
   grid2.appendChild(mix);
 
@@ -4614,8 +4823,8 @@ function renderFinOverview(){
   const costRows = [
     ["Wareneinsatz", a.ware, "#2F8A57"],
     ["Personal", a.labor + a.personalOther, "#D98A2B"],
-    ["Lieferando-Provision", a.commission, "#E8862E"],
-    ...Object.entries(a.catNet).filter(([c])=> !["ware","personal"].includes(a.catType[c])).map(([c,v])=> [c, v, a.catType[c] === "var" ? "#C26A2E" : "#6B7F75"])
+    ["Plattform-Provisionen", a.commission, "#E8862E"],
+    ...Object.entries(a.catNet).filter(([c])=> !["ware","personal"].includes(a.catType[c])).map(([c,v])=> [finCat(c).label, v, a.catType[c] === "var" ? "#C26A2E" : "#6B7F75"])
   ].filter(x=> x[1] > 0.004).sort((x,y)=> y[1] - x[1]);
   if(!costRows.length) cs.appendChild(el("div",{class:"fin-muted"}, "Noch keine Kosten in diesem Zeitraum."));
   const maxC = Math.max(1, ...costRows.map(x=> x[1]));
@@ -4673,41 +4882,61 @@ function renderFinOverview(){
 }
 
 // ===== Tagesabschluss =====
-const FIN_DC_FIELDS = [["kasse",7,"Kasse – Speisen 7 %"],["kasse",19,"Kasse – Getränke 19 %"],["lieferando",7,"Lieferando – Speisen 7 %"],["lieferando",19,"Lieferando – Getränke 19 %"]];
-function finDcKey(date, ch, vat){ return `dc_${date}_${ch}_${vat}`; }
+function finDcKey(date, ch, cls){ return `dc_${date}_${ch}_${cls}`; }
 function renderFinDayClose(){
   const ui = finUi(); const fs = finSettings();
   const wrap = el("div",{});
   const date = ui.dcDate || toDateKey(new Date());
+  const rates = finRates(date);
+  const locked = finIsLocked(date);
+  const chans = FIN_DC_CHANNELS.filter(([ch])=> fs.channels[ch].active || [7,19].some(c=> (state.revenue || {})[finDcKey(date, ch, c)]));
   if(!ui.dc || ui.dc.date !== date){
-    const v = {};
-    FIN_DC_FIELDS.forEach(([ch,vat])=>{ const e = (state.revenue || {})[finDcKey(date, ch, vat)]; v[`${ch}${vat}`] = e ? kNumStr(e.amount) : ""; });
-    ui.dc = {date, v};
+    const v = {}, o = {};
+    FIN_DC_CHANNELS.forEach(([ch])=>{
+      [7,19].forEach(c=>{ const e = (state.revenue || {})[finDcKey(date, ch, c)]; v[`${ch}${c}`] = e ? kNumStr(e.amount) : ""; });
+      const n = ((state.dayCloseOrders || {})[date] || {})[ch]; o[ch] = n ? String(n) : "";
+    });
+    ui.dc = {date, v, o};
   }
-  const x = ui.dc.v;
+  const x = ui.dc.v, ord = ui.dc.o;
   const card = el("div",{class:"card"});
   card.appendChild(el("h3",{class:"fin-h"}, "Tagesabschluss eintragen"));
-  card.appendChild(el("p",{class:"fin-muted", style:"margin:-6px 0 14px;"}, "Bruttobeträge vom Z-Bon (ready2order) und aus der Lieferando-Abrechnung, getrennt nach Steuersatz. Catering wird automatisch über die Zahlungen gebucht."));
+  card.appendChild(el("p",{class:"fin-muted", style:"margin:-6px 0 14px;"}, "Bruttobeträge vom Z-Bon (ready2order) und aus den Abrechnungen der Plattformen, getrennt nach Steuersatz. Leere Felder = 0. Catering wird automatisch über die Zahlungen gebucht."));
   const di = el("input",{type:"date", class:"select-emp", id:"fin-dc-date", value:date, style:"max-width:220px;"});
   di.addEventListener("change", ()=>{ if(di.value){ ui.dcDate = di.value; ui.dc = null; render(); } });
   card.appendChild(el("div",{class:"field"},[ el("label",{}, "Datum"), di ]));
+  if(locked) card.appendChild(el("div",{class:"fin-note", style:"margin:0 0 12px;"},[ ic("lock"), el("span",{}, `Dieser Tag ist festgeschrieben (bis ${fmtDateKey(fs.lockedUntil)}) und kann nicht mehr geändert werden.`) ]));
   const grid = el("div",{class:"fin-dc-grid"});
   const sum = el("div",{class:"fin-dc-sum"});
   const upd = ()=>{
-    let g = 0, n = 0, t = 0, lg = 0;
-    FIN_DC_FIELDS.forEach(([ch,vat])=>{ const b = fNum(x[`${ch}${vat}`]); g += b; const nn = b / (1 + vat / 100); n += nn; t += b - nn; if(ch === "lieferando") lg += b; });
-    const comm = lg * fs.lieferandoPct / 100;
-    sum.innerHTML = "";
-    [["Brutto", finMoney(g)], ["darin MwSt.", finMoney(t)], ["Netto", finMoney(n)], ["Lieferando-Provision", fs.lieferandoPct ? `– ${finMoney(comm)}` : "nicht eingestellt"], ["Netto nach Provision", finMoney(n - comm)]]
-      .forEach(([l,v],i)=> sum.appendChild(el("div",{class:`fin-sum-line ${i === 4 ? "total" : ""}`},[ el("span",{}, l), el("span",{}, v) ])));
-  };
-  [["kasse","Kasse (Z-Bon)"],["lieferando","Lieferando"]].forEach(([ch,title])=>{
-    const box = el("div",{class:"fin-dc-box"},[ el("div",{class:"fin-dc-title"},[ el("span",{class:"dot", style:`background:${FIN_CHANNEL_COLOR[ch]};`}), title ]) ]);
-    [7,19].forEach(vat=>{
-      const inp = el("input",{type:"text", inputmode:"decimal", class:"select-emp", id:`fin-dc-${ch}${vat}`, placeholder:"0,00", value:x[`${ch}${vat}`] || ""});
-      inp.addEventListener("input", ()=>{ x[`${ch}${vat}`] = inp.value; upd(); });
-      box.appendChild(el("div",{class:"field", style:"margin-bottom:10px;"},[ el("label",{}, vat === 7 ? "Speisen (7 %) brutto €" : "Getränke (19 %) brutto €"), inp ]));
+    let g = 0, n = 0, t = 0; const chG = {};
+    FIN_DC_CHANNELS.forEach(([ch])=> [7,19].forEach(c=>{
+      const b = fNum(x[`${ch}${c}`]); const vat = c === 7 ? rates.reduced : rates.standard;
+      g += b; const nn = b / (1 + vat / 100); n += nn; t += b - nn; chG[ch] = (chG[ch] || 0) + b;
+    }));
+    let comm = 0; const lines = [];
+    FIN_PLATFORM_KEYS.forEach(ch=>{
+      const c = fs.channels[ch];
+      if(!chG[ch] || c.mode !== "estimate") return;
+      const v = chG[ch] * c.pct / 100 + fNum(ord[ch]) * c.fee; comm += v;
+      lines.push([`Provision ${FIN_CHANNEL_LABEL[ch]}${c.rc ? " (Reverse-Charge)" : ""}`, (c.pct || c.fee) ? `– ${finMoney(v)}` : "nicht eingestellt"]);
     });
+    sum.innerHTML = "";
+    [["Brutto", finMoney(g)], ["darin MwSt.", finMoney(t)], ["Netto", finMoney(n)], ...lines, ["Netto nach Provisionen", finMoney(n - comm)]]
+      .forEach(([l,v],i,arr)=> sum.appendChild(el("div",{class:`fin-sum-line ${i === arr.length - 1 ? "total" : ""}`},[ el("span",{}, l), el("span",{}, v) ])));
+  };
+  chans.forEach(([ch,title])=>{
+    const box = el("div",{class:"fin-dc-box"},[ el("div",{class:"fin-dc-title"},[ el("span",{class:"dot", style:`background:${FIN_CHANNEL_COLOR[ch]};`}), title ]) ]);
+    [7,19].forEach(c=>{
+      const inp = el("input",{type:"text", inputmode:"decimal", class:"select-emp", id:`fin-dc-${ch}${c}`, placeholder:"0,00", value:x[`${ch}${c}`] || ""});
+      if(locked) inp.disabled = true;
+      inp.addEventListener("input", ()=>{ x[`${ch}${c}`] = inp.value; upd(); });
+      box.appendChild(el("div",{class:"field", style:"margin-bottom:10px;"},[ el("label",{}, c === 7 ? `Speisen (${rates.reduced} %) brutto €` : `Getränke (${rates.standard} %) brutto €`), inp ]));
+    });
+    const oi = el("input",{type:"text", inputmode:"numeric", class:"select-emp", id:`fin-dc-${ch}-orders`, placeholder:"optional", value:ord[ch] || ""});
+    if(locked) oi.disabled = true;
+    oi.addEventListener("input", ()=>{ ord[ch] = oi.value; upd(); });
+    box.appendChild(el("div",{class:"field", style:"margin-bottom:10px;"},[ el("label",{}, "Anzahl Bestellungen"), oi ]));
     grid.appendChild(box);
   });
   card.appendChild(grid);
@@ -4716,16 +4945,24 @@ function renderFinDayClose(){
   const caterDay = finRevenueRows().filter(r=> r.date === date && r.channel === "catering");
   if(caterDay.length) card.appendChild(el("div",{class:"fin-muted", style:"margin-top:8px;"}, `Zusätzlich an diesem Tag: Catering-Zahlungen ${finMoney(caterDay.reduce((s,r)=> s + r.gross, 0))} brutto (automatisch).`));
   card.appendChild(el("div",{class:"cat-actions"},[
-    el("button",{class:"btn btn-primary", style:"width:auto;padding:12px 26px;", onclick: async ()=>{
+    locked ? null : el("button",{class:"btn btn-primary", style:"width:auto;padding:12px 26px;", onclick: async ()=>{
+      if(finLockAlert(date)) return;
       const updates = {};
-      for(const [ch,vat] of FIN_DC_FIELDS){
-        const raw = String(x[`${ch}${vat}`] || "").trim();
-        const v = fRound(fNum(raw));
-        if(raw && !(fNum(raw) >= 0)){ alert("Bitte nur positive Beträge eingeben."); return; }
-        updates[`revenue/${finDcKey(date, ch, vat)}`] = v > 0 ? {date, amount:v, vat, channel:ch, source:"dayclose"} : null;
+      for(const [ch] of FIN_DC_CHANNELS){
+        for(const c of [7,19]){
+          const raw = String(x[`${ch}${c}`] || "").trim();
+          if(raw && !(fNum(raw) >= 0)){ alert("Bitte nur positive Beträge eingeben."); return; }
+          const v = fRound(fNum(raw));
+          const key = finDcKey(date, ch, c);
+          const old = (state.revenue || {})[key];
+          if(old && fRound(fNum(old.amount)) !== v) finTrash(updates, `revenue/${key}`, old, v > 0 ? "geändert" : "gelöscht");
+          updates[`revenue/${key}`] = v > 0 ? {date, amount:v, vat: c === 7 ? rates.reduced : rates.standard, channel:ch, source:"dayclose"} : null;
+        }
+        const n = Math.round(fNum(ord[ch]));
+        updates[`dayCloseOrders/${date}/${ch}`] = n > 0 ? n : null;
       }
       await update(ref(db), updates);
-      ui.dc = null; render();
+      render(); // eingegebene Werte bleiben stehen (= gespeicherter Stand)
       alert(`Tagesabschluss für ${fmtDateKey(date)} gespeichert.`);
     }}, "Speichern"),
     el("button",{class:"btn-cancel", style:"padding:11px 18px;", onclick:()=>{ const d = localDateFromKey(date); d.setDate(d.getDate() - 1); ui.dcDate = toDateKey(d); ui.dc = null; render(); }}, "‹ Vortag"),
@@ -4739,7 +4976,8 @@ function renderFinDayClose(){
   const rows = finRevenueRows();
   const head = el("div",{class:"fin-table-wrap"});
   const tbl = el("table",{class:"fin-table"});
-  tbl.appendChild(el("tr",{},[ el("th",{}, "Tag"), el("th",{}, "Kasse"), el("th",{}, "Lieferando"), el("th",{}, "Catering"), el("th",{}, "Netto gesamt"), el("th",{}, "") ]));
+  const colCh = [...chans.map(([k])=> k), "catering"];
+  tbl.appendChild(el("tr",{},[ el("th",{}, "Tag"), ...colCh.map(k=> el("th",{}, k === "kasse" ? "Kasse" : FIN_CHANNEL_LABEL[k])), el("th",{}, "Netto gesamt"), el("th",{}, "") ]));
   for(let i = 0; i < 14; i++){
     const d = new Date(); d.setDate(d.getDate() - i); const k = toDateKey(d);
     const day = rows.filter(r=> r.date === k);
@@ -4748,11 +4986,9 @@ function renderFinDayClose(){
     const hasDc = day.some(r=> r.source === "dayclose");
     tbl.appendChild(el("tr",{class:`clickable ${k === date ? "sel" : ""}`, onclick:()=>{ ui.dcDate = k; ui.dc = null; render(); window.scrollTo({top:0, behavior:"smooth"}); }},[
       el("td",{}, d.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})),
-      el("td",{class:"num"}, by("kasse") ? finMoney(by("kasse")) : "–"),
-      el("td",{class:"num"}, by("lieferando") ? finMoney(by("lieferando")) : "–"),
-      el("td",{class:"num"}, by("catering") ? finMoney(by("catering")) : "–"),
+      ...colCh.map(ch=> el("td",{class:"num"}, by(ch) ? finMoney(by(ch)) : "–")),
       el("td",{class:"num b"}, net ? finMoney(net) : "–"),
-      el("td",{}, hasDc ? el("span",{class:"cat-pill pay-paid"}, "erfasst") : (i === 0 ? el("span",{class:"cat-pill"}, "offen") : el("span",{class:"cat-pill pay-open"}, "fehlt / Ruhetag")))
+      el("td",{}, finIsLocked(k) ? el("span",{class:"cat-pill"}, "festgeschrieben") : (hasDc ? el("span",{class:"cat-pill pay-paid"}, "erfasst") : (i === 0 ? el("span",{class:"cat-pill"}, "offen") : el("span",{class:"cat-pill pay-open"}, "fehlt / Ruhetag"))))
     ]));
   }
   head.appendChild(tbl);
@@ -4761,20 +4997,23 @@ function renderFinDayClose(){
   wrap.appendChild(list);
 
   // Sonstiger Umsatz
-  if(!ui.extraRev) ui.extraRev = {date, amount:"", vat:"7", note:""};
+  if(!ui.extraRev) ui.extraRev = {date, amount:"", vat:"7", channel:"sonstiges", note:""};
   const ex = ui.extraRev;
   const ec = el("div",{class:"card"});
   ec.appendChild(el("h3",{class:"fin-h"}, "Sonstiger Umsatz (z. B. Gutscheinverkauf, Event)"));
   const f = el("div",{class:"k-form"});
   f.appendChild(kField("Datum", kIn(ex,"date",{type:"date"})));
   f.appendChild(kField("Betrag brutto €", kIn(ex,"amount",{type:"text", inputmode:"decimal", placeholder:"0,00"})));
-  f.appendChild(kField("MwSt.", kSel(ex,"vat",[["7","7 %"],["19","19 %"]])));
-  f.appendChild(kField("Notiz", kIn(ex,"note",{type:"text", placeholder:"z. B. Stand Stadtfest"})));
+  f.appendChild(kField("Steuersatz", kSel(ex,"vat",[["7","ermäßigt (Speisen)"],["19","regulär (Getränke u. a.)"]])));
+  f.appendChild(kField("Kanal", kSel(ex,"channel", FIN_CHANNELS.filter(([k])=> k !== "catering"))));
+  f.appendChild(kField("Notiz", kIn(ex,"note",{type:"text", placeholder:"z. B. Stand Stadtfest"}), true));
   ec.appendChild(f);
   ec.appendChild(el("div",{class:"cat-actions"},[ el("button",{class:"btn-cancel", style:"padding:10px 18px;", onclick: async ()=>{
     const v = fRound(fNum(ex.amount));
     if(!ex.date || !(v > 0)){ alert("Bitte Datum und Betrag eingeben."); return; }
-    await set(push(ref(db, "revenue")), {date:ex.date, amount:v, vat:Number(ex.vat), channel:"sonstiges", source:"manual", note:String(ex.note || "").trim()});
+    if(finLockAlert(ex.date)) return;
+    const r = finRates(ex.date);
+    await set(push(ref(db, "revenue")), {date:ex.date, amount:v, vat: ex.vat === "19" ? r.standard : r.reduced, channel:ex.channel || "sonstiges", source:"manual", note:String(ex.note || "").trim()});
     ui.extraRev = null; render();
   }}, icl("plus","Umsatz buchen")) ]));
   wrap.appendChild(ec);
@@ -4782,67 +5021,89 @@ function renderFinDayClose(){
 }
 
 // ===== Ausgaben =====
-const FIN_EXP_DEFAULTS = {date:"", category:"Wareneinsatz", newCategory:"", supplier:"", amount:"", vat:"7", method:"bank", note:""};
-function finExpenseCategories(){
-  const custom = [...new Set(Object.values(state.expenses || {}).map(e=> e && finCat(e.category)).filter(c=> c && c.custom).map(c=> c.key))];
-  return [...FIN_CATS.map(c=> c.key), ...custom];
+const FIN_EXP_DEFAULTS = {date:"", category:"Wareneinsatz", newCategory:"", supplier:"", invoiceNo:"", amount:"", vat:"7", method:"bank", note:""};
+function finExpenseCategories(includeArchived){
+  const fs = finSettings();
+  const fromData = Object.values(state.expenses || {}).map(e=> e && finCat(e.category).key).filter(Boolean);
+  const keys = [...new Set([...FIN_CATS.map(c=> c.key), ...Object.keys(fs.cats), ...fromData])];
+  return keys.filter(k=> includeArchived || !finCat(k).archived);
 }
 function finOpenExpense(id){
   const ui = finUi();
   const e = id ? (state.expenses || {})[id] : null;
-  ui.expDraft = {id: id || null, data: e ? Object.assign(kClone(FIN_EXP_DEFAULTS), {date:e.date, category:finCat(e.category).key, supplier:e.supplier || "", amount:kNumStr(e.amount), vat:String([0,7,19].includes(Number(e.vat)) ? Number(e.vat) : 0), method:e.method || "bank", note:e.note || ""})
+  ui.expDraft = {id: id || null, data: e ? Object.assign(kClone(FIN_EXP_DEFAULTS), {date:e.date, category:finCat(e.category).key, supplier:e.supplier || "", invoiceNo:e.invoiceNo || "", amount:kNumStr(e.amount), vat:String(Number(e.vat) > 0 ? Number(e.vat) : 0), method:e.method || "bank", note:e.note || ""})
                                     : Object.assign(kClone(FIN_EXP_DEFAULTS), {date:toDateKey(new Date())})};
   ui.tab = "expenses";
   render();
   window.scrollTo({top:0});
 }
 function renderFinExpenses(){
-  const ui = finUi();
+  const ui = finUi(); const fs = finSettings();
   const wrap = el("div",{});
   if(!ui.expDraft) ui.expDraft = {id:null, data:Object.assign(kClone(FIN_EXP_DEFAULTS), {date:toDateKey(new Date())})};
   const d = ui.expDraft; const x = d.data;
+  const old = d.id ? (state.expenses || {})[d.id] : null;
   const fc = el("div",{class:"card"});
-  fc.appendChild(el("h3",{class:"fin-h"}, d.id ? "Ausgabe bearbeiten" : "Neue Ausgabe"));
+  fc.appendChild(el("h3",{class:"fin-h"}, d.id ? `Ausgabe bearbeiten${old && old.beleg ? ` · Beleg ${old.beleg}` : ""}` : "Neue Ausgabe"));
   const f = el("div",{class:"k-form"});
-  f.appendChild(kField("Datum", kIn(x,"date",{type:"date"})));
+  f.appendChild(kField("Belegdatum", kIn(x,"date",{type:"date"})));
   const cs = el("select",{class:"select-emp", style:"width:100%;"});
   const groups = {};
-  finExpenseCategories().forEach(c=>{ const t = finCat(c).type; (groups[t] = groups[t] || []).push(c); });
+  const list = finExpenseCategories(false);
+  if(x.category && x.category !== "__new" && !list.includes(x.category)) list.push(x.category);
+  list.forEach(c=>{ const t = finCat(c).type; (groups[t] = groups[t] || []).push(c); });
   ["ware","var","personal","fix"].forEach(t=>{
     if(!groups[t]) return;
     const og = el("optgroup",{label:FIN_TYPE_LABEL[t]});
-    groups[t].forEach(c=> og.appendChild(el("option",{value:c}, c)));
+    groups[t].forEach(c=> og.appendChild(el("option",{value:c}, finCat(c).label)));
     cs.appendChild(og);
   });
   cs.appendChild(el("option",{value:"__new"}, "+ Eigene Kategorie …"));
   cs.value = x.category;
   cs.addEventListener("change", ()=>{ x.category = cs.value; if(cs.value !== "__new") x.vat = String(finCat(cs.value).vat); render(); });
   f.appendChild(kField("Kategorie", cs));
-  if(x.category === "__new") f.appendChild(kField("Name der Kategorie (zählt als Fixkosten)", kIn(x,"newCategory",{type:"text", placeholder:"z. B. Reinigungsfirma"})));
+  if(x.category === "__new") f.appendChild(kField("Name der Kategorie (zählt als Fixkosten, in Einstellungen änderbar)", kIn(x,"newCategory",{type:"text", placeholder:"z. B. Reinigungsfirma"})));
   const sup = kIn(x,"supplier",{type:"text", placeholder:"z. B. Metro, Edeka", list:"fin-suppliers"});
   const dl = el("datalist",{id:"fin-suppliers"});
   [...new Set(Object.values(state.expenses || {}).map(e=> e && e.supplier).filter(Boolean))].sort().forEach(s=> dl.appendChild(el("option",{value:s})));
-  f.appendChild(kField("Lieferant / Empfänger", el("div",{},[sup, dl])));
+  f.appendChild(kField(`Lieferant / Empfänger${fs.receipts.reqSupplier ? " *" : ""}`, el("div",{},[sup, dl])));
+  f.appendChild(kField(`Rechnungsnummer${fs.receipts.reqInvoice ? " *" : ""}`, kIn(x,"invoiceNo",{type:"text", placeholder:"vom Lieferanten"})));
   const amt = kIn(x,"amount",{type:"text", inputmode:"decimal", placeholder:"0,00"});
   f.appendChild(kField("Betrag brutto €", amt));
-  f.appendChild(kField("MwSt. auf der Rechnung", kSel(x,"vat",[["7","7 %"],["19","19 %"],["0","keine (0 %)"]], true)));
+  const r = finRates(x.date || toDateKey(new Date()));
+  const vatOpts = [...new Set([r.reduced, r.standard, 7, 19, 0])].map(v=> [String(v), v ? `${v} %` : "keine (0 %)"]);
+  f.appendChild(kField("MwSt. auf der Rechnung", kSel(x,"vat", vatOpts, true)));
   f.appendChild(kField("Zahlungsart", kSel(x,"method", FIN_PAY_METHODS)));
-  f.appendChild(kField("Notiz / Rechnungsnr.", kIn(x,"note",{type:"text", placeholder:"optional"})));
+  f.appendChild(kField("Notiz", kIn(x,"note",{type:"text", placeholder:"optional"})));
   fc.appendChild(f);
   const calc = el("div",{class:"fin-muted", style:"margin-top:10px;"});
-  const updCalc = ()=>{ const g = fNum(x.amount), v = Number(x.vat) || 0, n = g / (1 + v / 100); calc.textContent = g ? `Netto ${finMoney(n)} · Vorsteuer ${finMoney(g - n)}` : ""; };
+  const updCalc = ()=>{
+    const g = fNum(x.amount), v = Number(x.vat) || 0, n = g / (1 + v / 100);
+    const cat = x.category && x.category !== "__new" ? finCat(x.category) : null;
+    calc.textContent = (g ? `Netto ${finMoney(n)} · Vorsteuer ${finMoney(g - n)}` : "") + (cat ? `${g ? " · " : ""}Konto ${finCatAccount(cat, v) || "–"} (${fs.chart})` : "");
+  };
   amt.addEventListener("input", updCalc); updCalc();
   fc.appendChild(calc);
+  const lockedOld = old && finIsLocked(old.date);
+  if(lockedOld) fc.appendChild(el("div",{class:"fin-note"},[ ic("lock"), el("span",{}, "Diese Ausgabe liegt im festgeschriebenen Zeitraum und kann nicht mehr geändert werden.") ]));
   fc.appendChild(el("div",{class:"cat-actions"},[
-    el("button",{class:"btn btn-primary", style:"width:auto;padding:12px 26px;", onclick: async ()=>{
+    lockedOld ? null : el("button",{class:"btn btn-primary", style:"width:auto;padding:12px 26px;", onclick: async ()=>{
       const g = fRound(fNum(x.amount));
       let cat = x.category === "__new" ? String(x.newCategory || "").trim() : x.category;
       if(!x.date || !(g > 0)){ alert("Bitte Datum und Betrag eingeben."); return; }
       if(!cat){ alert("Bitte eine Kategorie wählen oder eingeben."); return; }
-      const old = d.id ? (state.expenses || {})[d.id] : null;
-      const rec = {date:x.date, amount:g, vat:Number(x.vat) || 0, category:cat, supplier:String(x.supplier || "").trim(), method:x.method, note:String(x.note || "").trim(), recurringId: old && old.recurringId ? old.recurringId : null};
-      if(d.id) await set(ref(db, `expenses/${d.id}`), rec);
-      else await set(push(ref(db, "expenses")), rec);
+      if(fs.receipts.reqSupplier && !String(x.supplier || "").trim()){ alert("Bitte den Lieferanten eintragen (Pflichtfeld laut Einstellungen)."); return; }
+      if(fs.receipts.reqInvoice && !String(x.invoiceNo || "").trim()){ alert("Bitte die Rechnungsnummer eintragen (Pflichtfeld laut Einstellungen)."); return; }
+      if(finLockAlert(x.date)) return;
+      const rec = {date:x.date, amount:g, vat:Number(x.vat) || 0, category:cat, supplier:String(x.supplier || "").trim(), invoiceNo:String(x.invoiceNo || "").trim(),
+        method:x.method, note:String(x.note || "").trim(), recurringId: old && old.recurringId ? old.recurringId : null,
+        beleg: old && old.beleg ? old.beleg : finNextBeleg(x.date)};
+      const updates = {};
+      if(d.id){
+        if(old && JSON.stringify(old) !== JSON.stringify(rec)) finTrash(updates, `expenses/${d.id}`, old, "geändert");
+        updates[`expenses/${d.id}`] = rec;
+      } else updates[`expenses/${push(ref(db, "expenses")).key}`] = rec;
+      await update(ref(db), updates);
       ui.expDraft = null; render();
     }}, d.id ? "Änderungen speichern" : "Ausgabe speichern"),
     d.id ? el("button",{class:"btn-cancel", style:"padding:11px 18px;", onclick:()=>{ ui.expDraft = null; render(); }}, "Abbrechen") : null
@@ -4850,42 +5111,53 @@ function renderFinExpenses(){
   wrap.appendChild(fc);
 
   // Monatsliste
-  const r = finRange("month", ui.expMonth);
+  const rg = finRange("month", ui.expMonth);
   const lc = el("div",{class:"card"});
   lc.appendChild(el("div",{style:"display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;"},[
     el("h3",{class:"fin-h", style:"margin:0;"}, "Ausgaben"),
-    el("div",{class:"week-nav", style:"margin:0;"},[ el("button",{onclick:()=>{ ui.expMonth--; render(); }},"‹"), el("span",{class:"week-label", style:"min-width:160px;"}, r.label), el("button",{onclick:()=>{ ui.expMonth++; render(); }},"›") ])
+    el("div",{class:"week-nav", style:"margin:0;"},[ el("button",{onclick:()=>{ ui.expMonth--; render(); }},"‹"), el("span",{class:"week-label", style:"min-width:160px;"}, rg.label), el("button",{onclick:()=>{ ui.expMonth++; render(); }},"›") ])
   ]));
-  const rows = finExpenseRows().filter(e=> e.date >= r.from && e.date <= r.to).sort((a,b)=> b.date.localeCompare(a.date));
-  const a = finAggregate(r.from, r.to);
+  const rows = finExpenseRows().filter(e=> e.date >= rg.from && e.date <= rg.to).sort((a,b)=> b.date.localeCompare(a.date) || (b.beleg || "").localeCompare(a.beleg || ""));
+  const a = finAggregate(rg.from, rg.to);
   const totNet = rows.reduce((s,e)=> s + e.net, 0), totGross = rows.reduce((s,e)=> s + e.gross, 0);
   lc.appendChild(el("div",{class:"fin-chips"},[
     el("span",{class:"fin-chip"}, `Netto ${finMoney(totNet)}`), el("span",{class:"fin-chip"}, `Brutto ${finMoney(totGross)}`),
     el("span",{class:"fin-chip"}, `Vorsteuer ${finMoney(totGross - totNet)}`),
-    a.commission > 0 ? el("span",{class:"fin-chip"}, `+ Lieferando-Provision ${finMoney(a.commission)} (automatisch)`) : null
+    a.commission > 0 ? el("span",{class:"fin-chip"}, `+ geschätzte Plattform-Provisionen ${finMoney(a.commission)}`) : null
   ]));
   if(!rows.length) lc.appendChild(el("div",{class:"fin-muted"}, "Keine Ausgaben in diesem Monat."));
-  rows.forEach(e=> lc.appendChild(el("div",{class:"fin-row"},[
-    el("div",{class:"fin-row-date"}, localDateFromKey(e.date).toLocaleDateString("de-DE",{day:"2-digit", month:"2-digit"})),
-    el("div",{style:"flex:1;min-width:0;"},[
-      el("div",{class:"t"}, e.supplier || e.cat),
-      el("div",{class:"s"}, [e.cat, e.vat ? `${e.vat} % MwSt.` : "ohne MwSt.", FIN_PAY_METHODS.find(m=> m[0] === e.method) ? FIN_PAY_METHODS.find(m=> m[0] === e.method)[1] : null, e.recurringId ? "Fixkosten" : null, e.note || null].filter(Boolean).join(" · "))
-    ]),
-    el("div",{class:"fin-row-amt"},[ el("b",{}, `− ${finMoney(e.gross)}`), el("span",{}, `netto ${finMoney(e.net)}`) ]),
-    el("button",{class:"icon-btn", title:"Bearbeiten", "aria-label":"Bearbeiten", onclick:()=> finOpenExpense(e.id)},[ic("pencil")]),
-    el("button",{class:"del-btn", title:"Löschen", "aria-label":"Löschen", onclick:()=> finDeleteExpense(e.id)},[ic("trash")])
-  ])));
+  rows.forEach(e=>{
+    const lk = finIsLocked(e.date);
+    const pm = FIN_PAY_METHODS.find(m=> m[0] === e.method);
+    lc.appendChild(el("div",{class:"fin-row"},[
+      el("div",{class:"fin-row-date"},[ el("div",{}, localDateFromKey(e.date).toLocaleDateString("de-DE",{day:"2-digit", month:"2-digit"})), e.beleg ? el("div",{class:"fin-beleg"}, e.beleg) : null ]),
+      el("div",{style:"flex:1;min-width:0;"},[
+        el("div",{class:"t"}, e.supplier || e.catLabel),
+        el("div",{class:"s"}, [e.catLabel, e.account ? `Konto ${e.account}` : null, e.vat ? `${e.vat} % MwSt.` : "ohne MwSt.", e.invoiceNo ? `Re.-Nr. ${e.invoiceNo}` : null, pm ? pm[1] : null, e.recurringId ? "Fixkosten" : null, e.note || null].filter(Boolean).join(" · "))
+      ]),
+      el("div",{class:"fin-row-amt"},[ el("b",{}, `− ${finMoney(e.gross)}`), el("span",{}, `netto ${finMoney(e.net)}`) ]),
+      lk ? el("span",{class:"fin-lock", title:"festgeschrieben"},[ic("lock")]) : el("button",{class:"icon-btn", title:"Bearbeiten", "aria-label":"Bearbeiten", onclick:()=> finOpenExpense(e.id)},[ic("pencil")]),
+      lk ? null : el("button",{class:"del-btn", title:"Löschen", "aria-label":"Löschen", onclick:()=> finDeleteExpense(e.id)},[ic("trash")])
+    ]));
+  });
   wrap.appendChild(lc);
   return wrap;
 }
+// Finanzeinträge werden nie endgültig gelöscht: Löschen/Überschreiben legt eine Kopie in financeTrash ab
+function finTrash(updates, path, data, reason){
+  if(!data) return;
+  const key = push(ref(db, "financeTrash")).key;
+  updates[`financeTrash/${key}`] = {path, data, reason, at:Date.now(), by:(state.currentUser && state.currentUser.name) || ""};
+}
 async function finDeleteExpense(id){
   const e = (state.expenses || {})[id];
-  if(!e || !confirm(`Ausgabe über ${finMoney(fNum(e.amount))} vom ${fmtDateKey(e.date)} löschen?`)) return;
+  if(!e) return;
+  if(finLockAlert(e.date)) return;
+  if(!confirm(`Ausgabe über ${finMoney(fNum(e.amount))} vom ${fmtDateKey(e.date)} löschen? Sie wandert in den Papierkorb.`)) return;
   const updates = {[`expenses/${id}`]: null};
-  // automatisch gebuchte Fixkosten nicht erneut buchen
+  finTrash(updates, `expenses/${id}`, e, "gelöscht");
   const m = id.match(/^rec_(.+)_(\d{6})$/);
-  if(m) finDeletedKeys.add(id);
-  if(m) updates[`financeRecurring/${m[1]}/skip/${m[2]}`] = true;
+  if(m){ finDeletedKeys.add(id); updates[`financeRecurring/${m[1]}/skip/${m[2]}`] = true; }
   await update(ref(db), updates);
 }
 
@@ -4986,12 +5258,12 @@ function renderFinPnl(){
   row("Wareneinsatz", (x)=> x.ware, {cost:true});
   row("Rohertrag", (x)=> x.grossProfit, {cls:"sum"});
   section("Betriebskosten");
-  row(`Personal (Stunden${finSettings().laborSurchargePct ? ` + ${fPct(finSettings().laborSurchargePct,0)} Nebenkosten` : ""})`, (x)=> x.labor, {cost:true});
+  row("Personal (Arbeitszeiten inkl. Nebenkosten)", (x)=> x.labor, {cost:true});
   row("Personal (sonstiges)", (x)=> x.personalOther, {cost:true, hideEmpty:true});
-  row("Lieferando-Provision", (x)=> x.commission, {cost:true, hideEmpty:true});
+  FIN_PLATFORM_KEYS.forEach(ch=> row(`Provision ${FIN_CHANNEL_LABEL[ch]} (geschätzt)`, (x)=> x.commissionBy[ch] || 0, {cost:true, hideEmpty:true}));
   const cats = [...new Set([...Object.keys(A.catNet), ...Object.keys(P.catNet), ...Object.keys(Y.catNet)])]
     .filter(c=> !["ware","personal"].includes(finCat(c).type)).sort((a,b)=> (finCat(a).type === "var" ? 0 : 1) - (finCat(b).type === "var" ? 0 : 1) || a.localeCompare(b));
-  cats.forEach(c=> row(c, (x)=> x.catNet[c] || 0, {cost:true, hideEmpty:true}));
+  cats.forEach(c=> row(finCat(c).label, (x)=> x.catNet[c] || 0, {cost:true, hideEmpty:true}));
   row("Summe Betriebskosten", (x)=> x.totalCost - x.ware, {cost:true, cls:"sum"});
   row("Betriebsergebnis", (x)=> x.result, {cls:"result"});
   section("Kennzahlen");
@@ -5013,40 +5285,72 @@ function renderFinPnl(){
 
 // ===== Steuer =====
 function renderFinTax(){
-  const ui = finUi();
+  const ui = finUi(); const fs = finSettings();
   const wrap = el("div",{});
   const y = new Date().getFullYear() + ui.taxYear;
-  wrap.appendChild(el("div",{class:"week-nav", style:"margin-bottom:16px;justify-content:flex-start;"},[
-    el("button",{onclick:()=>{ ui.taxYear--; render(); }},"‹"), el("span",{class:"week-label", style:"min-width:120px;"}, String(y)), el("button",{onclick:()=>{ ui.taxYear++; render(); }},"›")
+  wrap.appendChild(el("div",{class:"fin-period"},[
+    el("div",{class:"week-nav", style:"margin:0;"},[ el("button",{onclick:()=>{ ui.taxYear--; ui.vaIdx = null; render(); }},"‹"), el("span",{class:"week-label", style:"min-width:120px;"}, String(y)), el("button",{onclick:()=>{ ui.taxYear++; ui.vaIdx = null; render(); }},"›") ]),
+    el("div",{class:"fin-chips", style:"margin:0;"},[
+      el("span",{class:"fin-chip"}, `${fs.tax.method === "soll" ? "Soll" : "Ist"}-Versteuerung`),
+      el("span",{class:"fin-chip"}, `Voranmeldung ${({monthly:"monatlich", quarterly:"vierteljährlich", yearly:"jährlich"})[fs.tax.period]}`),
+      fs.tax.extension ? el("span",{class:"fin-chip"}, "mit Dauerfristverlängerung") : null
+    ])
   ]));
-  const nowKey = toMonthKey(new Date());
-  const cur = finAggregate(`${nowKey}-01`, toDateKey(new Date(Number(nowKey.slice(0,4)), Number(nowKey.slice(5)) , 0)));
-  if(ui.taxYear === 0) wrap.appendChild(el("div",{class:"fin-kpis"},[
-    el("div",{class:`fin-kpi ${cur.taxDue > 0 ? "neg" : "pos"}`},[ el("div",{class:"l"}, `Voraussichtliche Zahllast ${monthLabel(nowKey)}`), el("div",{class:"v"}, finMoney(cur.taxDue)), el("div",{class:"s"}, el("span",{}, cur.taxDue > 0 ? "zurücklegen" : "voraussichtlich Erstattung")) ]),
-    el("div",{class:"fin-kpi"},[ el("div",{class:"l"}, "Umsatzsteuer"), el("div",{class:"v"}, finMoney(cur.outputTax)), el("div",{class:"s"}, el("span",{}, `7 %: ${finMoney(cur.vat7)} · 19 %: ${finMoney(cur.vat19)}`)) ]),
-    el("div",{class:"fin-kpi"},[ el("div",{class:"l"}, "Vorsteuer"), el("div",{class:"v"}, finMoney(cur.inputTax)), el("div",{class:"s"}, el("span",{}, "aus Ausgaben + Provision")) ])
-  ]));
+  const periods = finVaPeriods(y);
+  const today = toDateKey(new Date());
+  const next = finNextVa();
+  if(next && ui.taxYear === 0){
+    const a = finAggregate(next.from, next.to);
+    const daysLeft = Math.round((localDateFromKey(next.due) - localDateFromKey(today)) / 86400000);
+    wrap.appendChild(el("div",{class:`fin-due ${daysLeft <= 5 ? "soon" : ""}`},[
+      ic("clock"),
+      el("div",{style:"flex:1;"},[ el("b",{}, `Voranmeldung ${next.label} fällig am ${fmtDateKey(next.due)}`), el("div",{}, `${daysLeft === 0 ? "heute" : `in ${daysLeft} Tag${daysLeft === 1 ? "" : "en"}`} · voraussichtlich ${a.taxDue >= 0 ? "zu zahlen" : "Erstattung"}: ${finMoney(Math.abs(a.taxDue))}`) ])
+    ]));
+  }
+  // Periode für die Kennzahlen
+  if(ui.vaIdx == null){ const i = periods.findIndex(p=> p.from <= today && p.to >= today); ui.vaIdx = i >= 0 ? i : periods.length - 1; }
+  const per = periods[Math.min(ui.vaIdx, periods.length - 1)];
+  const pa = finAggregate(per.from, per.to);
+  const kz = el("div",{class:"card"});
+  const ps = el("select",{class:"select-emp", style:"width:auto;"});
+  periods.forEach((p,i)=> ps.appendChild(el("option",{value:String(i)}, p.label)));
+  ps.value = String(Math.min(ui.vaIdx, periods.length - 1));
+  ps.addEventListener("change", ()=>{ ui.vaIdx = Number(ps.value); render(); });
+  kz.appendChild(el("div",{style:"display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;"},[ el("h3",{class:"fin-h", style:"margin:0;"}, "Werte für die Voranmeldung (ELSTER)"), ps ]));
+  const euro0 = (v)=> `${Math.floor(Math.max(0, fRound(v))).toLocaleString("de-DE")} €`;
+  const t = el("table",{class:"fin-table"});
+  t.appendChild(el("tr",{},[ el("th",{}, "Kennzahl"), el("th",{style:"text-align:left;"}, "Bezeichnung"), el("th",{}, "Bemessungsgrundlage"), el("th",{}, "Steuer") ]));
+  const kr = (k, l, base, tax)=> t.appendChild(el("tr",{},[ el("td",{class:"b"}, k), el("td",{style:"white-space:normal;"}, l), el("td",{class:"num"}, base), el("td",{class:"num"}, tax) ]));
+  kr("81", "Umsätze zum Steuersatz von 19 %", euro0(pa.base19), finMoney(pa.vat19));
+  kr("86", "Umsätze zum Steuersatz von 7 %", euro0(pa.base7), finMoney(pa.vat7));
+  if(pa.rcBase > 0){ kr("46 / 47", "Leistungen eines EU-Unternehmers (§ 13b, z. B. Plattform-Provision)", euro0(pa.rcBase), finMoney(pa.rcTax)); kr("67", "Vorsteuer aus § 13b-Leistungen", "", finMoney(pa.rcTax)); }
+  kr("66", "Vorsteuer aus Rechnungen anderer Unternehmer", "", finMoney(pa.inputTax));
+  t.appendChild(el("tr",{class:"result"},[ el("td",{}, "83"), el("td",{}, "Verbleibende Umsatzsteuer-Vorauszahlung"), el("td",{}), el("td",{class:"num"}, finMoney(pa.taxDue)) ]));
+  kz.appendChild(el("div",{class:"fin-table-wrap"},[t]));
+  kz.appendChild(el("div",{class:"fin-muted", style:"margin-top:8px;"}, `Zeitraum ${fmtDateKey(per.from)} – ${fmtDateKey(per.to)} · Abgabe bis ${fmtDateKey(per.due)}. Geschätzte Plattform-Provisionen sind in der Vorsteuer enthalten – buchst du die echten Rechnungen, stell die Plattform in den Einstellungen auf „Rechnungen als Ausgabe“.`));
+  wrap.appendChild(kz);
+
+  // Jahresübersicht
   const card = el("div",{class:"card"});
   card.appendChild(el("h3",{class:"fin-h"}, `Umsatzsteuer ${y}`));
   const tw = el("div",{class:"fin-table-wrap"});
-  const t = el("table",{class:"fin-table"});
-  t.appendChild(el("tr",{},[ el("th",{}, "Monat"), el("th",{}, "Umsatz 7 % (netto)"), el("th",{}, "USt 7 %"), el("th",{}, "Umsatz 19 % (netto)"), el("th",{}, "USt 19 %"), el("th",{}, "Vorsteuer"), el("th",{}, "Zahllast") ]));
+  const tb = el("table",{class:"fin-table"});
+  tb.appendChild(el("tr",{},[ el("th",{}, "Monat"), el("th",{}, "Umsatz 7 % (netto)"), el("th",{}, "USt 7 %"), el("th",{}, "Umsatz 19 % (netto)"), el("th",{}, "USt 19 %"), el("th",{}, "Vorsteuer"), el("th",{}, "Zahllast") ]));
   const tot = {b7:0, v7:0, b19:0, v19:0, inp:0, due:0};
   for(let q = 0; q < 4; q++){
     const qs = {b7:0, v7:0, b19:0, v19:0, inp:0, due:0};
     for(let m = q * 3; m < q * 3 + 3; m++){
-      const from = toDateKey(new Date(y, m, 1)), to = toDateKey(new Date(y, m + 1, 0));
-      const a = finAggregate(from, to);
+      const a = finAggregate(toDateKey(new Date(y, m, 1)), toDateKey(new Date(y, m + 1, 0)));
       const vals = {b7:a.base7, v7:a.vat7, b19:a.base19, v19:a.vat19, inp:a.inputTax, due:a.taxDue};
       Object.keys(qs).forEach(k=>{ qs[k] += vals[k]; tot[k] += vals[k]; });
-      t.appendChild(el("tr",{},[ el("td",{}, new Date(y, m, 1).toLocaleDateString("de-DE",{month:"long"})), ...["b7","v7","b19","v19","inp"].map(k=> el("td",{class:"num"}, vals[k] ? finMoney(vals[k]) : "–")), el("td",{class:`num b ${vals.due > 0 ? "neg" : ""}`}, vals.due ? finMoney(vals.due) : "–") ]));
+      tb.appendChild(el("tr",{},[ el("td",{}, new Date(y, m, 1).toLocaleDateString("de-DE",{month:"long"})), ...["b7","v7","b19","v19","inp"].map(k=> el("td",{class:"num"}, vals[k] ? finMoney(vals[k]) : "–")), el("td",{class:`num b ${vals.due > 0 ? "neg" : ""}`}, vals.due ? finMoney(vals.due) : "–") ]));
     }
-    t.appendChild(el("tr",{class:"sum"},[ el("td",{}, `${q + 1}. Quartal`), ...["b7","v7","b19","v19","inp"].map(k=> el("td",{class:"num"}, finMoney(qs[k]))), el("td",{class:"num b"}, finMoney(qs.due)) ]));
+    tb.appendChild(el("tr",{class:"sum"},[ el("td",{}, `${q + 1}. Quartal`), ...["b7","v7","b19","v19","inp"].map(k=> el("td",{class:"num"}, finMoney(qs[k]))), el("td",{class:"num b"}, finMoney(qs.due)) ]));
   }
-  t.appendChild(el("tr",{class:"result"},[ el("td",{}, `Jahr ${y}`), ...["b7","v7","b19","v19","inp"].map(k=> el("td",{class:"num"}, finMoney(tot[k]))), el("td",{class:"num b"}, finMoney(tot.due)) ]));
-  tw.appendChild(t);
+  tb.appendChild(el("tr",{class:"result"},[ el("td",{}, `Jahr ${y}`), ...["b7","v7","b19","v19","inp"].map(k=> el("td",{class:"num"}, finMoney(tot[k]))), el("td",{class:"num b"}, finMoney(tot.due)) ]));
+  tw.appendChild(tb);
   card.appendChild(tw);
-  card.appendChild(el("div",{class:"fin-note"},[ ic("alert"), el("span",{}, "Nur zur Orientierung, damit du das Geld rechtzeitig zurücklegst. Speisen 7 %, Getränke 19 % (seit 1.1.2026). Alte Ausgaben ohne MwSt.-Angabe zählen ohne Vorsteuer. Verbindlich ist die Voranmeldung deines Steuerberaters – keine Steuerberatung.") ]));
+  card.appendChild(el("div",{class:"fin-note"},[ ic("alert"), el("span",{}, `Nur zur Orientierung, damit du das Geld rechtzeitig zurücklegst. ${fs.tax.method === "soll" ? "Soll-Versteuerung: Catering zählt zum Leistungsdatum." : "Ist-Versteuerung: Umsätze zählen bei Zahlungseingang."} Fristen ohne Feiertage gerechnet${fs.tax.extension && fs.tax.period === "monthly" ? "; bei Dauerfristverlängerung fällt jährlich eine Sondervorauszahlung (1/11 der Vorjahres-Vorauszahlungen) an" : ""}. Verbindlich ist die Voranmeldung deines Steuerberaters – keine Steuerberatung.`) ]));
   wrap.appendChild(card);
   return wrap;
 }
@@ -5054,7 +5358,7 @@ function renderFinTax(){
 // ===== Kontobuch =====
 function finLedgerRows(){
   const rev = finRevenueRows().map(r=> ({...r, label: r.source === "dayclose" ? `Tagesabschluss ${FIN_CHANNEL_LABEL[r.channel]} ${r.vat} %` : (r.source === "catering" ? (r.note || "Catering") : (r.note || `Umsatz ${FIN_CHANNEL_LABEL[r.channel] || ""}`)), cat: FIN_CHANNEL_LABEL[r.channel] || "Umsatz"}));
-  const exp = finExpenseRows().map(e=> ({...e, label: e.supplier || e.cat}));
+  const exp = finExpenseRows().map(e=> ({...e, label: e.supplier || e.catLabel, cat: e.catLabel}));
   return [...rev, ...exp].sort((a,b)=> b.date.localeCompare(a.date) || (a.kind === b.kind ? 0 : (a.kind === "revenue" ? -1 : 1)));
 }
 function renderFinLedger(){
@@ -5062,7 +5366,7 @@ function renderFinLedger(){
   const wrap = el("div",{});
   const r = ui.ledgerMonth === "all" ? null : finRange("month", ui.ledgerMonth);
   const bar = el("div",{class:"fin-period"});
-  bar.appendChild(el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"}, [["all","Alles"],["revenue","Umsätze"],["expense","Ausgaben"]].map(([k,l])=>
+  bar.appendChild(el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"}, [["all","Alles"],["revenue","Umsätze"],["expense","Ausgaben"],["trash",`Papierkorb (${Object.keys(state.financeTrash || {}).length})`]].map(([k,l])=>
     el("button",{class:`tab ${ui.ledgerType===k?"active":""}`, onclick:()=>{ ui.ledgerType = k; render(); }}, l))));
   bar.appendChild(el("div",{class:"week-nav", style:"margin:0;"},[
     el("button",{onclick:()=>{ ui.ledgerMonth = (ui.ledgerMonth === "all" ? 0 : ui.ledgerMonth - 1); render(); }},"‹"),
@@ -5071,6 +5375,7 @@ function renderFinLedger(){
     el("button",{class:`tab ${ui.ledgerMonth === "all" ? "active" : ""}`, style:"margin-left:6px;", onclick:()=>{ ui.ledgerMonth = ui.ledgerMonth === "all" ? 0 : "all"; render(); }}, "Alle")
   ]));
   wrap.appendChild(bar);
+  if(ui.ledgerType === "trash"){ wrap.appendChild(renderFinTrash()); return wrap; }
   const search = el("input",{type:"search", id:"fin-ledger-q", class:"select-emp", style:"width:100%;margin-bottom:12px;", placeholder:"Suchen: Lieferant, Kategorie, Notiz …"});
   search.value = ui.ledgerQ || "";
   search.addEventListener("input", ()=>{ ui.ledgerQ = search.value; render(); });
@@ -5086,18 +5391,19 @@ function renderFinLedger(){
       el("span",{class:"fin-chip neg"}, `Ausgaben ${finMoney(out.reduce((s,x)=> s + x.gross, 0))}`),
       el("span",{class:"fin-chip"}, `${rows.length} Buchungen`)
     ]),
-    el("button",{class:"btn-cancel", style:"padding:9px 16px;", onclick:()=> finExportCsv(rows, r ? r.label : "alle")}, icl("download","CSV für Steuerberater"))
+    el("button",{class:"btn-cancel", style:"padding:9px 16px;", onclick:()=>{ ui.tab = "export"; render(); }}, icl("download","Exportieren"))
   ]));
   if(!rows.length) card.appendChild(el("div",{class:"fin-muted"}, "Keine Buchungen gefunden."));
   rows.slice(0, 400).forEach(x=>{
     const isRev = x.kind === "revenue";
     const acts = [];
-    if(isRev && x.source === "dayclose") acts.push(el("button",{class:"icon-btn", title:"Tagesabschluss öffnen", "aria-label":"Bearbeiten", onclick:()=>{ ui.tab = "dayclose"; ui.dcDate = x.date; ui.dc = null; render(); window.scrollTo({top:0}); }},[ic("pencil")]));
-    if(!isRev) acts.push(el("button",{class:"icon-btn", title:"Bearbeiten", "aria-label":"Bearbeiten", onclick:()=> finOpenExpense(x.id)},[ic("pencil")]));
-    if(!isRev) acts.push(el("button",{class:"del-btn", title:"Löschen", "aria-label":"Löschen", onclick:()=> finDeleteExpense(x.id)},[ic("trash")]));
-    else if(x.source !== "catering") acts.push(el("button",{class:"del-btn", title:"Löschen", "aria-label":"Löschen", onclick:()=>{ if(confirm(`Umsatz ${finMoney(x.gross)} vom ${fmtDateKey(x.date)} löschen?`)) remove(ref(db, `revenue/${x.id}`)); }},[ic("trash")]));
+    if(finIsLocked(x.date)) acts.push(el("span",{class:"fin-lock", title:"festgeschrieben"},[ic("lock")]));
+    else if(isRev && x.source === "dayclose") acts.push(el("button",{class:"icon-btn", title:"Tagesabschluss öffnen", "aria-label":"Bearbeiten", onclick:()=>{ ui.tab = "dayclose"; ui.dcDate = x.date; ui.dc = null; render(); window.scrollTo({top:0}); }},[ic("pencil")]));
+    if(!isRev && !finIsLocked(x.date)) acts.push(el("button",{class:"icon-btn", title:"Bearbeiten", "aria-label":"Bearbeiten", onclick:()=> finOpenExpense(x.id)},[ic("pencil")]));
+    if(!isRev && !finIsLocked(x.date)) acts.push(el("button",{class:"del-btn", title:"Löschen", "aria-label":"Löschen", onclick:()=> finDeleteExpense(x.id)},[ic("trash")]));
+    else if(isRev && x.source !== "catering" && !finIsLocked(x.date)) acts.push(el("button",{class:"del-btn", title:"Löschen", "aria-label":"Löschen", onclick:()=>{ if(!confirm(`Umsatz ${finMoney(x.gross)} vom ${fmtDateKey(x.date)} löschen? Er wandert in den Papierkorb.`)) return; const u = {[`revenue/${x.id}`]: null}; finTrash(u, `revenue/${x.id}`, (state.revenue || {})[x.id], "gelöscht"); update(ref(db), u); }},[ic("trash")]));
     card.appendChild(el("div",{class:"fin-row"},[
-      el("div",{class:"fin-row-date"}, localDateFromKey(x.date).toLocaleDateString("de-DE",{day:"2-digit", month:"2-digit", year:"2-digit"})),
+      el("div",{class:"fin-row-date"},[ el("div",{}, localDateFromKey(x.date).toLocaleDateString("de-DE",{day:"2-digit", month:"2-digit", year:"2-digit"})), x.beleg ? el("div",{class:"fin-beleg"}, x.beleg) : null ]),
       el("div",{style:"flex:1;min-width:0;"},[ el("div",{class:"t"}, x.label), el("div",{class:"s"}, [x.cat, `${x.vat} % MwSt.`, isRev && x.source === "catering" ? "über Catering verwaltet" : null, !isRev && x.note ? x.note : null].filter(Boolean).join(" · ")) ]),
       el("div",{class:"fin-row-amt"},[ el("b",{class: isRev ? "pos" : ""}, `${isRev ? "+" : "−"} ${finMoney(x.gross)}`), el("span",{}, `netto ${finMoney(x.net)}`) ]),
       ...acts
@@ -5107,77 +5413,585 @@ function renderFinLedger(){
   wrap.appendChild(card);
   return wrap;
 }
+function renderFinTrash(){
+  const card = el("div",{class:"card"});
+  card.appendChild(el("h3",{class:"fin-h"}, "Papierkorb & Änderungen"));
+  card.appendChild(el("p",{class:"fin-muted", style:"margin:-6px 0 12px;"}, "Gelöschte und überschriebene Finanzeinträge werden hier dauerhaft aufbewahrt und lassen sich wiederherstellen. Sie zählen nicht mehr in den Auswertungen."));
+  const items = Object.entries(state.financeTrash || {}).filter(([id,t])=> t && t.data).sort((a,b)=> (b[1].at || 0) - (a[1].at || 0));
+  if(!items.length) card.appendChild(el("div",{class:"fin-muted"}, "Leer – noch nichts gelöscht oder geändert."));
+  items.forEach(([tid,t])=>{
+    const d = t.data; const isRev = String(t.path).startsWith("revenue/");
+    const label = isRev ? (d.source === "dayclose" ? `Tagesabschluss ${FIN_CHANNEL_LABEL[d.channel] || ""} ${d.vat || ""} %` : (d.note || "Umsatz")) : (d.supplier || finCat(d.category).key);
+    const current = isRev ? (state.revenue || {})[t.path.slice(8)] : (state.expenses || {})[t.path.slice(9)];
+    card.appendChild(el("div",{class:"fin-row"},[
+      el("div",{class:"fin-row-date"}, d.date ? localDateFromKey(d.date).toLocaleDateString("de-DE",{day:"2-digit", month:"2-digit", year:"2-digit"}) : "–"),
+      el("div",{style:"flex:1;min-width:0;"},[
+        el("div",{class:"t"}, label),
+        el("div",{class:"s"}, `${t.reason || "gelöscht"} am ${new Date(t.at).toLocaleString("de-DE",{day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit"})}${t.by ? ` von ${t.by}` : ""}`)
+      ]),
+      el("div",{class:"fin-row-amt"},[ el("b",{class: isRev ? "pos" : ""}, `${isRev ? "+" : "−"} ${finMoney(fNum(d.amount))}`), el("span",{}, "brutto") ]),
+      el("button",{class:"btn-cancel", style:"padding:8px 12px;font-size:13px;", onclick: async ()=>{
+        if(finLockAlert(d.date)) return;
+        if(current){ alert("An dieser Stelle steht inzwischen ein neuerer Eintrag (z. B. der geänderte Tagesabschluss). Bitte den aktuellen Eintrag anpassen."); return; }
+        if(!confirm(`${label} über ${finMoney(fNum(d.amount))} wiederherstellen?`)) return;
+        const m = String(t.path).match(/^expenses\/rec_(.+)_(\d{6})$/);
+        const u = {[t.path]: d, [`financeTrash/${tid}`]: null};
+        if(m) finDeletedKeys.delete(t.path.slice(9));
+        await update(ref(db), u);
+      }}, icl("undo","Wiederherstellen"))
+    ]));
+  });
+  return card;
+}
 function finExportCsv(rows, label){
   const n = (v)=> fRound(v).toFixed(2).replace(".", ",");
   const esc = (s)=> `"${String(s == null ? "" : s).replace(/"/g,'""')}"`;
-  const lines = [["Datum","Art","Kategorie/Kanal","Beschreibung","Netto","MwSt-Satz","MwSt","Brutto","Zahlungsart","Notiz"].join(";")];
+  const lines = [["Datum","Beleg","Art","Kategorie/Kanal","Buchungstext","Konto","Gegenkonto","Netto","MwSt-Satz","MwSt","Brutto","Zahlungsart","Notiz"].join(";")];
   rows.slice().sort((a,b)=> a.date.localeCompare(b.date)).forEach(x=>{
     const pm = FIN_PAY_METHODS.find(m=> m[0] === x.method);
-    lines.push([fmtDateKey(x.date), x.kind === "revenue" ? "Einnahme" : "Ausgabe", esc(x.cat), esc(x.label), n(x.net), `${x.vat}%`, n(x.tax), n(x.gross), esc(pm ? pm[1] : ""), esc(x.note || "")].join(";"));
+    lines.push([fmtDateKey(x.date), esc(x.beleg || ""), x.kind === "revenue" ? "Einnahme" : "Ausgabe", esc(x.cat), esc(x.text || x.label), esc(x.account || ""), esc(x.contra || ""), n(x.net), `${x.vat}%`, n(x.tax), n(x.gross), esc(pm ? pm[1] : ""), esc(x.note || "")].join(";"));
   });
-  const blob = new Blob(["﻿" + lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `TastyDay_Kontobuch_${String(label).replace(/\s+/g,"_")}.csv`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=> URL.revokeObjectURL(a.href), 2000);
+  finDownload(new Blob(["\ufeff" + lines.join("\r\n")], {type:"text/csv;charset=utf-8"}), `Kontobuch_${String(label).replace(/[^A-Za-z0-9ÄÖÜäöüß-]+/g,"_")}.csv`);
 }
 
 // ===== Einstellungen =====
-function renderFinSettings(){
+function finSetDraft(){
   const ui = finUi();
-  const s = (state.settings && state.settings.finance) || {};
   if(!ui.setDraft){
-    ui.setDraft = {};
-    ["lieferandoPct","laborSurchargePct","targetFood","targetLabor","targetPrime","goalRevenue","goalProfit"].forEach(k=> ui.setDraft[k] = s[k] != null ? kNumStr(s[k]) : "");
-    ui.setDraft.legacyVat = String(s.legacyVat || 7);
+    const fs = finSettings();
+    const s = fs.raw;
+    const str = (v)=> v === undefined || v === null || v === "" ? "" : kNumStr(v);
+    ui.setDraft = {
+      company: Object.assign({}, fs.company, {fyStart:String(fs.company.fyStart || 1)}),
+      tax: {method:fs.tax.method, period:fs.tax.period, extension:fs.tax.extension, rates: fs.tax.rates.map(r=> ({from:r.from, reduced:str(r.reduced), standard:str(r.standard)}))},
+      chart: fs.chart,
+      accounts: Object.assign({cash:"", bank:"", transit:"", rc:""}, s.accounts || {}, {revAuto: fs.accounts.revAuto}),
+      channels: Object.fromEntries(FIN_CHANNELS.map(([k])=>{ const c = fs.channels[k]; return [k, {active:c.active, acc7:c.acc7, acc19:c.acc19, money:c.money, pct:str(c.pct), fee:str(c.fee), mode:c.mode, rc:c.rc}]; })),
+      cats: Object.fromEntries(finExpenseCategories(true).map(k=>{ const c = finCat(k); const o = fs.cats[k] || {}; return [k, {label:o.label || "", type:c.type, vat:String(c.vat), acc:o.acc || "", acc7:o.acc7 || "", acc19:o.acc19 || "", archived:c.archived, custom:c.custom}]; })),
+      labor: {regular:str(fs.labor.regular), mini:str(fs.labor.mini), emp:Object.assign({}, fs.labor.emp)},
+      targets: {food:str(fs.targetFood), labor:str(fs.targetLabor), prime:str(fs.targetPrime), tol:str(fs.tol)},
+      goals: {revenue:str(fs.goals.revenue), profit:str(fs.goals.profit), months: Object.fromEntries(Array.from({length:12},(_,i)=>{ const k = String(i+1).padStart(2,"0"); const m = fs.goals.months[k] || {}; return [k, {revenue:str(m.revenue), profit:str(m.profit)}]; }))},
+      receipts: Object.assign({}, fs.receipts),
+      lockedUntil: fs.lockedUntil,
+      datev: {berater:fs.datev.berater, mandant:fs.datev.mandant, len:String(fs.datev.len || 4)},
+      legacyVat: String(fs.legacyVat),
+      newCat: ""
+    };
   }
-  const x = ui.setDraft;
+  return ui.setDraft;
+}
+function renderFinSettings(){
+  const ui = finUi(); const fs = finSettings();
+  const x = finSetDraft();
   const wrap = el("div",{});
-  const block = (title, sub, fields)=>{
+  if(!ui.setTab) ui.setTab = "company";
+  const st = el("div",{class:"fin-subtabs"});
+  [["company","Unternehmen"],["tax","Umsatzsteuer"],["accounts","Konten & Kategorien"],["channels","Kanäle & Plattformen"],["labor","Personal"],["targets","Ziele"],["receipts","Belege & Sperre"],["datev","DATEV & Export"]]
+    .forEach(([k,l])=> st.appendChild(el("button",{class:`fin-subtab ${ui.setTab===k?"active":""}`, onclick:()=>{ ui.setTab = k; render(); }}, l)));
+  wrap.appendChild(st);
+  const card = (title, sub, kids)=>{
     const c = el("div",{class:"card"});
     c.appendChild(el("h3",{class:"fin-h"}, title));
     if(sub) c.appendChild(el("p",{class:"fin-muted", style:"margin:-6px 0 12px;"}, sub));
-    const f = el("div",{class:"k-form"});
-    fields.forEach(fl=> f.appendChild(fl));
-    c.appendChild(f);
+    kids.forEach(k=> k && c.appendChild(k));
     return c;
   };
-  const num = (k, ph)=> kIn(x, k, {type:"text", inputmode:"decimal", placeholder:ph});
-  wrap.appendChild(block("Lieferando", "Steht auf deiner Lieferando-Abrechnung. Mit eigenen Fahrern meist ca. 13–14 %, mit Lieferando-Fahrern ca. 30 %. Wird automatisch als Kosten (inkl. 19 % Vorsteuer) gerechnet.", [
-    kField("Provision in % vom Bruttoumsatz", num("lieferandoPct","z. B. 13"))
+  const form = (fields)=>{ const f = el("div",{class:"k-form"}); fields.forEach(fl=> fl && f.appendChild(fl)); return f; };
+  const num = (o, k, ph)=> kIn(o, k, {type:"text", inputmode:"decimal", placeholder:ph});
+  const txt = (o, k, ph)=> kIn(o, k, {type:"text", placeholder:ph || ""});
+  const chk = (o, k, label)=>{ const cb = el("input",{type:"checkbox"}); cb.checked = !!o[k]; cb.addEventListener("change", ()=>{ o[k] = cb.checked; }); return el("label",{class:"cat-check"},[cb, label]); };
+  const C = FIN_CHART[x.chart] || FIN_CHART.SKR03;
+
+  if(ui.setTab === "company"){
+    wrap.appendChild(card("Unternehmensdaten", "Erscheinen im Kopf von PDF-Bericht und Excel-Export.", [form([
+      kField("Firmenname", txt(x.company,"name","Tasty Day")), kField("Inhaber/in", txt(x.company,"owner","Vor- und Nachname")),
+      kField("Straße & Hausnummer", txt(x.company,"street")), kField("PLZ", txt(x.company,"zip")), kField("Ort", txt(x.company,"city")),
+      kField("Telefon", txt(x.company,"phone")), kField("E-Mail", txt(x.company,"email")),
+      kField("Steuernummer", txt(x.company,"taxNo","z. B. 040 123 45678")), kField("USt-IdNr.", txt(x.company,"vatId","DE…")), kField("Finanzamt", txt(x.company,"taxOffice","z. B. Hofheim am Taunus")),
+      kField("Geschäftsjahr beginnt im", kSel(x.company,"fyStart", Array.from({length:12},(_,i)=> [String(i+1), new Date(2026, i, 1).toLocaleDateString("de-DE",{month:"long"})])))
+    ])]));
+  }
+  if(ui.setTab === "tax"){
+    wrap.appendChild(card("Umsatzsteuer", null, [form([
+      kField("Versteuerung", kSel(x.tax,"method",[["ist","Ist-Versteuerung (nach Zahlungseingang)"],["soll","Soll-Versteuerung (nach Leistung)"]])),
+      kField("Voranmeldungszeitraum", kSel(x.tax,"period",[["monthly","monatlich"],["quarterly","vierteljährlich"],["yearly","jährlich (nur Jahreserklärung)"]])),
+      el("div",{style:"grid-column:1/-1;"},[ chk(x.tax,"extension","Dauerfristverlängerung (Abgabe einen Monat später)") ])
+    ])]));
+    const rc = el("div",{});
+    x.tax.rates.forEach((r,i)=> rc.appendChild(el("div",{class:"fin-set-row"},[
+      kField("Gültig ab", kIn(r,"from",{type:"date"})), kField("Ermäßigt %", num(r,"reduced","7")), kField("Regulär %", num(r,"standard","19")),
+      x.tax.rates.length > 1 ? el("button",{type:"button", class:"del-btn", "aria-label":"Entfernen", onclick:()=>{ x.tax.rates.splice(i,1); render(); }},[ic("x")]) : el("span",{})
+    ])));
+    rc.appendChild(el("button",{type:"button", class:"link-btn", onclick:()=>{ x.tax.rates.push({from:"", reduced:"7", standard:"19"}); render(); }}, "+ Steuersatz-Änderung"));
+    wrap.appendChild(card("Steuersätze", "Seit 1.1.2026: Speisen 7 %, Getränke 19 %. Ändert der Gesetzgeber die Sätze, hier eine neue Zeile mit Datum anlegen – Tagesabschlüsse rechnen dann ab diesem Tag automatisch richtig.", [rc]));
+  }
+  if(ui.setTab === "accounts"){
+    const cs = el("select",{class:"select-emp"});
+    [["SKR03","SKR03 (Prozessgliederung)"],["SKR04","SKR04 (Abschlussgliederung)"]].forEach(([v,l])=> cs.appendChild(el("option",{value:v}, l)));
+    cs.value = x.chart;
+    cs.addEventListener("change", ()=>{ x.chart = cs.value; render(); });
+    wrap.appendChild(card("Kontenrahmen & Geldkonten", "Leere Felder = Standardkonto des Kontenrahmens (grau angezeigt). Im Zweifel mit dem Steuerberater abstimmen.", [form([
+      kField("Kontenrahmen", cs),
+      kField("Kasse", kIn(x.accounts,"cash",{type:"text", inputmode:"numeric", placeholder:C.cash})),
+      kField("Bank", kIn(x.accounts,"bank",{type:"text", inputmode:"numeric", placeholder:C.bank})),
+      kField("Geldtransit", kIn(x.accounts,"transit",{type:"text", inputmode:"numeric", placeholder:C.transit})),
+      kField("Konto § 13b (Reverse-Charge)", kIn(x.accounts,"rc",{type:"text", inputmode:"numeric", placeholder:C.rc})),
+      el("div",{style:"grid-column:1/-1;"},[ chk(x.accounts,"revAuto","Erlöskonten sind Automatikkonten (kein Steuerschlüssel im DATEV-Export)") ])
+    ])]));
+    const tbl = el("div",{class:"fin-cat-table"});
+    tbl.appendChild(el("div",{class:"fin-cat-row head"},[ el("span",{}, "Kategorie"), el("span",{}, "Anzeigename"), el("span",{}, "Art"), el("span",{}, "MwSt."), el("span",{}, "Konto (7 % / 19 %)"), el("span",{}, "Archiv") ]));
+    Object.entries(x.cats).forEach(([k,c])=>{
+      const def = C.cats[k] || C.cats["Sonstiges"];
+      const accBox = def.acc7 || def.acc19
+        ? el("div",{class:"fin-cat-acc"},[ kIn(c,"acc7",{type:"text", inputmode:"numeric", placeholder:def.acc7}), kIn(c,"acc19",{type:"text", inputmode:"numeric", placeholder:def.acc19}) ])
+        : kIn(c,"acc",{type:"text", inputmode:"numeric", placeholder:def.acc});
+      const arch = el("input",{type:"checkbox"}); arch.checked = !!c.archived; arch.addEventListener("change", ()=>{ c.archived = arch.checked; });
+      tbl.appendChild(el("div",{class:`fin-cat-row ${c.archived ? "arch" : ""}`},[
+        el("span",{class:"k"}, k + (c.custom ? " ·  eigene" : "")),
+        kIn(c,"label",{type:"text", placeholder:k}),
+        kSel(c,"type",[["ware","Wareneinsatz"],["var","Variabel"],["personal","Personal"],["fix","Fix"]]),
+        kSel(c,"vat",[["7","7 %"],["19","19 %"],["0","0 %"]]),
+        accBox,
+        el("label",{class:"cat-check"},[arch])
+      ]));
+    });
+    const add = el("div",{style:"display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;"},[
+      kIn(x,"newCat",{type:"text", placeholder:"Neue Kategorie, z. B. Reinigungsfirma"}),
+      el("button",{type:"button", class:"btn-cancel", style:"padding:9px 16px;", onclick:()=>{ const n = String(x.newCat || "").trim(); if(!n) return; if(x.cats[n]){ alert("Diese Kategorie gibt es schon."); return; } x.cats[n] = {label:"", type:"fix", vat:"19", acc:"", acc7:"", acc19:"", archived:false, custom:true}; x.newCat = ""; render(); }}, icl("plus","Hinzufügen"))
+    ]);
+    wrap.appendChild(card("Ausgaben-Kategorien", "Art bestimmt, wo die Kosten in Kennzahlen und GuV landen. Archivierte Kategorien verschwinden aus der Auswahl, alte Buchungen bleiben erhalten. Umbenennen ändert nur den Anzeigenamen.", [el("div",{class:"fin-table-wrap"},[tbl]), add]));
+  }
+  if(ui.setTab === "channels"){
+    FIN_CHANNELS.forEach(([k,l])=>{
+      const c = x.channels[k];
+      const plat = FIN_PLATFORM_KEYS.includes(k);
+      const fields = [
+        el("div",{style:"grid-column:1/-1;"},[ chk(c,"active", k === "catering" ? "Aktiv (Catering wird über Aufträge gebucht)" : "Aktiv – im Tagesabschluss anzeigen") ]),
+        kField("Erlöskonto 7 %", kIn(c,"acc7",{type:"text", inputmode:"numeric", placeholder:C.rev7})),
+        kField("Erlöskonto 19 %", kIn(c,"acc19",{type:"text", inputmode:"numeric", placeholder:C.rev19})),
+        kField("Geldkonto (Zahlungseingang)", kIn(c,"money",{type:"text", inputmode:"numeric", placeholder: k === "kasse" || k === "sonstiges" ? (x.accounts.cash || C.cash) : (x.accounts.bank || C.bank)}))
+      ];
+      if(plat){
+        fields.push(kField("Provision / Gebühr in %", num(c,"pct","z. B. 13")));
+        fields.push(kField("Fixgebühr je Bestellung €", num(c,"fee","z. B. 0,35")));
+        fields.push(kField("Abrechnung", kSel(c,"mode",[["estimate","Provision automatisch schätzen"],["invoice","Rechnungen als Ausgabe buchen"]])));
+        fields.push(el("div",{style:"grid-column:1/-1;"},[ chk(c,"rc","Rechnung ohne deutsche MwSt. (Reverse-Charge, z. B. Anbieter aus NL/EE)") ]));
+      }
+      wrap.appendChild(card(l, plat ? "„Automatisch schätzen“ rechnet die Provision aus deinem Umsatz. Buchst du stattdessen die echten Monatsrechnungen als Ausgabe (Kategorie „Provisionen & Gebühren“), stell auf „Rechnungen als Ausgabe“, sonst wird doppelt gezählt." : null, [form(fields)]));
+    });
+  }
+  if(ui.setTab === "labor"){
+    wrap.appendChild(card("Lohnnebenkosten", "Aufschlag auf den Bruttolohn für Arbeitgeberanteile. Minijob: Pauschalen + Umlagen (grob ca. 30 %); sozialversicherungspflichtig: Arbeitgeberanteile (grob ca. 20–22 %). Deine genauen Werte nennt dir dein Steuerberater oder Lohnbüro.", [form([
+      kField("Sozialversicherungspflichtig %", num(x.labor,"regular","z. B. 21")), kField("Minijob %", num(x.labor,"mini","z. B. 30"))
+    ])]));
+    const list = el("div",{});
+    kStaffSorted(Object.keys(state.employees || {}).filter(id=> isStaff(state.employees[id]))).forEach(id=>{
+      if(!x.labor.emp[id]) x.labor.emp[id] = "regular";
+      list.appendChild(el("div",{class:"fin-set-emp"},[ el("span",{}, state.employees[id].name), kSel(x.labor.emp, id, [["regular","Sozialversicherungspflichtig"],["mini","Minijob"],["none","Ohne Nebenkosten"]]) ]));
+    });
+    wrap.appendChild(card("Beschäftigungsart je Mitarbeiter", null, [list]));
+  }
+  if(ui.setTab === "targets"){
+    wrap.appendChild(card("Zielquoten (vom Nettoumsatz)", "Bis zum Ziel grün, bis Ziel + Toleranz gelb, darüber rot.", [form([
+      kField("Wareneinsatz ≤ %", num(x.targets,"food","30")), kField("Personal ≤ %", num(x.targets,"labor","30")),
+      kField("Prime Cost ≤ %", num(x.targets,"prime","60")), kField("Toleranz für Gelb (Prozentpunkte)", num(x.targets,"tol","5"))
+    ])]));
+    wrap.appendChild(card("Monatsziele (netto)", "Standardwert für jeden Monat – darunter kannst du einzelne Monate abweichend festlegen (z. B. Sommer höher).", [form([
+      kField("Nettoumsatz pro Monat €", num(x.goals,"revenue","z. B. 40000")), kField("Betriebsergebnis pro Monat €", num(x.goals,"profit","z. B. 6000"))
+    ])]));
+    const mt = el("div",{class:"fin-month-goals"});
+    Object.keys(x.goals.months).sort().forEach(k=>{
+      const m = x.goals.months[k];
+      mt.appendChild(el("div",{class:"fin-month-goal"},[ el("b",{}, new Date(2026, Number(k) - 1, 1).toLocaleDateString("de-DE",{month:"short"})), num(m,"revenue", x.goals.revenue || "Umsatz"), num(m,"profit", x.goals.profit || "Ergebnis") ]));
+    });
+    wrap.appendChild(card("Abweichende Monatsziele", "Leer = Standardwert. Erste Zeile Umsatz, zweite Zeile Ergebnis.", [mt]));
+  }
+  if(ui.setTab === "receipts"){
+    wrap.appendChild(card("Belegnummern", `Jede Ausgabe bekommt automatisch eine fortlaufende Nummer, z. B. ${String(x.receipts.prefix || "A")}-${new Date().getFullYear()}-0001. Nummern werden nie doppelt vergeben, auch nicht nach dem Löschen.`, [form([
+      kField("Präfix", txt(x.receipts,"prefix","A")),
+      el("div",{style:"grid-column:1/-1;display:flex;flex-direction:column;gap:8px;"},[ chk(x.receipts,"reqSupplier","Lieferant ist Pflichtfeld"), chk(x.receipts,"reqInvoice","Rechnungsnummer ist Pflichtfeld") ])
+    ])]));
+    const lockQuick = el("div",{style:"display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;"},[
+      el("button",{type:"button", class:"btn-cancel", style:"padding:8px 14px;", onclick:()=>{ const d = new Date(); d.setDate(0); x.lockedUntil = toDateKey(d); render(); }}, "Bis Ende letzten Monats"),
+      el("button",{type:"button", class:"btn-cancel", style:"padding:8px 14px;", onclick:()=>{ x.lockedUntil = ""; render(); }}, "Keine Sperre")
+    ]);
+    wrap.appendChild(card("Festschreibung (GoBD)", "Bis einschließlich zu diesem Datum können Umsätze, Ausgaben und Tagesabschlüsse nicht mehr angelegt, geändert oder gelöscht werden – z. B. sobald der Monat an den Steuerberater übermittelt ist.", [form([ kField("Festgeschrieben bis", kIn(x,"lockedUntil",{type:"date"})) ]), lockQuick]));
+    wrap.appendChild(card("Alte Einträge", "Umsätze, die vor dieser Version ohne Steuersatz eingetragen wurden, werden so gerechnet.", [form([ kField("MwSt. alter Umsätze", kSel(x,"legacyVat",[["7","7 % (Speisen)"],["19","19 %"]])) ])]));
+  }
+  if(ui.setTab === "datev"){
+    wrap.appendChild(card("DATEV", "Für den Buchungsstapel-Export. Berater- und Mandantennummer bekommst du von deinem Steuerberater.", [form([
+      kField("Beraternummer", kIn(x.datev,"berater",{type:"text", inputmode:"numeric", placeholder:"z. B. 1234567"})),
+      kField("Mandantennummer", kIn(x.datev,"mandant",{type:"text", inputmode:"numeric", placeholder:"z. B. 10001"})),
+      kField("Sachkontenlänge", kSel(x.datev,"len",[["4","4-stellig (Standard)"],["5","5-stellig"],["6","6-stellig"],["7","7-stellig"],["8","8-stellig"]]))
+    ])]));
+  }
+
+  wrap.appendChild(el("div",{class:"fin-save-bar"},[
+    el("button",{class:"btn btn-primary", style:"width:auto;padding:12px 26px;", onclick: finSaveSettings}, "Einstellungen speichern"),
+    el("button",{class:"btn-cancel", style:"padding:11px 18px;", onclick:()=>{ ui.setDraft = null; render(); }}, "Verwerfen")
   ]));
-  wrap.appendChild(block("Personal", "Aufschlag auf die Stundenlöhne für Arbeitgeberanteile (Sozialversicherung, Minijob-Pauschalen, Umlagen). Als grobe Hausnummer oft 20–30 % – frag deinen Steuerberater nach deinem Wert.", [
-    kField("Lohnnebenkosten in %", num("laborSurchargePct","z. B. 25"))
-  ]));
-  wrap.appendChild(block("Zielwerte", "Bis zu diesem Wert ist eine Kennzahl grün, bis +5 Prozentpunkte gelb, darüber rot.", [
-    kField("Wareneinsatzquote ≤ %", num("targetFood","30")),
-    kField("Personalquote ≤ %", num("targetLabor","30")),
-    kField("Prime Cost ≤ %", num("targetPrime","60"))
-  ]));
-  wrap.appendChild(block("Monatsziele (netto)", null, [
-    kField("Nettoumsatz pro Monat €", num("goalRevenue","z. B. 40000")),
-    kField("Betriebsergebnis pro Monat €", num("goalProfit","z. B. 6000"))
-  ]));
-  wrap.appendChild(block("Alte Einträge", "Umsätze, die vor dieser Version ohne Steuersatz eingetragen wurden, werden so gerechnet.", [
-    kField("MwSt. alter Umsätze", kSel(x,"legacyVat",[["7","7 % (Speisen)"],["19","19 %"]]))
-  ]));
-  wrap.appendChild(el("div",{class:"cat-actions"},[ el("button",{class:"btn btn-primary", style:"width:auto;padding:12px 26px;", onclick: async ()=>{
-    const out = {};
-    for(const k of ["lieferandoPct","laborSurchargePct","targetFood","targetLabor","targetPrime","goalRevenue","goalProfit"]){
-      const raw = String(x[k] || "").trim();
-      if(!raw){ out[k] = null; continue; }
-      const v = fNum(raw);
-      if(!(v >= 0) || (k.endsWith("Pct") && v > 100) || (k.startsWith("target") && v > 100)){ alert("Bitte gültige Werte eingeben (Prozent zwischen 0 und 100)."); return; }
-      out[k] = fRound(v);
-    }
-    out.legacyVat = Number(x.legacyVat) === 19 ? 19 : 7;
-    await update(ref(db, "settings/finance"), out);
-    ui.setDraft = null; render();
-    alert("Gespeichert.");
-  }}, "Einstellungen speichern") ]));
   return wrap;
 }
+async function finSaveSettings(){
+  const ui = finUi(); const x = ui.setDraft; if(!x) return;
+  const n = (v, max)=>{ const raw = String(v == null ? "" : v).trim(); if(!raw) return null; const f = fNum(raw); if(!(f >= 0) || (max != null && f > max)) throw new Error("bad"); return fRound(f); };
+  const acc = (v)=>{ const s = String(v || "").trim(); if(s && !/^\d{3,9}$/.test(s)) throw new Error("acc"); return s || null; };
+  try{
+    const out = {
+      company: Object.assign({}, x.company, {fyStart: Number(x.company.fyStart) || 1}),
+      tax: {method:x.tax.method, period:x.tax.period, extension:!!x.tax.extension,
+        rates: x.tax.rates.filter(r=> r.from).map(r=> ({from:r.from, reduced:n(r.reduced, 100) ?? 7, standard:n(r.standard, 100) ?? 19}))},
+      chart: x.chart,
+      accounts: {cash:acc(x.accounts.cash), bank:acc(x.accounts.bank), transit:acc(x.accounts.transit), rc:acc(x.accounts.rc), revAuto: x.accounts.revAuto !== false},
+      channels: Object.fromEntries(Object.entries(x.channels).map(([k,c])=> [k, {active:!!c.active, acc7:acc(c.acc7), acc19:acc(c.acc19), money:acc(c.money), pct:n(c.pct, 100), fee:n(c.fee), mode:c.mode, rc:!!c.rc}])),
+      cats: Object.fromEntries(Object.entries(x.cats).map(([k,c])=> [k, {label:String(c.label || "").trim() || null, type:c.type, vat:Number(c.vat), acc:acc(c.acc), acc7:acc(c.acc7), acc19:acc(c.acc19), archived:!!c.archived}])),
+      labor: {regular:n(x.labor.regular, 100), mini:n(x.labor.mini, 100), emp:x.labor.emp},
+      targets: {food:n(x.targets.food, 100), labor:n(x.targets.labor, 100), prime:n(x.targets.prime, 100), tol:n(x.targets.tol, 100)},
+      goals: {revenue:n(x.goals.revenue), profit:n(x.goals.profit), months: Object.fromEntries(Object.entries(x.goals.months).map(([k,m])=> [k, {revenue:n(m.revenue), profit:n(m.profit)}]))},
+      receipts: {prefix: String(x.receipts.prefix || "A").trim().replace(/[^A-Za-z0-9]/g,"") || "A", reqSupplier:!!x.receipts.reqSupplier, reqInvoice:!!x.receipts.reqInvoice},
+      lockedUntil: x.lockedUntil || null,
+      datev: {berater:String(x.datev.berater || "").trim(), mandant:String(x.datev.mandant || "").trim(), len:Number(x.datev.len) || 4},
+      legacyVat: Number(x.legacyVat) === 19 ? 19 : 7,
+      // alte Einzelfelder aufräumen
+      lieferandoPct:null, uberPct:null, woltPct:null, websitePct:null, laborSurchargePct:null, targetFood:null, targetLabor:null, targetPrime:null, goalRevenue:null, goalProfit:null
+    };
+    if(out.datev.berater && !/^\d{4,7}$/.test(out.datev.berater)){ alert("Die Beraternummer hat 4–7 Ziffern."); return; }
+    if(out.datev.mandant && !/^\d{1,5}$/.test(out.datev.mandant)){ alert("Die Mandantennummer hat 1–5 Ziffern."); return; }
+    const old = finSettings().lockedUntil;
+    if(out.lockedUntil && old && out.lockedUntil < old && !confirm(`Die Festschreibung wird von ${fmtDateKey(old)} auf ${fmtDateKey(out.lockedUntil)} zurückgenommen. Wirklich?`)) return;
+    await update(ref(db, "settings/finance"), out);
+    ui.setDraft = null; render();
+    alert("Einstellungen gespeichert.");
+  }catch(err){
+    alert(err.message === "acc" ? "Kontonummern dürfen nur aus 3–9 Ziffern bestehen." : "Bitte gültige Zahlen eingeben (Prozentwerte zwischen 0 und 100).");
+  }
+}
+
+// ===== Export-Center =====
+function finExportRange(ui){
+  const e = ui.exp || (ui.exp = {mode:"month", offset:-1, from:"", to:""});
+  if(e.mode === "custom") return {from: e.from || toDateKey(new Date()), to: e.to || toDateKey(new Date()), label: `${fmtDateKey(e.from || toDateKey(new Date()))} – ${fmtDateKey(e.to || toDateKey(new Date()))}`};
+  return finRange(e.mode, e.offset);
+}
+function renderFinExport(){
+  const ui = finUi(); const fs = finSettings();
+  const e = ui.exp || (ui.exp = {mode:"month", offset:-1, from:"", to:""});
+  const wrap = el("div",{});
+  const bar = el("div",{class:"fin-period"});
+  bar.appendChild(el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"}, [["month","Monat"],["quarter","Quartal"],["year","Jahr"],["custom","Zeitraum"]].map(([k,l])=>
+    el("button",{class:`tab ${e.mode===k?"active":""}`, onclick:()=>{ e.mode = k; e.offset = k === "month" ? -1 : 0; render(); }}, l))));
+  if(e.mode === "custom"){
+    const f = el("input",{type:"date", class:"select-emp", value:e.from || "", style:"width:auto;"}); f.addEventListener("change", ()=>{ e.from = f.value; render(); });
+    const t = el("input",{type:"date", class:"select-emp", value:e.to || "", style:"width:auto;"}); t.addEventListener("change", ()=>{ e.to = t.value; render(); });
+    bar.appendChild(el("div",{style:"display:flex;gap:8px;align-items:center;"},[f, el("span",{}, "bis"), t]));
+  } else {
+    bar.appendChild(el("div",{class:"week-nav", style:"margin:0;"},[ el("button",{onclick:()=>{ e.offset--; render(); }},"‹"), el("span",{class:"week-label", style:"min-width:190px;"}, finRange(e.mode, e.offset).label), el("button",{onclick:()=>{ e.offset++; render(); }},"›") ]));
+  }
+  wrap.appendChild(bar);
+  const r = finExportRange(ui);
+  const a = finAggregate(r.from, r.to);
+  const nRows = finJournal(r.from, r.to).length;
+  wrap.appendChild(el("div",{class:"fin-chips"},[
+    el("span",{class:"fin-chip"}, `${nRows} Buchungen`), el("span",{class:"fin-chip"}, `Nettoumsatz ${finMoney(a.revNet)}`), el("span",{class:"fin-chip"}, `Ergebnis ${finMoney(a.result)}`),
+    finIsLocked(r.to) ? el("span",{class:"fin-chip pos"}, icl("lock","festgeschrieben")) : el("span",{class:"fin-chip"}, "nicht festgeschrieben")
+  ]));
+  const grid = el("div",{class:"fin-export-grid"});
+  const tile = (icon, title, text, btn, fn, note)=> el("div",{class:"fin-export"},[
+    el("div",{class:"fin-export-ic"},[ic(icon)]),
+    el("div",{class:"fin-export-t"}, title), el("div",{class:"fin-export-d"}, text),
+    note ? el("div",{class:"fin-export-n"}, note) : null,
+    el("button",{class:"btn btn-primary", style:"width:100%;padding:11px 16px;margin-top:auto;", onclick: fn}, btn)
+  ]);
+  grid.appendChild(tile("printer", "PDF-Finanzbericht", "Bericht im Briefkopf mit Kennzahlen, GuV, Umsatz nach Kanal, Kosten nach Kategorie mit Konten, Umsatzsteuer-Werten und vollständigem Buchungsjournal.", "PDF erstellen", ()=> finPrintReport(r), "Öffnet den Druckdialog – dort „Als PDF sichern“ wählen."));
+  grid.appendChild(tile("chart", "Excel-Arbeitsmappe (.xlsx)", "Formatierte Mappe mit 6 Blättern: Übersicht, GuV, Kanäle, Kosten, Umsatzsteuer und Buchungsjournal – mit Filtern, Summen und Euro-Format.", "Excel herunterladen", ()=> finExportXlsx(r)));
+  grid.appendChild(tile("send", "DATEV-Buchungsstapel", "Für die Übergabe an den Steuerberater (Format EXTF 7.0, " + fs.chart + "). Mit Konten, Steuerschlüsseln, Belegnummern und Buchungstexten.", "DATEV-Datei herunterladen", ()=> finExportDatev(r),
+    (!fs.datev.berater || !fs.datev.mandant) ? "Berater- und Mandantennummer fehlen noch (Einstellungen → DATEV & Export)." : "Beim ersten Mal den Import vom Steuerberater prüfen lassen."));
+  grid.appendChild(tile("package", "CSV (einfach)", "Schlichte Tabelle aller Buchungen mit Netto, MwSt. und Brutto – für eigene Auswertungen.", "CSV herunterladen", ()=> finExportCsv(finJournal(r.from, r.to), r.label)));
+  wrap.appendChild(grid);
+  wrap.appendChild(el("div",{class:"fin-note"},[ ic("alert"), el("span",{}, "Geschätzte Plattform-Provisionen erscheinen in Bericht und Excel, aber nicht im DATEV-Export – dort gehören nur echte Belege hinein. Buche die Monatsrechnungen der Plattformen als Ausgabe.") ]));
+  return wrap;
+}
+
+// Alle echten Buchungen eines Zeitraums mit Konten (Grundlage für alle Exporte)
+function finJournal(from, to){
+  const fs = finSettings();
+  const out = [];
+  finRevenueRows().filter(r=> r.date >= from && r.date <= to).forEach(r=>{
+    const ac = finChannelAccounts(r.channel, r.vat);
+    out.push({kind:"revenue", id:r.id, date:r.date, beleg:r.beleg, text: r.source === "dayclose" ? `Tageseinnahmen ${FIN_CHANNEL_LABEL[r.channel]} ${r.vat} %` : (r.note || `Umsatz ${FIN_CHANNEL_LABEL[r.channel] || ""}`),
+      cat: FIN_CHANNEL_LABEL[r.channel] || "Umsatz", net:r.net, tax:r.tax, gross:r.gross, vat:r.vat, account: ac.revenue, contra: ac.money, bu: fs.accounts.revAuto ? "" : (r.vat > 10 ? "3" : "2"), method:"", note:r.note || ""});
+  });
+  finExpenseRows().filter(x=> x.date >= from && x.date <= to).forEach(x=>{
+    const money = x.method === "cash" ? fs.accounts.cash : fs.accounts.bank;
+    out.push({kind:"expense", id:x.id, date:x.date, beleg:x.beleg || "", text: [x.supplier || x.catLabel, x.invoiceNo ? `Re ${x.invoiceNo}` : null].filter(Boolean).join(" "),
+      cat:x.catLabel, net:x.net, tax:x.tax, gross:x.gross, vat:x.vat, account:x.account, contra:money, bu: x.auto || !x.vat ? "" : (x.vat > 10 ? "9" : "8"), method:x.method, note:x.note, supplier:x.supplier, invoiceNo:x.invoiceNo});
+  });
+  return out.sort((a,b)=> a.date.localeCompare(b.date) || (a.kind === b.kind ? (a.beleg || "").localeCompare(b.beleg || "") : (a.kind === "revenue" ? -1 : 1)));
+}
+
+// Gemeinsame Daten für PDF und Excel
+function finReportData(r){
+  const fs = finSettings();
+  const A = finAggregate(r.from, r.to);
+  const len = Math.round((localDateFromKey(r.to) - localDateFromKey(r.from)) / 86400000) + 1;
+  const pTo = new Date(localDateFromKey(r.from)); pTo.setDate(pTo.getDate() - 1);
+  const pFrom = new Date(pTo); pFrom.setDate(pFrom.getDate() - len + 1);
+  const P = finAggregate(toDateKey(pFrom), toDateKey(pTo));
+  const pnl = [];
+  const row = (label, f, kind)=> pnl.push({label, cur:f(A), prev:f(P), kind: kind || ""});
+  FIN_CHANNELS.forEach(([k,l])=>{ if((A.channels[k] && A.channels[k].net) || (P.channels[k] && P.channels[k].net)) row(`Umsatz ${l}`, (x)=> (x.channels[k] || {net:0}).net); });
+  row("Nettoumsatz", (x)=> x.revNet, "sum");
+  row("Wareneinsatz", (x)=> -x.ware);
+  row("Rohertrag", (x)=> x.grossProfit, "sum");
+  row("Personalkosten (inkl. Nebenkosten)", (x)=> -x.labor);
+  if(A.personalOther || P.personalOther) row("Personal (sonstiges)", (x)=> -x.personalOther);
+  FIN_PLATFORM_KEYS.forEach(ch=>{ if(A.commissionBy[ch] || P.commissionBy[ch]) row(`Provision ${FIN_CHANNEL_LABEL[ch]} (geschätzt)`, (x)=> -(x.commissionBy[ch] || 0)); });
+  [...new Set([...Object.keys(A.catNet), ...Object.keys(P.catNet)])].filter(c=> !["ware","personal"].includes(finCat(c).type)).sort((a,b)=> a.localeCompare(b))
+    .forEach(c=> row(finCat(c).label, (x)=> -(x.catNet[c] || 0)));
+  row("Betriebsergebnis", (x)=> x.result, "result");
+  const channels = FIN_CHANNELS.map(([k,l])=>{ const c = A.channels[k]; return {label:l, gross:c.gross, net:c.net, tax:c.gross - c.net, orders:c.orders, avg: c.orders ? c.gross / c.orders : null, comm: A.commissionBy[k] || 0, share: A.revNet ? c.net / A.revNet : 0}; }).filter(c=> c.gross > 0);
+  const costs = {};
+  finExpenseRows().filter(x=> x.date >= r.from && x.date <= r.to).forEach(x=>{
+    const k = x.catLabel;
+    const c = costs[k] || (costs[k] = {label:k, type:FIN_TYPE_LABEL[x.type], account:new Set(), net:0, tax:0, gross:0, n:0});
+    c.net += x.net; c.tax += x.tax; c.gross += x.gross; c.n++; if(x.account) c.account.add(x.account);
+  });
+  const costList = Object.values(costs).map(c=> ({...c, account:[...c.account].join(", ")})).sort((a,b)=> b.net - a.net);
+  const months = [];
+  const d = localDateFromKey(r.from); d.setDate(1);
+  while(toDateKey(d) <= r.to){
+    const mf = toDateKey(d) < r.from ? r.from : toDateKey(d);
+    const me = toDateKey(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+    const mt = me > r.to ? r.to : me;
+    const m = finAggregate(mf, mt);
+    months.push({label: d.toLocaleDateString("de-DE",{month:"long", year:"numeric"}), base7:m.base7, vat7:m.vat7, base19:m.base19, vat19:m.vat19, input:m.inputTax, rcBase:m.rcBase, rcTax:m.rcTax, due:m.taxDue});
+    d.setMonth(d.getMonth() + 1);
+  }
+  return {fs, A, P, prevLabel:`${fmtDateKey(toDateKey(pFrom))} – ${fmtDateKey(toDateKey(pTo))}`, pnl, channels, costs:costList, months, journal: finJournal(r.from, r.to)};
+}
+
+// PDF-Bericht über den Druckdialog
+function finPrintReport(r){
+  const D = finReportData(r); const c = D.fs.company; const A = D.A;
+  const esc = (s)=> String(s == null ? "" : s).replace(/[&<>"]/g, ch=> ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+  const m = (v)=> esc(fmtMoney(fRound(v || 0)));
+  const pct = (v)=> esc(fPct(v));
+  const fsx = D.fs;
+  const lvl = (v, t)=> !isFinite(v) ? "" : (v <= t ? "g" : (v <= t + fsx.tol ? "y" : "r"));
+  const pnlRows = D.pnl.map(p=> `<tr class="${p.kind}"><td>${esc(p.label)}</td><td class="n">${m(p.cur)}</td><td class="n mu">${A.revNet ? pct(Math.abs(p.cur) / A.revNet * 100) : ""}</td><td class="n mu">${m(p.prev)}</td></tr>`).join("");
+  const chRows = D.channels.map(x=> `<tr><td>${esc(x.label)}</td><td class="n">${m(x.gross)}</td><td class="n">${m(x.tax)}</td><td class="n">${m(x.net)}</td><td class="n mu">${pct(x.share * 100)}</td><td class="n">${x.orders || "–"}</td><td class="n">${x.avg ? m(x.avg) : "–"}</td><td class="n">${x.comm ? m(x.comm) : "–"}</td></tr>`).join("");
+  const costRows = D.costs.map(x=> `<tr><td>${esc(x.label)}</td><td>${esc(x.type)}</td><td>${esc(x.account)}</td><td class="n">${x.n}</td><td class="n">${m(x.net)}</td><td class="n">${m(x.tax)}</td><td class="n">${m(x.gross)}</td></tr>`).join("");
+  const taxRows = D.months.map(x=> `<tr><td>${esc(x.label)}</td><td class="n">${m(x.base7)}</td><td class="n">${m(x.vat7)}</td><td class="n">${m(x.base19)}</td><td class="n">${m(x.vat19)}</td><td class="n">${m(x.input)}</td><td class="n b">${m(x.due)}</td></tr>`).join("");
+  const jr = D.journal.map(j=> `<tr><td>${esc(fmtDateKey(j.date))}</td><td>${esc(j.beleg)}</td><td>${esc(j.text)}</td><td>${esc(j.account)}</td><td>${esc(j.contra)}</td><td class="n">${esc(j.vat)} %</td><td class="n">${m(j.net)}</td><td class="n">${m(j.tax)}</td><td class="n ${j.kind === "revenue" ? "pos" : ""}">${j.kind === "revenue" ? "" : "−"}${m(j.gross)}</td></tr>`).join("");
+  const sumIn = D.journal.filter(j=> j.kind === "revenue").reduce((s,j)=> s + j.gross, 0), sumOut = D.journal.filter(j=> j.kind === "expense").reduce((s,j)=> s + j.gross, 0);
+  const addr = [c.street, [c.zip, c.city].filter(Boolean).join(" ")].filter(Boolean).join(" · ");
+  const html = `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Finanzbericht ${esc(c.name)} ${esc(r.label)}</title><style>
+  @page{size:A4;margin:16mm 14mm 18mm;@bottom-left{content:"${esc(c.name)} · Finanzbericht ${esc(r.label)}";font:8pt sans-serif;color:#777;}@bottom-right{content:"Seite " counter(page) " von " counter(pages);font:8pt sans-serif;color:#777;}}
+  *{box-sizing:border-box;} body{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#17201B;font-size:9.5pt;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1D6A4C;padding-bottom:12px;margin-bottom:16px;}
+  .brand{display:flex;gap:12px;align-items:center;} .brand img{width:52px;height:52px;border-radius:10px;}
+  .brand h1{font-size:17pt;margin:0;} .brand div{color:#5B6660;font-size:8.5pt;line-height:1.5;}
+  .meta{text-align:right;font-size:8.5pt;color:#5B6660;line-height:1.6;} .meta b{color:#17201B;font-size:12pt;display:block;}
+  h2{font-size:11.5pt;margin:18px 0 8px;color:#1D6A4C;border-bottom:1px solid #DCE3DE;padding-bottom:4px;break-after:avoid;}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .kpi{border:1px solid #DCE3DE;border-radius:8px;padding:9px 10px;} .kpi .l{font-size:7.5pt;color:#5B6660;text-transform:uppercase;letter-spacing:.04em;} .kpi .v{font-size:13pt;font-weight:700;margin-top:2px;} .kpi .s{font-size:7.5pt;color:#5B6660;}
+  .g{color:#2F8A57;} .y{color:#B9770E;} .r{color:#C5402E;}
+  table{width:100%;border-collapse:collapse;} th{background:#1D6A4C;color:#fff;text-align:left;font-weight:600;font-size:8pt;padding:5px 6px;} td{padding:4px 6px;border-bottom:1px solid #E7ECE9;vertical-align:top;}
+  td.n,th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;} .mu{color:#6B7570;} .b{font-weight:700;} .pos{color:#2F8A57;}
+  tr.sum td{font-weight:700;background:#F1F5F2;} tr.result td{font-weight:800;background:#E3F1E8;border-top:2px solid #17201B;font-size:10pt;}
+  tr{break-inside:avoid;} thead{display:table-header-group;} .jr td{font-size:8pt;} .jr td:nth-child(1),.jr td:nth-child(2){white-space:nowrap;} .foot{margin-top:18px;font-size:7.5pt;color:#6B7570;line-height:1.5;border-top:1px solid #DCE3DE;padding-top:8px;}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;} .pb{break-before:page;}
+  </style></head><body>
+  <div class="head"><div class="brand"><img src="${LOGO_URI}" alt=""><div><h1>${esc(c.name)}</h1><div>${esc(c.owner)}${c.owner && addr ? " · " : ""}${esc(addr)}<br>${c.taxNo ? `St.-Nr. ${esc(c.taxNo)}` : ""}${c.taxNo && c.vatId ? " · " : ""}${c.vatId ? `USt-IdNr. ${esc(c.vatId)}` : ""}${c.taxOffice ? ` · FA ${esc(c.taxOffice)}` : ""}</div></div></div>
+  <div class="meta"><b>Finanzbericht</b>Zeitraum: ${esc(fmtDateKey(r.from))} – ${esc(fmtDateKey(r.to))}<br>Erstellt am ${esc(new Date().toLocaleString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}))}<br>${esc(fsx.chart)} · ${fsx.tax.method === "soll" ? "Soll" : "Ist"}-Versteuerung${finIsLocked(r.to) ? " · festgeschrieben" : ""}</div></div>
+  <div class="kpis">
+    <div class="kpi"><div class="l">Nettoumsatz</div><div class="v">${m(A.revNet)}</div><div class="s">brutto ${m(A.revGross)}</div></div>
+    <div class="kpi"><div class="l">Betriebsergebnis</div><div class="v ${A.result >= 0 ? "g" : "r"}">${m(A.result)}</div><div class="s">Marge ${pct(A.margin)}</div></div>
+    <div class="kpi"><div class="l">Kosten gesamt</div><div class="v">${m(A.totalCost)}</div><div class="s">davon fix ${m(A.fixedCost)}</div></div>
+    <div class="kpi"><div class="l">USt-Zahllast</div><div class="v">${m(A.taxDue)}</div><div class="s">USt ${m(A.outputTax)} · VSt ${m(A.inputTax)}</div></div>
+    <div class="kpi"><div class="l">Wareneinsatzquote</div><div class="v ${lvl(A.foodPct, fsx.targetFood)}">${pct(A.foodPct)}</div><div class="s">Ziel ≤ ${fsx.targetFood} %</div></div>
+    <div class="kpi"><div class="l">Personalquote</div><div class="v ${lvl(A.laborPct, fsx.targetLabor)}">${pct(A.laborPct)}</div><div class="s">Ziel ≤ ${fsx.targetLabor} %</div></div>
+    <div class="kpi"><div class="l">Prime Cost</div><div class="v ${lvl(A.primePct, fsx.targetPrime)}">${pct(A.primePct)}</div><div class="s">Ziel ≤ ${fsx.targetPrime} %</div></div>
+    <div class="kpi"><div class="l">Ø Nettoumsatz / Tag</div><div class="v">${m(A.avgPerDay)}</div><div class="s">${A.revDays} Umsatztage${A.totalOrders ? ` · ${A.totalOrders} Bestellungen` : ""}</div></div>
+  </div>
+  <h2>Gewinn- und Verlustrechnung</h2>
+  <table><thead><tr><th>Position</th><th class="n">${esc(r.label)}</th><th class="n">% Umsatz</th><th class="n">Vorperiode<br>${esc(D.prevLabel)}</th></tr></thead><tbody>${pnlRows}</tbody></table>
+  <h2>Umsatz nach Kanal</h2>
+  <table><thead><tr><th>Kanal</th><th class="n">Brutto</th><th class="n">MwSt.</th><th class="n">Netto</th><th class="n">Anteil</th><th class="n">Bestellungen</th><th class="n">Ø Bestellwert</th><th class="n">Provision</th></tr></thead><tbody>${chRows || `<tr><td colspan="8" class="mu">Kein Umsatz im Zeitraum.</td></tr>`}</tbody></table>
+  <h2>Kosten nach Kategorie</h2>
+  <table><thead><tr><th>Kategorie</th><th>Art</th><th>Konto</th><th class="n">Belege</th><th class="n">Netto</th><th class="n">Vorsteuer</th><th class="n">Brutto</th></tr></thead><tbody>${costRows || `<tr><td colspan="7" class="mu">Keine Ausgaben im Zeitraum.</td></tr>`}
+    <tr class="sum"><td colspan="4">Personalkosten aus Arbeitszeiten (${A.laborHours.toLocaleString("de-DE",{maximumFractionDigits:1})} Std., inkl. Nebenkosten)</td><td class="n">${m(A.labor)}</td><td class="n">–</td><td class="n">–</td></tr></tbody></table>
+  <h2>Umsatzsteuer</h2>
+  <table><thead><tr><th>Monat</th><th class="n">Umsatz 7 % netto</th><th class="n">USt 7 %</th><th class="n">Umsatz 19 % netto</th><th class="n">USt 19 %</th><th class="n">Vorsteuer</th><th class="n">Zahllast</th></tr></thead><tbody>${taxRows}
+    <tr class="result"><td>Summe</td><td class="n">${m(A.base7)}</td><td class="n">${m(A.vat7)}</td><td class="n">${m(A.base19)}</td><td class="n">${m(A.vat19)}</td><td class="n">${m(A.inputTax)}</td><td class="n">${m(A.taxDue)}</td></tr></tbody></table>
+  <p class="mu" style="font-size:8pt;">ELSTER: Kz 81 = ${m(A.base19)} · Kz 86 = ${m(A.base7)} · Kz 66 = ${m(A.inputTax)}${A.rcBase ? ` · Kz 46 = ${m(A.rcBase)} · Kz 47/67 = ${m(A.rcTax)}` : ""} · Kz 83 = ${m(A.taxDue)}</p>
+  <h2 class="pb">Buchungsjournal (${D.journal.length} Buchungen)</h2>
+  <table class="jr"><thead><tr><th>Datum</th><th>Beleg</th><th>Buchungstext</th><th>Konto</th><th>Gegenkonto</th><th class="n">MwSt.</th><th class="n">Netto</th><th class="n">Steuer</th><th class="n">Brutto</th></tr></thead><tbody>${jr || `<tr><td colspan="9" class="mu">Keine Buchungen.</td></tr>`}
+    <tr class="sum"><td colspan="6">Einnahmen ${m(sumIn)} · Ausgaben ${m(sumOut)}</td><td colspan="3" class="n">Saldo ${m(sumIn - sumOut)}</td></tr></tbody></table>
+  <div class="foot">Vereinfachte betriebswirtschaftliche Auswertung aus der Tasty-Day-App. Personalkosten aus erfassten Arbeitszeiten × Stundenlohn zzgl. eingestellter Lohnnebenkosten; Plattform-Provisionen geschätzt, sofern nicht als Rechnung gebucht. Keine Abschreibungen, Zinsen oder Ertragsteuern. Ersetzt nicht die Auswertung des Steuerberaters.</div>
+  </body></html>`;
+  const fr = document.createElement("iframe");
+  fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+  document.body.appendChild(fr);
+  const doc = fr.contentWindow.document;
+  doc.open(); doc.write(html); doc.close();
+  setTimeout(()=>{ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(err){} setTimeout(()=> fr.remove(), 4000); }, 400);
+}
+
+// Excel (.xlsx) mit ExcelJS (wird bei Bedarf geladen)
+let finExcelJsPromise = null;
+function finLoadExcelJs(){
+  if(window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  if(!finExcelJsPromise) finExcelJsPromise = new Promise((res, rej)=>{
+    const s = document.createElement("script");
+    s.src = FIN_EXCELJS_URL;
+    s.onload = ()=> window.ExcelJS ? res(window.ExcelJS) : rej(new Error("ExcelJS fehlt"));
+    s.onerror = ()=>{ finExcelJsPromise = null; rej(new Error("Laden fehlgeschlagen")); };
+    document.head.appendChild(s);
+  });
+  return finExcelJsPromise;
+}
+const FIN_EXCELJS_URL = "https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js";
+function finDownload(blob, name){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(a.href), 4000);
+}
+function finFileStem(r){ return `${(finSettings().company.name || "Finanzen").replace(/[^A-Za-z0-9ÄÖÜäöüß]+/g,"_")}_${r.from}_bis_${r.to}`; }
+async function finExportXlsx(r){
+  let ExcelJS;
+  try{ ExcelJS = await finLoadExcelJs(); }catch(err){ alert("Die Excel-Funktion konnte nicht geladen werden. Bitte Internetverbindung prüfen."); return; }
+  const D = finReportData(r); const c = D.fs.company; const A = D.A;
+  const wb = new ExcelJS.Workbook();
+  wb.creator = c.name || "Tasty Day"; wb.created = new Date();
+  const GREEN = "FF1D6A4C", LIGHT = "FFF1F5F2", EUR = '#,##0.00 "€";[Red]-#,##0.00 "€"', PCT = '0.0%';
+  const title = (ws, t, cols)=>{
+    ws.mergeCells(1, 1, 1, cols); ws.getCell(1,1).value = `${c.name} · ${t}`; ws.getCell(1,1).font = {bold:true, size:14, color:{argb:GREEN}};
+    ws.mergeCells(2, 1, 2, cols); ws.getCell(2,1).value = `Zeitraum ${fmtDateKey(r.from)} – ${fmtDateKey(r.to)} · erstellt ${new Date().toLocaleDateString("de-DE")} · ${D.fs.chart}`; ws.getCell(2,1).font = {size:9, color:{argb:"FF5B6660"}};
+  };
+  const header = (ws, rowIdx, names, widths)=>{
+    const row = ws.getRow(rowIdx); row.values = names;
+    row.eachCell(cell=>{ cell.font = {bold:true, color:{argb:"FFFFFFFF"}}; cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:GREEN}}; cell.alignment = {vertical:"middle", wrapText:true}; });
+    row.height = 22;
+    (widths || []).forEach((w,i)=> ws.getColumn(i + 1).width = w);
+  };
+  const money = (ws, cols)=> cols.forEach(ci=> ws.getColumn(ci).numFmt = EUR);
+  const bold = (row, fill)=> row.eachCell(cell=>{ cell.font = {bold:true}; if(fill) cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:fill}}; });
+
+  // 1 Übersicht
+  const s1 = wb.addWorksheet("Übersicht", {views:[{showGridLines:false}]});
+  title(s1, "Finanzübersicht", 3);
+  const info = [["Firma", c.name], ["Inhaber/in", c.owner], ["Anschrift", [c.street, [c.zip, c.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")], ["Steuernummer", c.taxNo], ["USt-IdNr.", c.vatId], ["Finanzamt", c.taxOffice], ["Versteuerung", D.fs.tax.method === "soll" ? "Soll" : "Ist"]];
+  let ri = 4;
+  info.forEach(([k,v])=>{ s1.getRow(ri).values = [k, v || "–"]; s1.getCell(ri,1).font = {color:{argb:"FF5B6660"}}; ri++; });
+  ri++;
+  header(s1, ri, ["Kennzahl", "Wert", "Hinweis"], [30, 18, 44]); ri++;
+  const kp = [["Nettoumsatz", A.revNet, EUR, `brutto ${fmtMoney(fRound(A.revGross))}`], ["Betriebsergebnis", A.result, EUR, ""], ["Umsatzrendite", A.revNet ? A.result / A.revNet : null, PCT, ""],
+    ["Wareneinsatzquote", A.revNet ? A.ware / A.revNet : null, PCT, `Ziel ≤ ${D.fs.targetFood} %`], ["Personalquote", A.revNet ? (A.labor + A.personalOther) / A.revNet : null, PCT, `Ziel ≤ ${D.fs.targetLabor} %`],
+    ["Prime Cost", A.revNet ? (A.ware + A.labor + A.personalOther) / A.revNet : null, PCT, `Ziel ≤ ${D.fs.targetPrime} %`], ["Kosten gesamt", A.totalCost, EUR, ""],
+    ["Ø Nettoumsatz pro Umsatztag", A.avgPerDay, EUR, `${A.revDays} Tage`], ["Arbeitsstunden", A.laborHours, "#,##0.0", ""], ["Umsatz pro Arbeitsstunde", isFinite(A.perHour) ? A.perHour : null, EUR, ""],
+    ["Bestellungen", A.totalOrders || null, "#,##0", ""], ["Umsatzsteuer", A.outputTax, EUR, ""], ["Vorsteuer", A.inputTax, EUR, ""], ["Zahllast", A.taxDue, EUR, ""]];
+  kp.forEach(([k,v,f,h])=>{ const row = s1.getRow(ri); row.values = [k, v, h]; row.getCell(2).numFmt = f; ri++; });
+
+  // 2 GuV
+  const s2 = wb.addWorksheet("GuV", {views:[{state:"frozen", ySplit:4}]});
+  title(s2, "Gewinn- und Verlustrechnung", 4);
+  header(s2, 4, ["Position", r.label, "% vom Umsatz", `Vorperiode (${D.prevLabel})`], [42, 18, 14, 26]);
+  D.pnl.forEach((p,i)=>{
+    const row = s2.getRow(5 + i); row.values = [p.label, fRound(p.cur), A.revNet ? Math.abs(p.cur) / A.revNet : null, fRound(p.prev)];
+    row.getCell(2).numFmt = EUR; row.getCell(3).numFmt = PCT; row.getCell(4).numFmt = EUR;
+    if(p.kind) bold(row, p.kind === "result" ? "FFE3F1E8" : LIGHT);
+  });
+
+  // 3 Kanäle
+  const s3 = wb.addWorksheet("Umsatz nach Kanal", {views:[{state:"frozen", ySplit:4}]});
+  title(s3, "Umsatz nach Kanal", 8);
+  header(s3, 4, ["Kanal","Brutto","MwSt.","Netto","Anteil","Bestellungen","Ø Bestellwert","Provision (geschätzt)"], [22,15,13,15,10,13,15,20]);
+  D.channels.forEach((x,i)=>{ const row = s3.getRow(5 + i); row.values = [x.label, fRound(x.gross), fRound(x.tax), fRound(x.net), x.share, x.orders || null, x.avg ? fRound(x.avg) : null, x.comm ? fRound(x.comm) : null]; row.getCell(5).numFmt = PCT; });
+  money(s3, [2,3,4,7,8]);
+  const s3t = s3.getRow(5 + D.channels.length); s3t.values = ["Summe", {formula:`SUM(B5:B${4 + D.channels.length})`}, {formula:`SUM(C5:C${4 + D.channels.length})`}, {formula:`SUM(D5:D${4 + D.channels.length})`}]; bold(s3t, LIGHT);
+
+  // 4 Kosten
+  const s4 = wb.addWorksheet("Kosten nach Kategorie", {views:[{state:"frozen", ySplit:4}]});
+  title(s4, "Kosten nach Kategorie", 7);
+  header(s4, 4, ["Kategorie","Art","Konto","Belege","Netto","Vorsteuer","Brutto"], [30,18,14,10,15,15,15]);
+  D.costs.forEach((x,i)=>{ s4.getRow(5 + i).values = [x.label, x.type, x.account, x.n, fRound(x.net), fRound(x.tax), fRound(x.gross)]; });
+  money(s4, [5,6,7]);
+  const n4 = D.costs.length;
+  const s4l = s4.getRow(5 + n4); s4l.values = ["Personalkosten aus Arbeitszeiten (inkl. Nebenkosten)", "Personal", "", null, fRound(A.labor)];
+  const s4t = s4.getRow(6 + n4); s4t.values = ["Summe", "", "", {formula:`SUM(D5:D${4 + n4})`}, {formula:`SUM(E5:E${5 + n4})`}, {formula:`SUM(F5:F${4 + n4})`}, {formula:`SUM(G5:G${4 + n4})`}]; bold(s4t, LIGHT);
+
+  // 5 Umsatzsteuer
+  const s5 = wb.addWorksheet("Umsatzsteuer", {views:[{state:"frozen", ySplit:4}]});
+  title(s5, "Umsatzsteuer", 9);
+  header(s5, 4, ["Monat","Umsatz 7 % netto (Kz 86)","USt 7 %","Umsatz 19 % netto (Kz 81)","USt 19 %","§13b Bemessung (Kz 46)","§13b Steuer (Kz 47/67)","Vorsteuer (Kz 66)","Zahllast (Kz 83)"], [20,20,13,20,13,18,18,16,16]);
+  D.months.forEach((x,i)=>{ s5.getRow(5 + i).values = [x.label, fRound(x.base7), fRound(x.vat7), fRound(x.base19), fRound(x.vat19), fRound(x.rcBase), fRound(x.rcTax), fRound(x.input), fRound(x.due)]; });
+  money(s5, [2,3,4,5,6,7,8,9]);
+  const n5 = D.months.length;
+  const s5t = s5.getRow(5 + n5); s5t.values = ["Summe", ...["B","C","D","E","F","G","H","I"].map(col=> ({formula:`SUM(${col}5:${col}${4 + n5})`}))]; bold(s5t, "FFE3F1E8");
+  s5.getRow(7 + n5).values = ["Hinweis: Orientierung für die Voranmeldung – verbindlich ist die Meldung deines Steuerberaters."];
+  s5.getRow(7 + n5).font = {italic:true, size:9, color:{argb:"FF5B6660"}};
+
+  // 6 Journal
+  const s6 = wb.addWorksheet("Buchungsjournal", {views:[{state:"frozen", ySplit:4}]});
+  title(s6, "Buchungsjournal", 13);
+  header(s6, 4, ["Datum","Beleg","Art","Kategorie/Kanal","Buchungstext","Konto","Gegenkonto","BU","MwSt.-Satz","Netto","Steuer","Brutto","Zahlungsart"], [11,15,10,22,38,9,11,6,10,14,13,14,20]);
+  D.journal.forEach((j,i)=>{
+    const pm = FIN_PAY_METHODS.find(x=> x[0] === j.method);
+    const row = s6.getRow(5 + i);
+    row.values = [new Date(Date.UTC(Number(j.date.slice(0,4)), Number(j.date.slice(5,7)) - 1, Number(j.date.slice(8,10)))), j.beleg, j.kind === "revenue" ? "Einnahme" : "Ausgabe", j.cat, j.text, j.account, j.contra, j.bu, j.vat / 100, fRound(j.net), fRound(j.tax), fRound(j.kind === "revenue" ? j.gross : -j.gross), pm ? pm[1] : ""];
+    row.getCell(1).numFmt = "dd.mm.yyyy"; row.getCell(9).numFmt = "0%";
+    if(i % 2) row.eachCell(cell=> cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFF8FAF9"}});
+  });
+  money(s6, [10,11,12]);
+  const n6 = D.journal.length;
+  if(n6) s6.autoFilter = {from:{row:4, column:1}, to:{row:4 + n6, column:13}};
+  const s6t = s6.getRow(5 + n6); s6t.values = ["Saldo", "", "", "", "", "", "", "", "", null, null, {formula:`SUM(L5:L${4 + n6})`}]; bold(s6t, "FFE3F1E8");
+
+  [s1,s2,s3,s4,s5,s6].forEach(ws=>{ ws.pageSetup = {paperSize:9, orientation: ws === s6 || ws === s5 ? "landscape" : "portrait", fitToPage:true, fitToWidth:1, fitToHeight:0, margins:{left:0.4, right:0.4, top:0.5, bottom:0.5, header:0.2, footer:0.2}}; ws.headerFooter = {oddFooter:`&L${c.name}&RSeite &P von &N`}; });
+  const buf = await wb.xlsx.writeBuffer();
+  finDownload(new Blob([buf], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}), `${finFileStem(r)}.xlsx`);
+}
+
+// DATEV-Buchungsstapel (EXTF, Version 700, Kategorie 21)
+function finCp1252(str){
+  const map = {"€":0x80,"‚":0x82,"„":0x84,"…":0x85,"‘":0x91,"’":0x92,"“":0x93,"”":0x94,"–":0x96,"—":0x97};
+  const out = new Uint8Array(str.length);
+  for(let i = 0; i < str.length; i++){ const c = str.charCodeAt(i); out[i] = c < 256 ? c : (map[str[i]] || 0x3F); }
+  return out;
+}
+function finExportDatev(r){
+  const fs = finSettings();
+  if(!fs.datev.berater || !fs.datev.mandant){ alert("Bitte zuerst Berater- und Mandantennummer eintragen (Einstellungen → DATEV & Export)."); return; }
+  // Ein Stapel darf nur ein Wirtschaftsjahr umfassen
+  const fy = Number(fs.company.fyStart) || 1;
+  const fyStartOf = (k)=>{ const d = localDateFromKey(k); let y = d.getFullYear(); if(d.getMonth() + 1 < fy) y--; return `${y}${String(fy).padStart(2,"0")}01`; };
+  if(fyStartOf(r.from) !== fyStartOf(r.to)){ alert("Ein DATEV-Stapel darf nur ein Wirtschaftsjahr enthalten. Bitte den Zeitraum aufteilen."); return; }
+  const rows = finJournal(r.from, r.to);
+  if(!rows.length){ alert("Im Zeitraum gibt es keine Buchungen."); return; }
+  const q = (s)=> `"${String(s == null ? "" : s).replace(/"/g,'""')}"`;
+  const amt = (v)=> fRound(v).toFixed(2).replace(".", ",");
+  const now = new Date();
+  const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}${String(now.getHours()).padStart(2,"0")}${String(now.getMinutes()).padStart(2,"0")}${String(now.getSeconds()).padStart(2,"0")}000`;
+  const len = Number(fs.datev.len) || 4;
+  const head = ["\"EXTF\"", 700, 21, q("Buchungsstapel"), 13, ts, "", q("RE"), q(""), q(""), fs.datev.berater, fs.datev.mandant, fyStartOf(r.from), len,
+    r.from.replace(/-/g,""), r.to.replace(/-/g,""), q(`${fs.company.name || "Finanzen"} ${fmtDateKey(r.from)}-${fmtDateKey(r.to)}`.slice(0,30)), q(""), 1, 0, 0, q("EUR"), "", q(""), "", "", q(fs.chart.slice(3)), "", "", q(""), q("")].join(";");
+  const cols = ["Umsatz (ohne Soll/Haben-Kz)","Soll/Haben-Kennzeichen","WKZ Umsatz","Kurs","Basis-Umsatz","WKZ Basis-Umsatz","Konto","Gegenkonto (ohne BU-Schlüssel)","BU-Schlüssel","Belegdatum","Belegfeld 1","Belegfeld 2","Skonto","Buchungstext"];
+  const lines = [head, cols.join(";")];
+  rows.forEach(j=>{
+    const d = localDateFromKey(j.date);
+    // Einnahme: Geldkonto an Erlöskonto · Ausgabe: Aufwandskonto an Geldkonto
+    const konto = j.kind === "revenue" ? j.contra : j.account;
+    const gegen = j.kind === "revenue" ? j.account : j.contra;
+    lines.push([amt(j.gross), q("S"), q("EUR"), "", "", "", konto || "", gegen || "", q(j.bu), `${String(d.getDate()).padStart(2,"0")}${String(d.getMonth()+1).padStart(2,"0")}`,
+      q(String(j.beleg || "").replace(/[^A-Za-z0-9$%&*+\-/]/g,"").slice(0,36)), q(""), "", q(String(j.text || "").slice(0,60))].join(";"));
+  });
+  const missing = rows.filter(j=> !j.account || !j.contra).length;
+  finDownload(new Blob([finCp1252(lines.join("\r\n") + "\r\n")], {type:"text/csv;charset=windows-1252"}), `EXTF_Buchungsstapel_${r.from}_bis_${r.to}.csv`);
+  if(missing) alert(`${missing} Buchung(en) ohne Kontonummer – bitte in den Einstellungen die Konten prüfen.`);
+}
+
 
 function costResultBox(label, data){
   return el("div",{style:"background:var(--bg-elevated-2);border-radius:12px;padding:20px;text-align:center;"},[
@@ -7740,10 +8554,16 @@ async function syncCateringRevenue(id, c, old){
   const updates = {};
   const now = c ? paymentList(c) : {};
   const before = old ? paymentList(old) : {};
-  Object.keys(before).forEach(pid=>{ if(!now[pid]) updates[`revenue/catering_${id}_${pid}`] = null; });
+  Object.keys(before).forEach(pid=>{
+    if(now[pid]) return;
+    const key = `catering_${id}_${pid}`;
+    if((state.revenue || {})[key]) finTrash(updates, `revenue/${key}`, state.revenue[key], c ? "Catering-Zahlung entfernt" : "Catering gelöscht");
+    updates[`revenue/${key}`] = null;
+  });
   Object.entries(now).forEach(([pid,p])=>{
     updates[`revenue/catering_${id}_${pid}`] = {
       date: p.date || toDateKey(new Date()), amount: kRound(kNum(p.amount)),
+      vat: Number(c && c.vatRate) === 19 ? 19 : 7, channel:"catering",
       source:"catering", cateringId:id, note:`Catering ${(c && c.number) || ""} ${(c && c.customerLabel) || ""}`.replace(/\s+/g," ").trim()
     };
   });
