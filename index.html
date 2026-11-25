@@ -6935,7 +6935,7 @@ function renderOrderList(){
   const filters = [
     ["upcoming","Kommend", ([id,c])=> (c.date||"") >= today && c.status !== "canceled"],
     ["unpaid","Offene Zahlungen", ([id,c])=> c.status !== "canceled" && cateringCalc(c).open > 0.004 && c.status !== "requested"],
-    ["loans","Leihmaterial offen", ([id,c])=> loanOpen(c) && (c.date||"") <= today],
+    ["loans","Leihmaterial offen", ([id,c])=> loanOpen(c)],
     ["past","Vergangen", ([id,c])=> (c.date||"") < today],
     ["all","Alle", ()=> true]
   ];
@@ -6985,6 +6985,7 @@ function renderLoanCard(id, c){
       el("div",{class:"cat-row-title"}, cateringCustomerLabel(c)),
       el("div",{class:"cat-row-sub"}, `Catering am ${fmtDateKey(c.date)}${c.number ? ` · ${c.number}` : ""}`)
     ]),
+    (c.date || "") > today ? catPill("noch nicht geliefert", "") : null,
     c.returnDue ? catPill(overdue ? `Rückgabe überfällig (${fmtDateKey(c.returnDue)})` : `zurück bis ${fmtDateKey(c.returnDue)}`, overdue ? "pay-overdue" : "pay-open") : null
   ]));
   if(cu.phone) card.appendChild(el("div",{class:"cat-info"},[ ic("send"), el("div",{},[ el("div",{class:"l"}, "Telefon"), el("a",{class:"v", href:"tel:" + cu.phone.replace(/[^\d+]/g,"")}, cu.phone) ]) ]));
