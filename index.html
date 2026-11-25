@@ -1379,6 +1379,27 @@
     .k-side .k-ring-text .t{font-size:17px;}
   }
   @media(max-width:640px){ .k-side{grid-template-columns:1fr;} .k-list .k-task{flex-wrap:wrap;} .k-list .k-done-btn{width:100%;} }
+  /* Zählen / Auffüllen */
+  .k-ptile-btns.two{grid-template-columns:1fr 1fr;}
+  .k-ptile-btns.one{grid-template-columns:1fr;}
+  .k-ptile-btns.two .k-prep-btn{height:64px;font-size:32px;}
+  .k-prep-btn.plus{background:var(--ink);border-color:var(--ink);color:var(--bg-elevated);}
+  .k-prep-btn.fill.wide{height:60px;font-size:17px;font-weight:700;gap:6px;}
+  .k-prep-btn.fill.wide .ic{width:22px;height:22px;}
+  .k-prep-btn.fill.wide.on{opacity:1;background:var(--bg-elevated);color:var(--text-muted);border-color:var(--line-strong);}
+  .k-ptile-note{height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:rgba(47,138,87,.08);color:var(--avocado);font-weight:650;font-size:15px;}
+  .k-ptile.cnt{border-top-color:var(--ink);}
+  .k-sheet.counting .k-ptile-grid{padding-bottom:10px;}
+  .k-sheet.counting .k-sheet-head{margin-bottom:16px;}
+  .k-sheet-foot{position:sticky;bottom:-22px;margin:14px -24px -22px;padding:14px 24px calc(18px + env(safe-area-inset-bottom));background:linear-gradient(to top, var(--bg) 70%, transparent);}
+  .k-count-done{width:100%;min-height:64px;border-radius:18px;border:none;background:var(--avocado);color:#fff;font:inherit;font-size:20px;font-weight:750;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;box-shadow:var(--shadow-lg);}
+  .k-count-done .ic{width:26px;height:26px;}
+  .k-sheet-all{min-height:52px;padding:0 18px;border-radius:14px;border:1px solid rgba(47,138,87,.45);background:var(--avocado-soft);color:var(--avocado);font:inherit;font-size:16px;font-weight:700;display:inline-flex;align-items:center;gap:6px;margin-right:8px;flex-shrink:0;}
+  .k-sheet-all .ic{width:20px;height:20px;}
+  .k-prep-card.counting{box-shadow:inset 5px 0 0 var(--ink), var(--shadow-sm);}
+  @media(max-width:700px){ .k-sheet-foot{margin:14px -16px -16px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));bottom:-16px;} .k-sheet-head{flex-wrap:wrap;} }
+  .k-count-edit{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--bg-elevated-2);}
+  .k-count-edit .k-form{flex:1;}
 </style>
 </head>
 <body>
@@ -7734,25 +7755,82 @@ function kTaskOnDate(t, dateKey){
   }
   return (t.days || []).includes(dayKeyOf(d));
 }
-// Vorbereitungsliste mit 2. Runde → zwei Einträge: Frühschicht (id) und Spätschicht (id__r2), getrennt gespeichert
-function kExpandRounds(id, t){
-  if(t.type !== "prep" || !t.round2 || !t.round2.startTime) return [[id, t]];
-  return [
-    [id, {...t, shift:"frueh", _round:"Frühschicht"}],
-    [id + "__r2", {...t, shift:"abend", startTime:t.round2.startTime, dueTime:t.round2.dueTime || null, _round:"Spätschicht", _base:id}]
-  ];
+// ---------- Stationen: Zählen am Schichtende, danach Auffüllen ----------
+// kitchen/prepStock/{id} = {slot, label, at, counted:{zeile:menge}, filled:{zeile:true}, doneAt}
+// kitchen/prepDraft/{id} = {slot, vals:{zeile:menge}}   (laufende Zählung, übersteht Neuladen)
+// kitchen/prepLog/{datum}/{id}/{slot} = {label, at, counted}   (Verlauf für den Chef)
+const K_COUNT_DEFAULT = [
+  {label:"Frühschicht", days:["mon","tue","wed","thu","fri"], from:"14:15", to:"15:30"},
+  {label:"Spätschicht", days:["mon","tue","wed","thu","fri","sat","sun"], from:"20:15", to:"21:45"}
+];
+function kCountWindows(t){ return (Array.isArray(t.counts) ? t.counts : K_COUNT_DEFAULT).filter(w=> w && w.from && w.to && (w.days || []).length); }
+function kAt(dateKey, hm){ const d = localDateFromKey(dateKey); d.setHours(Math.floor(hmToMin(hm)/60), hmToMin(hm)%60, 0, 0); return d; }
+// Letztes Zählfenster, das schon begonnen hat (bis 8 Tage zurück)
+function kCountSlot(t, now){
+  now = now || new Date();
+  const ws = kCountWindows(t);
+  if(!ws.length) return null;
+  const nowM = now.getHours()*60 + now.getMinutes();
+  for(let back = 0; back <= 8; back++){
+    const d = new Date(now); d.setDate(d.getDate() - back);
+    const dk = toDateKey(d), day = dayKeyOf(d);
+    const c = ws.map((w,i)=> ({w,i})).filter(({w})=> w.days.includes(day) && (back > 0 || hmToMin(w.from) <= nowM))
+      .sort((a,b)=> hmToMin(b.w.from) - hmToMin(a.w.from))[0];
+    if(c){
+      let due = kAt(dk, c.w.to); if(hmToMin(c.w.to) <= hmToMin(c.w.from)) due = new Date(due.getTime() + 86400000);
+      return {key:`${dk}_${c.i}`, date:dk, label:c.w.label || "Zählen", w:c.w, start:kAt(dk, c.w.from), due};
+    }
+  }
+  return null;
 }
-function kTaskByVid(vid){
-  const base = String(vid).split("__")[0];
-  const t = (state.kitchen.tasks || {})[base];
-  if(!t) return null;
-  const hit = kExpandRounds(base, t).find(([i])=> i === vid);
-  return hit ? hit[1] : null;
+// Nächste Zählfenster heute, die noch nicht begonnen haben
+function kCountUpcomingToday(t, now){
+  now = now || new Date();
+  const nowM = now.getHours()*60 + now.getMinutes(), day = dayKeyOf(now);
+  return kCountWindows(t).filter(w=> w.days.includes(day) && hmToMin(w.from) > nowM);
 }
+function kPrepItems(t){ return (t.prep || []).filter(it=> it && it.name).map(it=> ({...it, target: kNum(it.target)})); }
+function kPrepStep(target){ return (Math.round(target) !== target || target < 1) ? 0.5 : 1; }
+function kPrepFmt(n){ return String(Math.round(n * 100) / 100).replace(".", ","); }
+// Zustand einer Station: Modus "count" (Zählen fällig) oder "fill" (Auffüllen nach letzter Zählung)
+function kPrepView(id, t, now){
+  now = now || new Date();
+  const slot = kCountSlot(t, now);
+  const st = (state.kitchen.prepStock || {})[id] || null;
+  const items = kPrepItems(t);
+  const counted = !!(st && (slot ? st.slot === slot.key : true));
+  if(!counted){
+    const dr = (state.kitchen.prepDraft || {})[id];
+    const vals = dr && slot && dr.slot === slot.key ? (dr.vals || {}) : {};
+    const rows = items.map((it,i)=> ({...it, i, ist: kNum(vals[i])}));
+    return {mode:"count", slot, st, rows, touched: Object.keys(vals).length, due: slot ? slot.due : null};
+  }
+  const filled = st.filled || {}, cnt = st.counted || {};
+  const rows = items.map((it,i)=>{ const c = kNum(cnt[i]); const f = !!filled[i]; const ist = f ? Math.max(c, it.target) : c; return {...it, i, counted:c, filled:f, ist, ok: ist >= it.target}; });
+  return {mode:"fill", slot, st, rows, missing: rows.filter(r=> !r.ok), allOk: rows.every(r=> r.ok)};
+}
+function kTaskByVid(id){ return (state.kitchen.tasks || {})[id] || null; }
 function kTasksForDate(dateKey){
   const prio = (t)=> t.priority === "high" ? 0 : 1;
-  return Object.entries(state.kitchen.tasks || {}).filter(([id,t])=> kTaskOnDate(t, dateKey)).flatMap(([id,t])=> kExpandRounds(id, t))
+  return Object.entries(state.kitchen.tasks || {}).filter(([id,t])=> t && ((t.type === "prep" && Array.isArray(t.counts)) ? t.active !== false : kTaskOnDate(t, dateKey)))
     .sort((a,b)=> prio(a[1]) - prio(b[1]) || (a[1].dueTime||"99:99").localeCompare(b[1].dueTime||"99:99") || a[1].title.localeCompare(b[1].title));
+}
+// Minuten bis zur Frist (negativ = überfällig); Stationen im Zählmodus: Ende des Zählfensters
+function kDueIn(id, t){
+  const now = new Date();
+  if(t.type === "prep"){ const v = kPrepView(id, t, now); return v.mode === "count" && v.due ? Math.floor((v.due - now) / 60000) : null; }
+  return t.dueTime ? hmToMin(t.dueTime) - (now.getHours()*60 + now.getMinutes()) : null;
+}
+// Erledigt-Liste inkl. Stationen, die komplett aufgefüllt sind
+function kDoneWithPrep(dateKey, tasks){
+  const done = {...kDoneMap(dateKey)};
+  tasks.forEach(([id,t])=>{
+    if(t.type !== "prep") return;
+    delete done[id];
+    const v = kPrepView(id, t);
+    if(v.mode === "fill" && v.allOk) done[id] = {by:"", byName: v.st && v.st.doneAt && v.st.doneAt !== v.st.at ? "Alles aufgefüllt" : "Alles voll gezählt", at:(v.st && (v.st.doneAt || v.st.at)) || Date.now()};
+  });
+  return done;
 }
 function kDoneMap(dateKey){ return (state.kitchen.taskDone && state.kitchen.taskDone[dateKey]) || {}; }
 function kChecksMap(dateKey, id){ return (state.kitchen.taskChecks && state.kitchen.taskChecks[dateKey] && state.kitchen.taskChecks[dateKey][id]) || {}; }
@@ -7783,10 +7861,10 @@ function kRepeatSummary(t){
 }
 function kTaskWhen(t){
   const who = kAssigneeLabel(t);
+  if(t.type === "prep") return ["Zählen: " + (kCountWindows(t).map(w=> `${w.label} ${daysSummary(w.days)} ${w.from}–${w.to} Uhr`).join(" · ") || "keine Zählzeit"), who ? `für ${who}` : null].filter(Boolean).join(" · ");
   return [
     kRepeatSummary(t), K_SHIFT_LABEL[t.shift] || "Ganzer Tag",
     t.startTime ? `ab ${t.startTime} Uhr` : null, t.dueTime ? `bis ${t.dueTime} Uhr` : null,
-    (t.type === "prep" && t.round2 && t.round2.startTime && !t._round) ? `+ Spätschicht ab ${t.round2.startTime}${t.round2.dueTime ? ` bis ${t.round2.dueTime}` : ""} Uhr` : null,
     who ? `für ${who}` : null, t.priority === "high" ? "Wichtig" : null
   ].filter(Boolean).join(" · ");
 }
@@ -8059,22 +8137,19 @@ function renderKCelebrate(){
 function renderKitchenTasks(){
   const ui = state.kUi;
   const today = toDateKey(new Date());
-  const done = kDoneMap(today);
   const nowMin = (()=>{ const n = new Date(); return n.getHours()*60 + n.getMinutes(); })();
-  // Frühschicht-Runde, die nicht fertig wurde, wird von der Spätschicht-Runde abgelöst (die zählt sowieso neu)
-  const allToday = kTasksForDate(today);
-  const missed = allToday.filter(([id,t])=> t._round === "Frühschicht" && !done[id] && t.round2 && hmToMin(t.round2.startTime) <= nowMin);
-  const tasks = allToday.filter(x=> !missed.includes(x));
+  const tasks = kTasksForDate(today);
+  const done = kDoneWithPrep(today, tasks);
   const doneCount = tasks.filter(([id])=> done[id]).length;
   kCheckAllDone(tasks.length, doneCount);
 
-  const isLater = ([id,t])=> !done[id] && t.startTime && hmToMin(t.startTime) > nowMin;
+  const isLater = ([id,t])=> t.type !== "prep" && !done[id] && t.startTime && hmToMin(t.startTime) > nowMin;
   const layout = el("div",{class:"k-layout"});
   layout.appendChild(renderKSide(tasks, done, doneCount, isLater, today, nowMin));
   const list = el("div",{class:"k-list"});
   layout.appendChild(list);
 
-  if(!tasks.length && !missed.length){
+  if(!tasks.length){
     list.appendChild(el("div",{class:"k-empty-day"},[ ic("check"), el("div",{class:"t"}, "Heute stehen keine Aufgaben an."), el("div",{class:"s"}, "Genießt den Tag.") ]));
     return layout;
   }
@@ -8101,13 +8176,14 @@ function renderKitchenTasks(){
 
   // Jetzt dran: überfällig zuerst, dann nach Frist; erledigte wandern nach unten (gerade abgehakte bleiben kurz stehen)
   const isJust = (id)=> state.kJustDone && state.kJustDone.id === id && Date.now() - state.kJustDone.at < 1600;
-  const dueM = (t)=> t.dueTime ? hmToMin(t.dueTime) : 99999;
+  const dueOf = {}; visible.forEach(([id,t])=> dueOf[id] = kDueIn(id, t));
+  const dueM = (id)=> dueOf[id] == null ? 99999 : dueOf[id];
   const openItems = visible.filter(([id])=> !done[id] || isJust(id)).sort((a,b)=>{
-    const oa = dueM(a[1]) < nowMin ? 0 : 1, ob = dueM(b[1]) < nowMin ? 0 : 1;
-    return oa - ob || dueM(a[1]) - dueM(b[1]) || (a[1].priority === "high" ? 0 : 1) - (b[1].priority === "high" ? 0 : 1) || a[1].title.localeCompare(b[1].title);
+    const oa = dueM(a[0]) < 0 ? 0 : 1, ob = dueM(b[0]) < 0 ? 0 : 1;
+    return oa - ob || dueM(a[0]) - dueM(b[0]) || (a[1].priority === "high" ? 0 : 1) - (b[1].priority === "high" ? 0 : 1) || a[1].title.localeCompare(b[1].title);
   });
   const doneItems = visible.filter(([id])=> done[id] && !isJust(id)).sort((a,b)=> (done[b[0]].at || 0) - (done[a[0]].at || 0));
-  const overN = openItems.filter(([id,t])=> !done[id] && dueM(t) < nowMin).length;
+  const overN = openItems.filter(([id])=> !done[id] && dueM(id) < 0).length;
 
   list.appendChild(el("div",{class:"k-list-head"},[
     el("span",{class:"k-list-title"}, "Jetzt dran"),
@@ -8117,53 +8193,52 @@ function renderKitchenTasks(){
   openItems.forEach(([id,t])=> list.appendChild(renderKitchenTaskCard(id, t, done[id], today)));
   if(!openItems.length) list.appendChild(el("div",{class:"k-all-done"},[ ic("check"), el("span",{}, later.length ? "Alles Aktuelle erledigt – weiter geht's später." : (visible.length ? "Alles erledigt!" : "Gerade nichts zu tun.")) ]));
 
-  // Später heute (eingeklappt, die Übersicht links zeigt die Uhrzeiten)
   if(later.length){
     list.appendChild(el("button",{type:"button", class:`k-fold later ${state.kShowLater ? "open" : ""}`, onclick:()=>{ state.kShowLater = !state.kShowLater; render(); }},[
       ic("clock"), el("span",{style:"flex:1;"}, `Später heute (${later.length})`), el("span",{class:"k-fold-hint"}, state.kShowLater ? "einklappen" : `ab ${later[0][1].startTime} Uhr`), ic("chevronRight","k-fold-chev")
     ]));
     if(state.kShowLater) later.forEach(([id,t])=> list.appendChild(renderKitchenTaskCard(id, t, null, today, true)));
   }
-  // Erledigt (eingeklappt)
-  const missedShown = missed.filter(inCat);
-  if(doneItems.length || missedShown.length){
+  if(doneItems.length){
     list.appendChild(el("button",{type:"button", class:`k-fold k-done-toggle ${state.kShowDone ? "open" : ""}`, onclick:()=>{ state.kShowDone = !state.kShowDone; render(); }},[
-      ic("check"), el("span",{style:"flex:1;"}, `Erledigt (${doneItems.length})${missedShown.length ? ` · ${missedShown.length} nicht geschafft` : ""}`), el("span",{class:"k-fold-hint"}, state.kShowDone ? "einklappen" : "anzeigen"), ic("chevronRight","k-fold-chev")
+      ic("check"), el("span",{style:"flex:1;"}, `Erledigt (${doneItems.length})`), el("span",{class:"k-fold-hint"}, state.kShowDone ? "einklappen" : "anzeigen"), ic("chevronRight","k-fold-chev")
     ]));
-    if(state.kShowDone){
-      doneItems.forEach(([id,t])=> list.appendChild(renderKitchenTaskCard(id, t, done[id], today)));
-      missedShown.forEach(([id,t])=> list.appendChild(renderKPrepCard(id, {...t, _missed:true}, null, today)));
-    }
+    if(state.kShowDone) doneItems.forEach(([id,t])=> list.appendChild(renderKitchenTaskCard(id, t, done[id], today)));
   }
   return layout;
 }
 
-// Linke Spalte: Fortschritt + „Als nächstes“ (Fristen, Catering, Schichtstart, Alarm)
+// Linke Spalte: Fortschritt + „Als nächstes“ (Fristen, Zählzeiten, Catering, Alarm)
 function renderKSide(tasks, done, doneCount, isLater, today, nowMin){
   const side = el("aside",{class:"k-side"});
   side.appendChild(renderKRing(doneCount, tasks.length));
   const ev = [];
-  const open = tasks.filter(([id,t])=> !done[id] && !isLater([id,t]));
-  open.filter(([id,t])=> t.dueTime && hmToMin(t.dueTime) < nowMin).forEach(([id,t])=>
-    ev.push({m:-1, sortM:hmToMin(t.dueTime), time:t.dueTime, kind:"over", title:t.title, sub:`${t._round ? t._round + " · " : ""}seit ${kDurLabel(nowMin - hmToMin(t.dueTime))} überfällig`, id, t}));
-  open.filter(([id,t])=> t.dueTime && hmToMin(t.dueTime) >= nowMin).forEach(([id,t])=>{
-    const m = hmToMin(t.dueTime) - nowMin;
-    ev.push({m:hmToMin(t.dueTime), time:t.dueTime, kind: m <= 30 ? "soon" : "", title:t.title, sub:`${t._round ? t._round + " · " : ""}${m === 0 ? "jetzt fällig" : `in ${kDurLabel(m)}`}`, id, t});
+  const now = new Date();
+  tasks.filter(([id,t])=> !done[id] && !isLater([id,t])).forEach(([id,t])=>{
+    const m = kDueIn(id, t);
+    if(m == null) return;
+    const prep = t.type === "prep";
+    const v = prep ? kPrepView(id, t, now) : null;
+    const hm = prep ? minToHm(v.due.getHours()*60 + v.due.getMinutes()) : t.dueTime;
+    const pre = prep ? "Bestand zählen · " : "";
+    if(m < 0) ev.push({m:-1, sortM:m, time:hm, kind:"over", title:t.title, sub:`${pre}seit ${kDurLabel(-m)} überfällig`, id, t});
+    else ev.push({m:nowMin + m, time:hm, kind: m <= 30 ? "soon" : "", title:t.title, sub:`${pre}${m === 0 ? "jetzt fällig" : `bis ${hm} · in ${kDurLabel(m)}`}`, id, t});
   });
-  // Später startende Aufgaben, je Uhrzeit zusammengefasst
+  // Zählfenster, die heute noch kommen (für alle Stationen zusammengefasst)
   const starts = {};
-  tasks.filter(isLater).forEach(([id,t])=> (starts[t.startTime] = starts[t.startTime] || []).push(t));
-  Object.entries(starts).forEach(([hm, list])=>{
-    const rounds = [...new Set(list.map(t=> t._round).filter(Boolean))];
-    ev.push({m:hmToMin(hm), time:hm, kind:"start", title: rounds.length === 1 ? `${rounds[0]} startet` : (list.length === 1 ? list[0].title : `${list.length} Aufgaben starten`), sub: list.length === 1 && !rounds.length ? "wird sichtbar" : list.map(t=> t.title).filter((v,i,a)=> a.indexOf(v) === i).slice(0,3).join(", ") + (list.length > 3 ? " …" : "")});
-  });
+  tasks.forEach(([id,t])=>{ if(t.type === "prep") kCountUpcomingToday(t, now).forEach(w=> (starts[w.from + "|" + w.label] = starts[w.from + "|" + w.label] || {w, n:0}).n++); });
+  Object.values(starts).forEach(({w,n})=> ev.push({m:hmToMin(w.from), time:w.from, kind:"start", title:`Zählen ${w.label}`, sub:`${n} ${n === 1 ? "Station" : "Stationen"} · bis ${w.to} Uhr`}));
+  // Normale Aufgaben, die später sichtbar werden
+  const lst = {};
+  tasks.filter(isLater).forEach(([id,t])=> (lst[t.startTime] = lst[t.startTime] || []).push(t));
+  Object.entries(lst).forEach(([hm, l])=> ev.push({m:hmToMin(hm), time:hm, kind:"start", title: l.length === 1 ? l[0].title : `${l.length} Aufgaben`, sub:"werden sichtbar"}));
   cateringsForDate(today, null, true).forEach(([cid,c])=>{
     const hm = c.readyTime || c.time; if(!hm) return;
     const m = hmToMin(hm); if(m < nowMin - 30) return;
     ev.push({m, time:hm, kind: m < nowMin ? "over" : (m - nowMin <= 30 ? "soon cat" : "cat"), title:`Catering ${cateringShortName(c)}`,
       sub:[c.readyTime ? "fertig bis" : (c.mode === "pickup" ? "Abholung" : "Lieferung"), c.guests ? `${c.guests} Pers.` : null, c.status === "requested" ? "angefragt" : null].filter(Boolean).join(" · "), cat:c});
   });
-  const now = new Date(); let best = null;
+  let best = null;
   Object.values(state.kitchen.alarms || {}).forEach(a=>{
     if(!a || a.active === false) return;
     const d = nextAlarmFire(a, now, 12*60);
@@ -8196,154 +8271,177 @@ function renderKSide(tasks, done, doneCount, isLater, today, nowMin){
   return side;
 }
 
-// ---------- Vorbereitungsliste (Soll / Ist) ----------
-// Tagesstand: kitchen/prepState/{datum}/{aufgabeId}/{zeile} = Ist-Menge
-function kPrepItems(t){ return (t.prep || []).filter(it=> it && it.name).map(it=> ({...it, target: kNum(it.target)})); }
-function kPrepRaw(dateKey, id){ return (state.kitchen.prepState && state.kitchen.prepState[dateKey] && state.kitchen.prepState[dateKey][id]) || {}; }
-function kPrepIst(dateKey, id, i){ return kNum(kPrepRaw(dateKey, id)[i]); }
-function kPrepCounted(dateKey, id, i){ const v = kPrepRaw(dateKey, id)[i]; return v !== undefined && v !== null; }
-// Zeilen mit Ist, gezählt?, voll?
-function kPrepRows(t, dateKey, id){ return kPrepItems(t).map((it,i)=>{ const c = kPrepCounted(dateKey, id, i); const ist = kPrepIst(dateKey, id, i); return {...it, i, counted:c, ist, ok: c && ist >= it.target}; }); }
-function kPrepFmt(n){ return String(Math.round(n * 100) / 100).replace(".", ","); }
-// Ist-Menge setzen und „erledigt“ automatisch mitführen
-function kPrepSet(id, t, today, i, value){
-  const items = kPrepItems(t);
-  const v = Math.max(0, Math.round(value * 100) / 100);
-  const updates = {[`kitchen/prepState/${today}/${id}/${i}`]: v}; // 0 = gezählt, leer
-  const full = items.every((it,j)=> j === i ? v >= it.target : (kPrepCounted(today, id, j) && kPrepIst(today, id, j) >= it.target));
-  const wasDone = !!kDoneMap(today)[id];
-  if(full && !wasDone){
-    updates[`kitchen/taskDone/${today}/${id}`] = {by:"", byName:"Alles vorbereitet", at:Date.now()};
-    state.kJustDone = {id, at:Date.now()};
-    setTimeout(()=>{ if(state.kJustDone && state.kJustDone.id === id){ state.kJustDone = null; render(); } }, 1700);
-  }
-  if(!full && wasDone) updates[`kitchen/taskDone/${today}/${id}`] = null;
-  update(ref(db), updates);
+// ---------- Stationen: Zählen + Auffüllen (Aktionen) ----------
+function kJust(id){
+  state.kJustDone = {id, at:Date.now()};
+  setTimeout(()=>{ if(state.kJustDone && state.kJustDone.id === id){ state.kJustDone = null; render(); } }, 1700);
 }
-// Kompakte Stations-Karte in der Aufgabenliste – Details öffnen sich im Stations-Fenster
+// Zählung: Wert einer Zutat setzen (Entwurf, wird erst mit „Zählung fertig“ übernommen)
+function kPrepCountSet(id, v, i, value){
+  const slotKey = v.slot ? v.slot.key : "manuell";
+  const val = Math.max(0, Math.round(value * 100) / 100);
+  const dr = (state.kitchen.prepDraft || {})[id];
+  if(!dr || dr.slot !== slotKey) set(ref(db, `kitchen/prepDraft/${id}`), {slot:slotKey, vals:{[i]: val}});
+  else set(ref(db, `kitchen/prepDraft/${id}/vals/${i}`), val);
+}
+function kPrepCountFinish(id, t, v){
+  const now = Date.now();
+  const slotKey = v.slot ? v.slot.key : "manuell";
+  const counted = {}; v.rows.forEach(r=> counted[r.i] = r.ist);
+  const allOk = v.rows.every(r=> r.ist >= r.target);
+  const updates = {};
+  updates[`kitchen/prepStock/${id}`] = {slot:slotKey, label: v.slot ? v.slot.label : "Zählung", at:now, counted, filled:null, doneAt: allOk ? now : null};
+  updates[`kitchen/prepDraft/${id}`] = null;
+  updates[`kitchen/prepLog/${toDateKey(new Date())}/${id}/${slotKey}`] = {label: v.slot ? v.slot.label : "Zählung", at:now, counted};
+  update(ref(db), updates);
+  if(allOk) kJust(id);
+}
+// Auffüllen: Zutat als aufgefüllt markieren (oder zurücknehmen)
+function kPrepFill(id, v, idxs, on){
+  const updates = {};
+  idxs.forEach(i=> updates[`kitchen/prepStock/${id}/filled/${i}`] = on ? true : null);
+  const after = v.rows.every(r=> idxs.includes(r.i) ? (on || r.counted >= r.target) : r.ok);
+  const wasDone = v.allOk;
+  updates[`kitchen/prepStock/${id}/doneAt`] = after ? (wasDone ? (v.st.doneAt || Date.now()) : Date.now()) : null;
+  update(ref(db), updates);
+  if(after && !wasDone) kJust(id);
+}
+
+// Kompakte Stations-Karte in der Aufgabenliste – Details im Stations-Fenster
 function renderKPrepCard(id, t, d, today, later){
-  if(t._missed){
-    const rows = kPrepRows(t, today, id);
-    return el("div",{class:"k-task k-prep-card done missed", style:`--cat:${kCatColor(kTaskCat(t))};`},[
-      el("div",{class:"k-task-body"},[
-        ...kCardHead(t, true),
-        el("div",{class:"k-task-meta"},[ el("span",{class:"k-chip warn"}, `Nicht geschafft · ${rows.filter(r=> r.ok).length} von ${rows.length} voll – Spätschicht zählt neu`) ])
-      ])
-    ]);
-  }
-  const rows = kPrepRows(t, today, id);
-  const items = rows;
-  const uncounted = rows.filter(it=> !it.counted);
-  const missing = rows.filter(it=> it.counted && it.ist < it.target);
-  const fullN = rows.filter(it=> it.ok).length;
-  const nowMin = (()=>{ const n = new Date(); return n.getHours()*60 + n.getMinutes(); })();
-  const dueIn = t.dueTime ? hmToMin(t.dueTime) - nowMin : null;
-  const overdue = !d && !later && dueIn !== null && dueIn < 0;
-  const soon = !d && !later && dueIn !== null && dueIn >= 0 && dueIn <= 30;
+  const v = kPrepView(id, t);
+  const items = v.rows;
   const just = state.kJustDone && state.kJustDone.id === id && Date.now() - state.kJustDone.at < 1600;
   const cat = kTaskCat(t);
-  const open = ()=>{ if(later) return; state.kPrepOpen = {id, filter: (missing.length || uncounted.length) ? "missing" : "all", keep:[]}; render(); };
-  const card = el("div",{class:`k-task k-prep-card ${d ? "done" : ""} ${overdue ? "overdue" : ""} ${soon ? "soon" : ""} ${later ? "later" : ""} ${just ? "just-done" : ""}`, style:`--cat:${kCatColor(cat)};`, onclick: open});
+  const counting = v.mode === "count";
+  const dueIn = counting && v.due ? Math.floor((v.due - new Date()) / 60000) : null;
+  const overdue = !d && dueIn !== null && dueIn < 0;
+  const soon = !d && dueIn !== null && dueIn >= 0 && dueIn <= 30;
+  const open = ()=>{ state.kPrepOpen = {id, filter: (!counting && v.missing.length) ? "missing" : "all", keep:[]}; render(); };
+  const card = el("div",{class:`k-task k-prep-card ${d ? "done" : ""} ${counting ? "counting" : ""} ${overdue ? "overdue" : ""} ${soon ? "soon" : ""} ${just ? "just-done" : ""}`, style:`--cat:${kCatColor(cat)};`, onclick: open});
   const body = el("div",{class:"k-task-body"});
-  kCardHead(t, d).forEach(n=> body.appendChild(n));
-  // Eine Zeile Status + Balken, darunter Frist und (falls gezählt) was fehlt
-  if(!later){
-    const status = uncounted.length
-      ? (uncounted.length === items.length ? "Bestand zählen" : `Noch ${uncounted.length} zählen`)
-      : (missing.length ? `${missing.length} ${missing.length === 1 ? "fehlt" : "fehlen"}` : "Alles voll");
+  kCardHead({...t, _round: counting && v.slot ? `Zählen · ${v.slot.label}` : null}, d).forEach(n=> body.appendChild(n));
+  const fullN = items.filter(r=> counting ? false : r.ok).length;
+  if(counting){
     body.appendChild(el("div",{class:"k-prep-line"},[
-      el("span",{class:`k-prep-sum-n ${uncounted.length ? "count" : (missing.length ? "" : "ok")}`}, status),
+      el("span",{class:"k-prep-sum-n count"}, v.touched ? `Zählung läuft · ${v.touched} von ${items.length}` : "Bestand zählen"),
+      el("span",{class:"k-prep-sum-of"}, `${items.length} Zutaten`)
+    ]));
+  } else {
+    body.appendChild(el("div",{class:"k-prep-line"},[
+      el("span",{class:`k-prep-sum-n ${v.missing.length ? "" : "ok"}`}, v.missing.length ? `${v.missing.length} auffüllen` : "Alles voll"),
       el("div",{class:"k-prep-bar big"},[ el("div",{style:`width:${items.length ? fullN / items.length * 100 : 0}%;`}) ]),
       el("span",{class:"k-prep-sum-of"}, `${fullN}/${items.length} voll`)
     ]));
   }
   const meta = el("div",{class:"k-task-meta"});
-  if(later) meta.appendChild(el("span",{class:"k-chip"}, icl("clock", `ab ${t.startTime} Uhr`)));
-  if(t.dueTime && !d && !later){
+  if(counting && v.due && !d){
+    const hm = minToHm(v.due.getHours()*60 + v.due.getMinutes());
     if(overdue) meta.appendChild(el("span",{class:"k-chip warn pulse"}, `Überfällig · seit ${kDurLabel(-dueIn)}`));
-    else if(soon) meta.appendChild(el("span",{class:"k-chip soon"}, `noch ${kDurLabel(dueIn)} · bis ${t.dueTime} Uhr`));
-    else meta.appendChild(el("span",{class:"k-chip"}, `bis ${t.dueTime} Uhr`));
+    else if(soon) meta.appendChild(el("span",{class:"k-chip soon"}, `noch ${kDurLabel(dueIn)} · bis ${hm} Uhr`));
+    else meta.appendChild(el("span",{class:"k-chip"}, `bis ${hm} Uhr`));
   }
-  if(d) meta.appendChild(el("span",{class:"k-chip ok"}, icl("check", "Alles vorbereitet")));
-  if(!later && !d && missing.length){
-    missing.slice(0, 4).forEach(it=> meta.appendChild(el("span",{class:"k-prep-pchip"},[ el("b",{}, kPrepFmt(it.target - it.ist)), ` ${it.name}` ])));
-    if(missing.length > 4) meta.appendChild(el("span",{class:"k-prep-pchip more"}, `+ ${missing.length - 4}`));
+  if(!counting && v.st) meta.appendChild(el("span",{class:"k-chip"}, `gezählt ${kDayTimeLabel(v.st.at)}${v.st.label ? ` · ${v.st.label}` : ""}`));
+  if(!counting && v.missing.length){
+    v.missing.slice(0, 4).forEach(r=> meta.appendChild(el("span",{class:"k-prep-pchip"},[ el("b",{}, kPrepFmt(r.target - r.ist)), ` ${r.name}` ])));
+    if(v.missing.length > 4) meta.appendChild(el("span",{class:"k-prep-pchip more"}, `+ ${v.missing.length - 4}`));
   }
   if(meta.childNodes.length) body.appendChild(meta);
   card.appendChild(body);
-  if(!later) card.appendChild(el("button",{type:"button", class: d ? "k-undo-btn" : "k-done-btn", onclick:(e)=>{ e.stopPropagation(); open(); }}, d ? icl("eye","Ansehen") : icl("chevronRight", uncounted.length === items.length ? "Zählen" : "Öffnen")));
+  card.appendChild(el("button",{type:"button", class: d ? "k-undo-btn" : "k-done-btn", onclick:(e)=>{ e.stopPropagation(); open(); }},
+    d ? icl("eye","Ansehen") : icl("chevronRight", counting ? "Zählen" : "Auffüllen")));
   return card;
 }
+// „heute 14:40“ / „gestern 21:30“ / „Mo 21:30“
+function kDayTimeLabel(ts){
+  const d = new Date(ts), t = fmtTime(ts);
+  const dk = toDateKey(d), today = toDateKey(new Date());
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  if(dk === today) return `${t} Uhr`;
+  if(dk === toDateKey(y)) return `gestern ${t} Uhr`;
+  return `${dayShort(dayKeyOf(d))} ${t} Uhr`;
+}
 
-// Stations-Fenster: Kacheln statt langer Liste, standardmäßig nur was fehlt
+// Stations-Fenster: Zählen (+ / −) oder Auffüllen (✓)
 function renderKPrepSheet(){
   const st = state.kPrepOpen;
   const t = kTaskByVid(st.id);
   const close = ()=>{ state.kPrepOpen = null; render(); };
   if(!t){ state.kPrepOpen = null; return el("div",{}); }
-  const today = toDateKey(new Date());
-  // z. B. über Mitternacht offen geblieben: Runde ist (noch) nicht dran → Fenster zu
-  const nowM = new Date().getHours()*60 + new Date().getMinutes();
-  if(!kTaskOnDate(t, today) || (t.startTime && hmToMin(t.startTime) > nowM && !kDoneMap(today)[st.id])){ state.kPrepOpen = null; return el("div",{}); }
-  const items = kPrepRows(t, today, st.id);
-  const uncounted = items.filter(it=> !it.counted);
-  const missing = items.filter(it=> it.counted && it.ist < it.target);
-  const openN = uncounted.length + missing.length;
-  const fullN = items.length - openN;
-  const shown = st.filter === "all" ? items : items.filter(it=> !it.ok || st.keep.includes(it.i));
-  // Animation nur beim Öffnen; Scrollposition im Fenster bleibt bei jedem Antippen erhalten
+  const v = kPrepView(st.id, t);
+  // Modus gewechselt (z. B. Zählzeit hat begonnen, während das Fenster offen war) → neu aufbauen
+  if(st.mode && st.mode !== v.mode){ st.keep = []; st.filter = v.mode === "fill" ? "missing" : "all"; }
+  st.mode = v.mode;
+  const items = v.rows;
+  const counting = v.mode === "count";
   const first = !st.shown; st.shown = true;
   const ov = el("div",{class:`k-sheet-backdrop ${first ? "" : "no-anim"}`});
-  const sheet = el("div",{class:"k-sheet", role:"dialog", "aria-label":t.title, "data-scroll-key":"kprep-"+st.id});
-  // Kopf
+  const sheet = el("div",{class:`k-sheet ${counting ? "counting" : ""}`, role:"dialog", "aria-label":t.title, "data-scroll-key":"kprep-"+st.id});
   const head = el("div",{class:"k-sheet-head"});
+  let sub;
+  if(counting){
+    const hm = v.due ? minToHm(v.due.getHours()*60 + v.due.getMinutes()) : null;
+    sub = `${v.slot ? v.slot.label + " · " : ""}${hm ? `bis ${hm} Uhr · ` : ""}Tippe + oder −, wie viel gerade da ist.`;
+  } else {
+    sub = `${v.missing.length ? `Noch ${v.missing.length} auffüllen` : "Alles voll – super!"}${v.st ? ` · gezählt ${kDayTimeLabel(v.st.at)}` : ""}`;
+  }
   head.appendChild(el("div",{style:"flex:1;min-width:0;"},[
-    el("div",{class:"k-sheet-title"}, t._round ? `${t.title} · ${t._round}` : t.title),
-    el("div",{class:"k-sheet-sub"}, openN
-      ? [uncounted.length ? `Noch ${uncounted.length} zählen` : null, missing.length ? `${missing.length} vorbereiten` : null].filter(Boolean).join(" · ") + (t.dueTime ? ` · bis ${t.dueTime} Uhr` : "")
-      : "Alles vorbereitet – super!")
+    el("div",{class:"k-sheet-title"}, `${t.title} · ${counting ? "Bestand zählen" : "Auffüllen"}`),
+    el("div",{class:"k-sheet-sub"}, sub)
   ]));
-  head.appendChild(el("button",{type:"button", class:"k-sheet-close", onclick: close}, openN ? icl("x","Schließen") : icl("check","Fertig")));
+  if(!counting && v.missing.length > 1) head.appendChild(el("button",{type:"button", class:"k-sheet-all", onclick:()=>{
+    if(!confirm(`Alle ${v.missing.length} Zutaten als aufgefüllt abhaken?`)) return;
+    v.missing.forEach(r=>{ if(!st.keep.includes(r.i)) st.keep.push(r.i); });
+    kPrepFill(st.id, v, v.missing.map(r=> r.i), true);
+  }}, icl("check","Alles aufgefüllt")));
+  head.appendChild(el("button",{type:"button", class:"k-sheet-close", onclick: close}, (counting || v.missing.length) ? icl("x","Schließen") : icl("check","Fertig")));
   sheet.appendChild(head);
-  sheet.appendChild(el("div",{class:"k-prep-bar big", style:"margin:0 0 14px;"},[ el("div",{style:`width:${items.length ? fullN / items.length * 100 : 0}%;`}) ]));
-  const seg = el("div",{class:"k-seg"});
-  [["missing",`Offen (${openN})`],["all",`Alle (${items.length})`]].forEach(([k,l])=>
-    seg.appendChild(el("button",{type:"button", class:`k-seg-btn ${st.filter===k?"active":""}`, onclick:()=>{ st.filter = k; st.keep = []; render(); }}, l)));
-  sheet.appendChild(seg);
-  // Kacheln
+
   const grid = el("div",{class:"k-ptile-grid"});
-  if(uncounted.length) sheet.appendChild(el("div",{class:"k-count-hint"},[ ic("clipboard"), el("span",{}, "Erst zählen: Box ansehen und Leer, Halb oder Voll tippen (genauer mit − / +). Danach das Fehlende vorbereiten und mit ✓ abhaken.") ]));
-  if(!shown.length) grid.appendChild(el("div",{class:"k-sheet-empty"},[ el("div",{class:"k-celebrate-icon", style:"width:72px;height:72px;margin:0 auto 12px;"},[ic("check")]), el("div",{style:"font-size:20px;font-weight:700;"}, "Alles vorbereitet"), el("div",{style:"color:var(--text-muted);margin-top:4px;"}, "Unter „Alle“ siehst du die komplette Station.") ]));
-  shown.forEach(it=>{
-    const ok = it.ok;
-    const set = (v)=>{ if(!st.keep.includes(it.i)) st.keep.push(it.i); kPrepSet(st.id, t, today, it.i, v); };
-    if(!it.counted){
-      grid.appendChild(el("div",{class:"k-ptile q"},[
+  if(counting){
+    items.forEach(it=>{
+      const step = kPrepStep(it.target);
+      grid.appendChild(el("div",{class:"k-ptile cnt"},[
         el("div",{class:"k-ptile-name"}, it.name),
-        el("div",{class:"k-ptile-count"},[ el("b",{}, "?"), el("span",{}, ` / ${kPrepFmt(it.target)}`) ]),
+        el("div",{class:"k-ptile-count"},[ el("b",{}, kPrepFmt(it.ist)), el("span",{}, ` / ${kPrepFmt(it.target)}`) ]),
         el("div",{class:"k-ptile-unit"}, it.unit),
-        el("div",{class:"k-ptile-status"}, "Wie viel ist da?"),
-        el("div",{class:"k-ptile-btns"},[
-          el("button",{type:"button", class:"k-prep-btn txt", "aria-label":`${it.name}: leer`, onclick:()=> set(0)}, "Leer"),
-          el("button",{type:"button", class:"k-prep-btn txt", "aria-label":`${it.name}: halb`, onclick:()=> set(it.target / 2)}, "Halb"),
-          el("button",{type:"button", class:"k-prep-btn txt full", "aria-label":`${it.name}: voll`, onclick:()=> set(it.target)}, "Voll")
+        el("div",{class:"k-ptile-btns two"},[
+          el("button",{type:"button", class:"k-prep-btn", "aria-label":`${it.name} weniger`, onclick:()=> kPrepCountSet(st.id, v, it.i, Math.max(0, it.ist - step))}, "−"),
+          el("button",{type:"button", class:"k-prep-btn plus", "aria-label":`${it.name} mehr`, onclick:()=> kPrepCountSet(st.id, v, it.i, it.ist + step)}, "+")
         ])
       ]));
-      return;
-    }
-    grid.appendChild(el("div",{class:`k-ptile ${ok ? "ok" : ""}`},[
-      el("div",{class:"k-ptile-name"}, it.name),
-      el("div",{class:"k-ptile-count"},[ el("b",{}, kPrepFmt(it.ist)), el("span",{}, ` / ${kPrepFmt(it.target)}`) ]),
-      el("div",{class:"k-ptile-unit"}, it.unit),
-      el("div",{class:"k-ptile-status"}, ok ? icl("check","voll") : `noch ${kPrepFmt(it.target - it.ist)}`),
-      el("div",{class:"k-ptile-btns"},[
-        el("button",{type:"button", class:"k-prep-btn", "aria-label":`${it.name} weniger`, onclick:()=> set(Math.max(0, it.ist - 1))}, "−"),
-        el("button",{type:"button", class:"k-prep-btn", "aria-label":`${it.name} mehr`, onclick:()=> set(it.ist + 1)}, "+"),
-        el("button",{type:"button", class:`k-prep-btn fill ${ok ? "on" : ""}`, "aria-label":`${it.name} aufgefüllt`, onclick:()=> set(Math.max(it.ist, it.target))},[ic("check")])
-      ])
+    });
+    sheet.appendChild(grid);
+    sheet.appendChild(el("div",{class:"k-sheet-foot"},[
+      el("button",{type:"button", class:"k-count-done", onclick:()=>{
+        if(!v.touched && !confirm("Noch nichts eingetragen – alle Zutaten sind dann 0 (leer). Trotzdem abschließen?")) return;
+        kPrepCountFinish(st.id, t, v);
+        state.kPrepOpen = null; render();
+      }}, icl("check","Zählung fertig"))
     ]));
-  });
-  sheet.appendChild(grid);
+  } else {
+    sheet.appendChild(el("div",{class:"k-prep-bar big", style:"margin:0 0 14px;"},[ el("div",{style:`width:${items.length ? items.filter(r=> r.ok).length / items.length * 100 : 0}%;`}) ]));
+    const seg = el("div",{class:"k-seg"});
+    [["missing",`Auffüllen (${v.missing.length})`],["all",`Alle (${items.length})`]].forEach(([k,l])=>
+      seg.appendChild(el("button",{type:"button", class:`k-seg-btn ${st.filter===k?"active":""}`, onclick:()=>{ st.filter = k; st.keep = []; render(); }}, l)));
+    sheet.appendChild(seg);
+    const shown = st.filter === "all" ? items : items.filter(r=> !r.ok || st.keep.includes(r.i));
+    if(!shown.length) grid.appendChild(el("div",{class:"k-sheet-empty"},[ el("div",{class:"k-celebrate-icon", style:"width:72px;height:72px;margin:0 auto 12px;"},[ic("check")]), el("div",{style:"font-size:20px;font-weight:700;"}, "Alles aufgefüllt"), el("div",{style:"color:var(--text-muted);margin-top:4px;"}, "Unter „Alle“ siehst du die komplette Station.") ]));
+    shown.forEach(r=>{
+      const toggle = ()=>{ if(!st.keep.includes(r.i)) st.keep.push(r.i); kPrepFill(st.id, v, [r.i], !r.filled); };
+      grid.appendChild(el("div",{class:`k-ptile ${r.ok ? "ok" : ""}`},[
+        el("div",{class:"k-ptile-name"}, r.name),
+        el("div",{class:"k-ptile-count"},[ el("b",{}, kPrepFmt(r.filled ? r.counted : r.ist)), el("span",{}, ` / ${kPrepFmt(r.target)}`) ]),
+        el("div",{class:"k-ptile-unit"}, `${r.unit} gezählt`),
+        el("div",{class:"k-ptile-status"}, r.ok ? icl("check", r.filled ? "aufgefüllt" : "war voll") : `${kPrepFmt(r.target - r.ist)} auffüllen`),
+        r.counted >= r.target ? el("div",{class:"k-ptile-btns one"},[ el("div",{class:"k-ptile-note"}, "Nichts zu tun") ])
+          : el("div",{class:"k-ptile-btns one"},[
+            el("button",{type:"button", class:`k-prep-btn fill wide ${r.filled ? "on" : ""}`, "aria-label":`${r.name} aufgefüllt`, onclick: toggle}, r.filled ? icl("undo","Zurück") : icl("check","Aufgefüllt"))
+          ])
+      ]));
+    });
+    sheet.appendChild(grid);
+  }
   ov.appendChild(sheet);
   return ov;
 }
@@ -8540,7 +8638,7 @@ function renderKitchenRecipeDetail(r){
 // =====================================================================
 // Verwaltung (Chef) — Bereich „Küchen-Modus“
 // =====================================================================
-const K_TASK_DEFAULTS = {title:"", description:"", category:"", assignee:"all", repeat:"recurring", date:"", days:["mon","tue","wed","thu","fri","sat","sun"], every:"2", startDate:"", monthDay:"1", shift:"both", startTime:"", dueTime:"", priority:"normal", checklist:[], type:"normal", prep:[], r2On:"no", r2Start:"15:00", r2Due:"17:00"};
+const K_TASK_DEFAULTS = {title:"", description:"", category:"", assignee:"all", repeat:"recurring", date:"", days:["mon","tue","wed","thu","fri","sat","sun"], every:"2", startDate:"", monthDay:"1", shift:"both", startTime:"", dueTime:"", priority:"normal", checklist:[], type:"normal", prep:[]};
 const K_RECIPE_DEFAULTS = {name:"", category:"", yield:"", ingredients:[{amount:"", unit:"", name:""}], steps:[""], notes:""};
 const K_ALARM_DEFAULTS = {title:"", text:"", type:"times", times:["15:00"], days:["mon","tue","wed","thu","fri","sat","sun"], every:"60", from:"11:00", to:"22:00", date:"", time:"", sound:"glocke", volume:"0.8", repeat:true};
 const kLabelStyle = "display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;font-weight:550;";
@@ -8666,65 +8764,75 @@ const K_PREP_TEMPLATE = [
   {title:"Acai-Soßen", prep:[
     ["Erdbeer","Flaschen",1], ["Mango","Flaschen",1], ["Erdnuss","Flaschen",2], ["Lotus","Flaschen",2], ["Schoko","Flaschen",2], ["Pistazie","Flaschen",1], ["Raffaello","Flaschen",2]]}
 ];
-const K_PREP_VARIANTS = [
-  {days:["mon","tue","wed","thu","fri"], startTime:"09:00", dueTime:"11:00", round2:{startTime:"15:00", dueTime:"17:00"}},
-  {days:["sat","sun"], startTime:"14:00", dueTime:"16:00"}
-];
 async function kSeedPrepTemplate(){
-  const n = K_PREP_TEMPLATE.length * K_PREP_VARIANTS.length;
-  if(!confirm(`${n} Vorbereitungslisten anlegen (5 Stationen, je Mo–Fr 9–11 + 15–17 Uhr und Sa+So 14–16 Uhr)? Bestehende Aufgaben bleiben unverändert.`)) return;
+  const n = K_PREP_TEMPLATE.length;
+  if(!confirm(`${n} Stationen anlegen (Bowl, Soßen & Marinade, Wrap, Acai, Acai-Soßen)? Gezählt wird Mo–Fr 14:15–15:30 (Frühschicht) und täglich 20:15–21:45 (Spätschicht). Bestehende Aufgaben bleiben unverändert.`)) return;
   const updates = {};
   let k = 0;
-  K_PREP_VARIANTS.forEach(v=> K_PREP_TEMPLATE.forEach(t=>{
+  K_PREP_TEMPLATE.forEach(t=>{
     const id = push(ref(db, "kitchen/tasks")).key;
     updates[`kitchen/tasks/${id}`] = {
       title:t.title, description:"", category:"Vorbereitung", assignee:"all", type:"prep",
       prep: t.prep.map(([name,unit,target])=> ({name, unit, target})),
-      repeat:"recurring", days:v.days, shift:"both", startTime:v.startTime, dueTime:v.dueTime, round2:v.round2 || null, priority:"normal",
+      counts: kClone(K_COUNT_DEFAULT), repeat:"recurring", days:DAYS.map(d=> d.key), shift:"both", priority:"normal",
       active:true, createdAt:Date.now() + (k++)
     };
-  }));
+  });
   updates["kitchen/seed/prepTemplate1"] = true;
-  updates["kitchen/seed/prepRound2"] = true;
+  updates["kitchen/seed/prepCount1"] = true;
   await update(ref(db), updates);
-  alert(`${n} Vorbereitungslisten angelegt. Du findest sie unten unter „Alle Aufgaben“ → Vorbereitung.`);
+  alert(`${n} Stationen angelegt. Du findest sie unten unter „Alle Aufgaben“ → Vorbereitung.`);
 }
 
-// Bereits angelegte Mo–Fr-Listen bekommen die Spätschicht-Runde (15–17 Uhr)
-function kRound2Candidates(){
-  const wd = ["mon","tue","wed","thu","fri"];
-  return Object.entries(state.kitchen.tasks || {}).filter(([id,t])=> t && t.type === "prep" && !(t.round2 && t.round2.startTime) && t.repeat === "recurring" && (t.days || []).length && (t.days || []).every(d=> wd.includes(d)));
+function kPrepAdminStatus(id, t){
+  const v = kPrepView(id, t);
+  if(v.mode === "count") return v.due && v.due < new Date() ? `Zählung überfällig (${v.slot.label})` : `Zählen fällig${v.slot ? ` · ${v.slot.label}` : ""}`;
+  return `gezählt ${kDayTimeLabel(v.st.at)} · ${v.missing.length} auffüllen`;
 }
-async function kAddRound2(){
-  const list = kRound2Candidates();
-  if(!confirm(`${list.length} Vorbereitungslisten (Mo–Fr) bekommen eine zweite Runde für die Spätschicht: sichtbar ab 15:00, erledigt bis 17:00 Uhr. Fortfahren?`)) return;
-  const updates = {"kitchen/seed/prepRound2": true};
-  list.forEach(([id])=> updates[`kitchen/tasks/${id}/round2`] = {startTime:"15:00", dueTime:"17:00"});
+// Umstellung der alten Listen (je Mo–Fr und Sa+So) auf eine Station mit Zählzeiten
+function kPrepOldLists(){ return Object.entries(state.kitchen.tasks || {}).filter(([id,t])=> t && t.type === "prep" && t.active !== false && !Array.isArray(t.counts)); }
+async function kMigratePrepCount(){
+  const list = kPrepOldLists();
+  const byTitle = {};
+  list.forEach(([id,t])=> (byTitle[t.title] = byTitle[t.title] || []).push([id,t]));
+  const titles = Object.keys(byTitle);
+  const dupN = list.length - titles.length;
+  if(!confirm(`${titles.length} Stationen auf das Zählsystem umstellen:\n• Gezählt wird Mo–Fr 14:15–15:30 (Frühschicht) und täglich 20:15–21:45 (Spätschicht).\n• Danach sieht die nächste Schicht, was aufgefüllt werden muss.${dupN ? `\n• ${dupN} doppelte Listen (Wochenend-Varianten) werden pausiert, nicht gelöscht.` : ""}\n\nFortfahren?`)) return;
+  const updates = {"kitchen/seed/prepCount1": true};
+  titles.forEach(title=>{
+    const group = byTitle[title].sort((a,b)=> ((b[1].days || []).length) - ((a[1].days || []).length));
+    const [keepId] = group[0];
+    Object.assign(updates, {
+      [`kitchen/tasks/${keepId}/counts`]: kClone(K_COUNT_DEFAULT), [`kitchen/tasks/${keepId}/days`]: DAYS.map(d=> d.key), [`kitchen/tasks/${keepId}/repeat`]: "recurring",
+      [`kitchen/tasks/${keepId}/startTime`]: null, [`kitchen/tasks/${keepId}/dueTime`]: null, [`kitchen/tasks/${keepId}/round2`]: null, [`kitchen/tasks/${keepId}/shift`]: "both"
+    });
+    group.slice(1).forEach(([id])=> updates[`kitchen/tasks/${id}/active`] = false);
+  });
   await update(ref(db), updates);
 }
 function renderKAdminTasks(){
   const wrap = el("div",{});
-  if(state.kitchen.seed && state.kitchen.seed.prepTemplate1 && !state.kitchen.seed.prepRound2 && kRound2Candidates().length){
+  if(kPrepOldLists().length){
     wrap.appendChild(el("div",{class:"card k-seed"},[
       el("div",{style:"flex:1;min-width:220px;"},[
-        el("h3",{style:"margin:0 0 4px;font-size:15px;"}, "Spätschicht-Runde hinzufügen"),
-        el("div",{style:"font-size:13px;color:var(--text-muted);"}, `Deine ${kRound2Candidates().length} Mo–Fr-Listen werden zusätzlich ab 15:00 Uhr (bis 17:00 Uhr) nochmal gezählt und aufgefüllt. Später in jeder Liste änderbar.`)
+        el("h3",{style:"margin:0 0 4px;font-size:15px;"}, "Stationen auf Zählsystem umstellen"),
+        el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Neu: Am Ende jeder Schicht wird gezählt (Mo–Fr 14:15–15:30, täglich 20:15–21:45), die nächste Schicht füllt auf und hakt ab. Pro Station gibt es dann nur noch eine Liste.")
       ]),
-      el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 20px;", onclick: kAddRound2}, icl("plus","Spätschicht-Runde hinzufügen"))
+      el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 20px;", onclick: kMigratePrepCount}, icl("refresh","Jetzt umstellen"))
     ]));
   }
   if(!(state.kitchen.seed && state.kitchen.seed.prepTemplate1)){
     wrap.appendChild(el("div",{class:"card k-seed"},[
       el("div",{style:"flex:1;min-width:220px;"},[
         el("h3",{style:"margin:0 0 4px;font-size:15px;"}, "Vorbereitungslisten anlegen"),
-        el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Bowl Station, Soßen & Marinade, Wrap Station, Acai Station und Acai-Soßen – je Mo–Fr (Frühschicht 9–11 Uhr, Spätschicht 15–17 Uhr) und Sa+So (14–16 Uhr). Einmalig, danach wie jede Aufgabe bearbeitbar.")
+        el("div",{style:"font-size:13px;color:var(--text-muted);"}, "Bowl Station, Soßen & Marinade, Wrap Station, Acai Station und Acai-Soßen. Gezählt wird am Schichtende (Mo–Fr 14:15–15:30, täglich 20:15–21:45), danach füllt die nächste Schicht auf. Einmalig, danach wie jede Aufgabe bearbeitbar.")
       ]),
-      el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 20px;", onclick: kSeedPrepTemplate}, icl("plus","10 Listen anlegen"))
+      el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 20px;", onclick: kSeedPrepTemplate}, icl("plus","5 Stationen anlegen"))
     ]));
   }
   const today = toDateKey(new Date());
   const todays = kTasksForDate(today);
-  const done = kDoneMap(today);
+  const done = kDoneWithPrep(today, todays);
 
   const tc = el("div",{class:"card"});
   tc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, `Heute · ${todays.filter(([id])=> done[id]).length} von ${todays.length} erledigt`));
@@ -8735,8 +8843,8 @@ function renderKAdminTasks(){
     const nChecked = cl.filter((x,i)=> kChecksMap(today, id)[i]).length;
     tc.appendChild(el("div",{class:"team-row", style:"flex-wrap:wrap;"},[
       el("span",{class:"k-cat-dot", style:`background:${kCatColor(kTaskCat(t))};`}),
-      el("div",{style:"flex:1;min-width:160px;"},[ el("div",{class:"name"}, t._round ? `${t.title} · ${t._round}` : t.title), el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, `${kTaskCat(t)} · ${kTaskWhen(t)}`) ]),
-      dd ? el("span",{class:"avail-pill yes"}, `${dd.byName} · ${fmtTime(dd.at)} Uhr`) : el("span",{class:"avail-pill no"}, t.type === "prep" ? `offen · ${kPrepRows(t, today, id).filter(it=> it.ok).length}/${kPrepItems(t).length} voll` : (cl.length ? `offen · ${nChecked}/${cl.length}` : "offen"))
+      el("div",{style:"flex:1;min-width:160px;"},[ el("div",{class:"name"}, t.title), el("div",{style:"font-size:12.5px;color:var(--text-muted);"}, `${kTaskCat(t)} · ${kTaskWhen(t)}`) ]),
+      dd ? el("span",{class:"avail-pill yes"}, `${dd.byName} · ${fmtTime(dd.at)} Uhr`) : el("span",{class:"avail-pill no"}, t.type === "prep" ? kPrepAdminStatus(id, t) : (cl.length ? `offen · ${nChecked}/${cl.length}` : "offen"))
     ]));
   });
   wrap.appendChild(tc);
@@ -8747,7 +8855,7 @@ function renderKAdminTasks(){
   fc.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, d.id ? "Aufgabe bearbeiten" : "+ Neue Aufgabe"));
   if(!Array.isArray(x.prep)) x.prep = [];
   const form = el("div",{class:"k-form"});
-  const typeSel = kSel(x,"type",[["normal","Normale Aufgabe"],["prep","Vorbereitungsliste (Soll / Ist)"]], true);
+  const typeSel = kSel(x,"type",[["normal","Normale Aufgabe"],["prep","Station (Zählen + Auffüllen)"]], true);
   if(x.type === "prep"){ if(!x.title) x.title = "Vorbereitung"; if(!x.category) x.category = "Vorbereitung"; if(!x.prep.length) x.prep.push({name:"", unit:"Boxen", target:""}); }
   form.appendChild(kField("Art", typeSel, true));
   form.appendChild(kField("Aufgabe", kIn(x,"title",{type:"text", placeholder: x.type === "prep" ? "z. B. Vorbereitung Frühschicht" : "z. B. Tomaten vorschneiden"}), true));
@@ -8760,6 +8868,7 @@ function renderKAdminTasks(){
   const staffIds = kStaffSorted(Object.keys(state.employees).filter(id=> isStaff(state.employees[id])));
   form.appendChild(kField("Zuständig", kSel(x,"assignee",[["all","Alle"],["kueche","Küche"],["fahrer","Fahrer"], ...staffIds.map(id=> [id, state.employees[id].name])])));
 
+  if(x.type !== "prep"){
   form.appendChild(kField("Wiederholung", kSel(x,"repeat",[["recurring","An bestimmten Wochentagen"],["everyN","Alle X Tage"],["monthly","Monatlich"],["once","Einmalig"]], true)));
   if(x.repeat === "once") form.appendChild(kField("Datum", kIn(x,"date",{type:"date"})));
   if(x.repeat === "everyN"){
@@ -8773,6 +8882,7 @@ function renderKAdminTasks(){
   form.appendChild(kField("Erledigt bis (optional)", kIn(x,"dueTime",{type:"time"})));
   form.appendChild(kField("Priorität", kSel(x,"priority",[["normal","Normal"],["high","Wichtig"]])));
   if(x.repeat === "recurring") form.appendChild(kField("An diesen Tagen", kDayPicker(x), true));
+  }
   fc.appendChild(form);
 
   if(x.type === "prep"){
@@ -8791,15 +8901,23 @@ function renderKAdminTasks(){
     ["Boxen","Behälter","Bleche","Portionen","Stück","kg","Liter","Flaschen"].forEach(u=> ul.appendChild(el("option",{value:u})));
     fc.appendChild(pr); fc.appendChild(ul);
     fc.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-top:8px;", onclick:()=>{ x.prep.push({name:"", unit:"Boxen", target:""}); render(); }}, "+ Zutat"));
-    fc.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-top:4px;"}, "Am iPad startet jede Runde mit „?“: Das Team zählt erst den Bestand (Leer / Halb / Voll oder genau mit − / +), bereitet dann das Fehlende vor und hakt es mit ✓ ab. Sind alle Zutaten gezählt und voll, ist die Aufgabe automatisch erledigt."));
-    const r2 = el("div",{class:"k-form", style:"margin-top:16px;"});
-    r2.appendChild(kField("Zweite Runde zur Spätschicht", kSel(x,"r2On",[["no","Nein – nur eine Runde"],["yes","Ja – Spätschicht zählt nochmal"]], true), true));
-    if(x.r2On === "yes"){
-      r2.appendChild(kField("Spätschicht: sichtbar ab", kIn(x,"r2Start",{type:"time"})));
-      r2.appendChild(kField("Spätschicht: erledigt bis (optional)", kIn(x,"r2Due",{type:"time"})));
-    }
-    fc.appendChild(r2);
-    if(x.r2On === "yes") fc.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-top:4px;"}, "„Sichtbar ab / Erledigt bis“ oben gelten dann für die Frühschicht. Beide Runden nutzen dieselben Zutaten und Soll-Mengen, werden aber getrennt gezählt."));
+    fc.appendChild(el("div",{style:"font-weight:650;font-size:14px;margin:22px 0 8px;"}, "Zählzeiten (Schichtende)"));
+    if(!Array.isArray(x.counts)) x.counts = kClone(K_COUNT_DEFAULT);
+    const cw = el("div",{class:"k-rows"});
+    x.counts.forEach((w,i)=>{
+      cw.appendChild(el("div",{class:"k-count-edit"},[
+        el("div",{class:"k-form", style:"margin:0;"},[
+          kField("Name", kIn(w,"label",{type:"text", placeholder:"z. B. Frühschicht"})),
+          kField("Zählen ab", kIn(w,"from",{type:"time"})),
+          kField("Spätestens bis", kIn(w,"to",{type:"time"})),
+          kField("An diesen Tagen", kDayPicker(w), true)
+        ]),
+        el("button",{type:"button", class:"del-btn", "aria-label":"Zählzeit entfernen", onclick:()=>{ x.counts.splice(i,1); render(); }},[ic("x")])
+      ]));
+    });
+    fc.appendChild(cw);
+    fc.appendChild(el("button",{type:"button", class:"link-btn", style:"margin-top:8px;", onclick:()=>{ x.counts.push({label:"", from:"", to:"", days:DAYS.map(d=> d.key)}); render(); }}, "+ Zählzeit"));
+    fc.appendChild(el("div",{style:"font-size:12px;color:var(--text-muted);margin-top:6px;"}, "Ab „Zählen ab“ zählt die Schicht am iPad mit + / −, wie viel noch da ist, und tippt „Zählung fertig“. Danach sieht die nächste Schicht, was aufgefüllt werden muss, und hakt es ab. Wird nicht gezählt, bleibt „Bestand zählen“ rot stehen, bis es jemand macht."));
   }
   if(x.type !== "prep") fc.appendChild(el("div",{style:"font-weight:650;font-size:14px;margin:18px 0 8px;"}, "Checkliste (optional)"));
   const rows = el("div",{class:"k-rows"});
@@ -8819,16 +8937,16 @@ function renderKAdminTasks(){
   fc.appendChild(kFormActions(d, async ()=>{
     const title = (x.title || "").trim();
     if(!title){ alert("Bitte einen Titel eingeben."); return; }
+    if(x.type === "prep"){ x.repeat = "recurring"; x.days = DAYS.map(dd=> dd.key); x.startTime = ""; x.dueTime = ""; x.shift = "both"; }
     if(x.repeat === "once" && !x.date){ alert("Bitte ein Datum wählen."); return; }
     if(x.repeat === "recurring" && !sortDays(x.days).length){ alert("Bitte mindestens einen Tag wählen."); return; }
     if(x.repeat === "everyN" && (!(Number(x.every) >= 1) || !x.startDate)){ alert("Bitte „Alle … Tage“ (mindestens 1) und ein Startdatum eintragen."); return; }
     if(x.startTime && x.dueTime && hmToMin(x.startTime) >= hmToMin(x.dueTime)){ alert("„Sichtbar ab“ muss vor „Erledigt bis“ liegen."); return; }
     const prep = x.type === "prep" ? x.prep.map(it=> ({name:String(it.name || "").trim(), unit:String(it.unit || "").trim(), target:kNum(it.target)})).filter(it=> it.name) : [];
-    const useR2 = x.type === "prep" && x.r2On === "yes";
-    if(useR2){
-      if(!x.r2Start){ alert("Bitte eintragen, ab wann die Spätschicht-Runde sichtbar ist."); return; }
-      if(x.r2Due && hmToMin(x.r2Start) >= hmToMin(x.r2Due)){ alert("Spätschicht: „sichtbar ab“ muss vor „erledigt bis“ liegen."); return; }
-      if(x.startTime && hmToMin(x.r2Start) <= hmToMin(x.startTime)){ alert("Die Spätschicht-Runde muss nach der Frühschicht-Runde beginnen."); return; }
+    const counts = x.type === "prep" ? (x.counts || []).map(w=> ({label:String(w.label || "").trim() || "Zählen", from:w.from || "", to:w.to || "", days:sortDays(w.days || [])})) : null;
+    if(counts){
+      if(counts.some(w=> !w.from || !w.to || !w.days.length)){ alert("Bitte bei jeder Zählzeit „Zählen ab“, „Spätestens bis“ und mindestens einen Tag angeben."); return; }
+      if(counts.some(w=> hmToMin(w.from) >= hmToMin(w.to))){ alert("Bei jeder Zählzeit muss „Zählen ab“ vor „Spätestens bis“ liegen."); return; }
     }
     if(x.type === "prep"){
       if(!prep.length){ alert("Bitte mindestens eine Zutat eintragen."); return; }
@@ -8844,7 +8962,7 @@ function renderKAdminTasks(){
       startDate: x.repeat === "everyN" ? x.startDate : null,
       monthDay: x.repeat === "monthly" ? Number(x.monthDay) || 1 : null,
       shift:x.shift, startTime: x.startTime || null, dueTime: x.dueTime || null, priority:x.priority,
-      round2: useR2 ? {startTime:x.r2Start, dueTime:x.r2Due || null} : null,
+      round2: null, counts: counts,
       checklist: x.type === "prep" ? [] : x.checklist.map(s=> String(s || "").trim()).filter(Boolean)
     };
     if(!rec.checklist.length) rec.checklist = null;
@@ -8874,7 +8992,7 @@ function renderKAdminTasks(){
           category:t.category || "", assignee:t.assignee || "all", every:String(t.every || 2), startDate:t.startDate || "",
           monthDay:String(t.monthDay || 1), checklist:(t.checklist || []).slice(), repeat:t.repeat || "recurring",
           type:t.type === "prep" ? "prep" : "normal", prep:(t.prep || []).filter(Boolean).map(it=> ({name:it.name || "", unit:it.unit || "", target:kNumStr(it.target)})),
-          r2On: t.round2 && t.round2.startTime ? "yes" : "no", r2Start:(t.round2 && t.round2.startTime) || "15:00", r2Due:(t.round2 && t.round2.dueTime) || "17:00"
+          counts: kClone(Array.isArray(t.counts) ? t.counts : K_COUNT_DEFAULT).map(w=> ({...w, days:(w.days || []).slice()}))
         })),
         onDelete: ()=>{ if(confirm(`Aufgabe „${t.title}“ löschen?`)) remove(ref(db, `kitchen/tasks/${id}`)); }
       }));
