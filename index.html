@@ -1079,6 +1079,102 @@
   .cat-info .l{font-size:12px;color:var(--text-muted);}
   .cat-info .v{font-size:14.5px;font-weight:550;white-space:pre-wrap;color:var(--text);}
   .cat-info a.v{color:var(--brand);text-decoration:none;}
+  /* ---------- Finanzen ---------- */
+  .fin-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;}
+  .fin-period{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+  .fin-h{margin:0 0 14px;font-size:15px;font-weight:650;}
+  .fin-muted{font-size:13px;color:var(--text-muted);line-height:1.5;}
+  .fin-hint{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;font-size:14.5px;font-weight:600;color:#9A5A0C;background:var(--mango-soft);border:1px solid rgba(217,138,43,.4);border-radius:14px;padding:12px 16px;margin-bottom:14px;cursor:pointer;}
+  .fin-hint .ic{width:18px;height:18px;flex-shrink:0;}
+  :root[data-theme="dark"] .fin-hint{color:#EDA850;}
+  .fin-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px;}
+  .fin-kpi{background:var(--bg-elevated);border:1px solid var(--line);border-radius:18px;padding:16px 18px;box-shadow:var(--shadow-sm);min-width:0;}
+  .fin-kpi .l{font-size:13px;font-weight:600;color:var(--text-muted);}
+  .fin-kpi .v{font-size:26px;font-weight:750;letter-spacing:-0.03em;margin:4px 0 6px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .fin-kpi.pos .v{color:var(--avocado);} .fin-kpi.neg .v{color:var(--chili);}
+  .fin-kpi .s{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--text-muted);}
+  @media(max-width:560px){ .fin-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;} .fin-kpi{padding:13px 14px;} .fin-kpi .v{font-size:19px;} }
+  .fin-delta{display:inline-flex;align-items:center;gap:3px;font-weight:700;font-size:12.5px;padding:2px 8px;border-radius:999px;}
+  .fin-delta .ic{width:14px;height:14px;}
+  .fin-delta.up{background:var(--avocado-soft);color:var(--avocado);} .fin-delta.down{background:var(--chili-soft);color:var(--chili);}
+  .fin-quote{margin-bottom:16px;}
+  .fin-quote:last-child{margin-bottom:0;}
+  .fin-quote-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+  .fin-quote-head .n{font-weight:650;font-size:14.5px;}
+  .fin-q-val{font-weight:750;font-size:17px;font-variant-numeric:tabular-nums;}
+  .fin-q-val.good{color:var(--avocado);} .fin-q-val.warn{color:#C27A16;} .fin-q-val.bad{color:var(--chili);}
+  .fin-q-track{position:relative;height:12px;border-radius:7px;background:var(--bg-elevated-2);overflow:visible;}
+  .fin-q-fill{height:100%;border-radius:7px;background:var(--text-muted);transition:width .6s var(--ease);}
+  .fin-q-fill.good{background:var(--avocado);} .fin-q-fill.warn{background:#E0A13C;} .fin-q-fill.bad{background:var(--chili);}
+  .fin-q-target{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--ink);}
+  .fin-q-proj{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--mango);}
+  .fin-quote-sub{font-size:12.5px;color:var(--text-muted);margin-top:6px;}
+  .fin-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+  .fin-two > .card{margin-bottom:16px;}
+  @media(max-width:900px){ .fin-two{grid-template-columns:1fr;gap:0;} }
+  .fin-goal{margin-bottom:16px;}
+  .fin-goal-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;margin-bottom:6px;}
+  .fin-goal-head b{font-variant-numeric:tabular-nums;}
+  .fin-big{font-size:30px;font-weight:750;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;margin-bottom:6px;}
+  .fin-be{display:flex;align-items:center;gap:8px;margin-top:14px;padding:11px 14px;border-radius:12px;font-weight:650;font-size:14px;}
+  .fin-be .ic{width:18px;height:18px;flex-shrink:0;}
+  .fin-be.good{background:var(--avocado-soft);color:var(--avocado);} .fin-be.warn{background:var(--mango-soft);color:#9A5A0C;}
+  :root[data-theme="dark"] .fin-be.warn{color:#EDA850;}
+  .fin-stack{display:flex;height:18px;border-radius:9px;overflow:hidden;margin-bottom:14px;background:var(--bg-elevated-2);}
+  .fin-stack > div{height:100%;}
+  .fin-legend{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:14px;font-variant-numeric:tabular-nums;}
+  .fin-legend .dot, .fin-legend-row .dot, .fin-dc-title .dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0;}
+  .fin-legend .n{flex:1;} .fin-legend .p{color:var(--text-muted);font-size:13px;min-width:52px;text-align:right;}
+  .fin-legend b{min-width:100px;text-align:right;}
+  .fin-hbar{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:13.5px;font-variant-numeric:tabular-nums;}
+  .fin-hbar .n{min-width:150px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .fin-hbar .t{flex:1;height:12px;border-radius:6px;background:var(--bg-elevated-2);overflow:hidden;}
+  .fin-hbar .t > div{height:100%;border-radius:6px;}
+  .fin-hbar b{min-width:92px;text-align:right;} .fin-hbar .p{min-width:38px;text-align:right;color:var(--text-muted);font-size:12.5px;}
+  @media(max-width:560px){ .fin-hbar .n{min-width:100px;max-width:110px;} .fin-hbar .p{display:none;} }
+  .fin-cols{display:flex;align-items:flex-end;gap:6px;height:170px;}
+  .fin-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;min-width:0;}
+  .fin-col .bars{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:2px;}
+  .fin-col .bars > div{width:42%;border-radius:4px 4px 0 0;min-height:2px;}
+  .fin-col .rev{background:var(--brand);opacity:.45;} .fin-col .res{background:var(--avocado);} .fin-col .res.neg{background:var(--chili);}
+  .fin-col.cur .rev{opacity:1;}
+  .fin-col .lbl{font-size:11px;color:var(--text-muted);}
+  .fin-col.cur .lbl{color:var(--text);font-weight:700;}
+  .fin-legend-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--text-muted);}
+  .fin-legend-row > span{display:inline-flex;align-items:center;gap:6px;}
+  .fin-dc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:6px;}
+  @media(max-width:640px){ .fin-dc-grid{grid-template-columns:1fr;} }
+  .fin-dc-box{border:1px solid var(--line);border-radius:16px;padding:14px 16px 6px;background:var(--bg-elevated-2);}
+  .fin-dc-title{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;margin-bottom:10px;}
+  .fin-dc-sum{margin-top:14px;border-top:1px solid var(--line);padding-top:8px;max-width:460px;margin-left:auto;font-variant-numeric:tabular-nums;}
+  .fin-sum-line{display:flex;justify-content:space-between;padding:4px 0;font-size:14px;}
+  .fin-sum-line.total{font-weight:750;font-size:16.5px;border-top:1px solid var(--line);margin-top:4px;padding-top:8px;}
+  .fin-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;}
+  .fin-table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .fin-table th{text-align:left;font-size:12px;font-weight:650;color:var(--text-muted);padding:8px 10px;border-bottom:1px solid var(--line);}
+  .fin-table td{padding:9px 10px;border-bottom:1px solid var(--line);}
+  .fin-table td.num, .fin-table th:not(:first-child){text-align:right;}
+  .fin-table th:last-child:empty{width:1%;}
+  .fin-table td.muted{color:var(--text-muted);}
+  .fin-table td.b{font-weight:700;} .fin-table td.neg{color:var(--chili);}
+  .fin-table tr.clickable{cursor:pointer;} .fin-table tr.clickable:hover td{background:var(--bg-elevated-2);}
+  .fin-table tr.sel td{background:var(--avocado-soft);}
+  .fin-table tr.sec td{padding-top:16px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);border-bottom:none;}
+  .fin-table tr.sum td{font-weight:700;background:var(--bg-elevated-2);}
+  .fin-table tr.result td{font-weight:800;font-size:15px;border-top:2px solid var(--ink);background:var(--avocado-soft);}
+  .fin-table.pnl td:first-child{white-space:normal;min-width:170px;}
+  .fin-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  .fin-chip{font-size:12.5px;font-weight:650;padding:5px 11px;border-radius:999px;background:var(--bg-elevated-2);color:var(--text-muted);font-variant-numeric:tabular-nums;}
+  .fin-chip.pos{background:var(--avocado-soft);color:var(--avocado);} .fin-chip.neg{background:var(--chili-soft);color:var(--chili);}
+  .fin-row{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--line);}
+  .fin-row-date{width:62px;flex-shrink:0;font-size:12.5px;font-weight:650;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+  .fin-row .t{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .fin-row .s{font-size:12.5px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .fin-row-amt{text-align:right;font-variant-numeric:tabular-nums;flex-shrink:0;}
+  .fin-row-amt b{display:block;font-size:14.5px;} .fin-row-amt b.pos{color:var(--avocado);}
+  .fin-row-amt span{font-size:12px;color:var(--text-muted);}
+  .fin-note{display:flex;gap:8px;align-items:flex-start;margin-top:12px;padding:11px 14px;border-radius:12px;background:var(--bg-elevated-2);font-size:13px;color:var(--text-muted);line-height:1.5;}
+  .fin-note .ic{width:16px;height:16px;flex-shrink:0;margin-top:2px;}
 </style>
 </head>
 <body>
@@ -1798,6 +1894,7 @@ function startSessionListeners(){
   onValue(ref(db, "inventoryCounts"), (snap)=>{ state.inventoryCounts = snap.val() || {}; render(); });
   onValue(ref(db, "revenue"), (snap)=>{ state.revenue = snap.val() || {}; render(); });
   onValue(ref(db, "expenses"), (snap)=>{ state.expenses = snap.val() || {}; render(); });
+  onValue(ref(db, "financeRecurring"), (snap)=>{ state.financeRecurring = snap.val() || {}; render(); });
   onValue(ref(db, "recipes"), (snap)=>{ state.recipes = snap.val() || {}; render(); });
   onValue(ref(db, "settings"), (snap)=>{ state.settings = snap.val() || {}; render(); });
   onValue(ref(db, "pushSubs"), (snap)=>{ state.pushSubs = snap.val() || {}; render(); });
@@ -1816,6 +1913,8 @@ function attachWeekListener(){
 
 // ---------- icons (Lucide, ISC-Lizenz) ----------
 const ICONS = {
+  sliders:'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
   x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   check:'<path d="M20 6 9 17l-5-5"/>',
   star:'<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
@@ -3277,7 +3376,7 @@ function renderDashboard(){
   const weekRev = revMaps.weeklyMap[thisWeekKey] || 0;
   const weekExp = expMaps.weeklyMap[thisWeekKey] || 0;
   const weekCost = (pc.weeklyMap[thisWeekKey] && pc.weeklyMap[thisWeekKey].cost) || 0;
-  const weekProfit = weekRev - weekExp - weekCost;
+  const weekProfit = (()=>{ const wr = finRange("week", 0); return finAggregate(wr.from, wr.to).result; })(); // netto, wie in „Finanzen“
 
   const grid = el("div",{class:"dash-grid"});
 
@@ -4113,223 +4212,971 @@ function periodKeysForView(view, endOffset, count){
   return keys;
 }
 
+// ---------- Finanzen: Rechenlogik ----------
+// Umsätze stehen brutto unter revenue/{id}: {date, amount, vat (7|19), channel (kasse|lieferando|catering|sonstiges), source}
+//   Tagesabschluss: revenue/dc_{datum}_{kanal}_{satz}  (z. B. dc_2026-11-25_kasse_7)
+// Ausgaben stehen brutto unter expenses/{id}: {date, amount, vat (0|7|19), category, supplier, method, note, recurringId}
+//   Fixkosten-Buchungen: expenses/rec_{fixkostenId}_{JJJJMM}
+// Wiederkehrende Fixkosten: financeRecurring/{id}; Einstellungen: settings/finance
+// Personalkosten kommen aus den Arbeitszeiten (Stunden × Lohn) plus Lohnnebenkosten-Zuschlag.
+const FIN_CATS = [
+  {key:"Wareneinsatz", type:"ware", vat:7},
+  {key:"Verpackung", type:"var", vat:19},
+  {key:"Provisionen & Gebühren", type:"var", vat:19},
+  {key:"Fahrzeug & Sprit", type:"var", vat:19},
+  {key:"Personal (sonstiges)", type:"personal", vat:0},
+  {key:"Miete & Nebenkosten", type:"fix", vat:19},
+  {key:"Energie", type:"fix", vat:19},
+  {key:"Versicherungen", type:"fix", vat:0},
+  {key:"Marketing", type:"fix", vat:19},
+  {key:"Reparatur & Instandhaltung", type:"fix", vat:19},
+  {key:"Software & Abos", type:"fix", vat:19},
+  {key:"Verwaltung & Beratung", type:"fix", vat:19},
+  {key:"Sonstiges", type:"fix", vat:19}
+];
+const FIN_CAT_ALIAS = {"Wareneinkauf":"Wareneinsatz", "Tanken":"Fahrzeug & Sprit", "Miete":"Miete & Nebenkosten"};
+const FIN_TYPE_LABEL = {ware:"Wareneinsatz", var:"Variable Kosten", personal:"Personal", fix:"Fixkosten"};
+const FIN_CHANNELS = [["kasse","Kasse"],["lieferando","Lieferando"],["catering","Catering"],["sonstiges","Sonstiges"]];
+const FIN_CHANNEL_LABEL = Object.fromEntries(FIN_CHANNELS);
+const FIN_CHANNEL_COLOR = {kasse:"#2F8A57", lieferando:"#E8862E", catering:"#6B5BD2", sonstiges:"#7A857E"};
+const FIN_PAY_METHODS = [["bank","Überweisung/Lastschrift"],["card","Karte"],["cash","Bar"],["paypal","PayPal"]];
+
+function fNum(v){ const n = parseFloat(String(v == null ? "" : v).replace(/\s/g,"").replace(",", ".")); return isFinite(n) ? n : 0; }
+function fRound(n){ return Math.round(n * 100) / 100; }
+function fPct(v, digits){ return isFinite(v) ? `${v.toLocaleString("de-DE",{maximumFractionDigits: digits == null ? 1 : digits, minimumFractionDigits: digits == null ? 1 : digits})} %` : "–"; }
+function finCat(name){
+  const n = FIN_CAT_ALIAS[name] || name || "Sonstiges";
+  return FIN_CATS.find(c=> c.key === n) || {key:n, type:"fix", vat:19, custom:true};
+}
+function finSettings(){
+  const s = (state.settings && state.settings.finance) || {};
+  const pos = (v, d)=> (v === undefined || v === null || v === "") ? d : Math.max(0, fNum(v));
+  return {
+    lieferandoPct: pos(s.lieferandoPct, 0), laborSurchargePct: pos(s.laborSurchargePct, 0),
+    targetFood: pos(s.targetFood, 30), targetLabor: pos(s.targetLabor, 30), targetPrime: pos(s.targetPrime, 60),
+    goalRevenue: pos(s.goalRevenue, 0), goalProfit: pos(s.goalProfit, 0),
+    legacyVat: Number(s.legacyVat) === 19 ? 19 : 7
+  };
+}
+
+// Alle Umsätze einheitlich (brutto, netto, MwSt.)
+function finRevenueRows(){
+  const fs = finSettings();
+  return Object.entries(state.revenue || {}).filter(([id,r])=> r && r.date).map(([id,r])=>{
+    let vat = Number(r.vat);
+    let channel = r.channel;
+    if(r.source === "catering"){
+      channel = "catering";
+      if(!vat){ const c = (state.kitchen.caterings || {})[r.cateringId]; vat = c ? (Number(c.vatRate) || 7) : 7; }
+    }
+    if(!channel) channel = "kasse";
+    if(vat !== 7 && vat !== 19) vat = fs.legacyVat;
+    const gross = fNum(r.amount);
+    const net = gross / (1 + vat / 100);
+    return {id, kind:"revenue", date:r.date, gross, net, tax: gross - net, vat, channel, source: r.source || (id.startsWith("dc_") ? "dayclose" : "manual"), note: r.note || ""};
+  });
+}
+// Alle Ausgaben einheitlich (alte Einträge ohne MwSt.-Angabe zählen als netto = brutto)
+function finExpenseRows(){
+  return Object.entries(state.expenses || {}).filter(([id,e])=> e && e.date).map(([id,e])=>{
+    const vat = [0,7,19].includes(Number(e.vat)) ? Number(e.vat) : 0;
+    const gross = fNum(e.amount);
+    const net = gross / (1 + vat / 100);
+    const cat = finCat(e.category);
+    return {id, kind:"expense", date:e.date, gross, net, tax: gross - net, vat, cat:cat.key, type:cat.type, supplier:e.supplier || "", method:e.method || "", note:e.note || "", recurringId:e.recurringId || null};
+  });
+}
+
+// Zeiträume
+function finDaysInMonth(y, m){ return new Date(y, m + 1, 0).getDate(); }
+function finRange(period, offset){
+  const now = new Date();
+  let from, to, label, key;
+  if(period === "week"){
+    const mon = getMonday(new Date()); mon.setDate(mon.getDate() + offset * 7);
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    from = toDateKey(mon); to = toDateKey(sun);
+    label = `KW ${isoWeekKeyFromDate(from).split("-W")[1]} · ${mon.toLocaleDateString("de-DE",{day:"2-digit", month:"2-digit"})}–${sun.toLocaleDateString("de-DE",{day:"2-digit", month:"2-digit", year:"numeric"})}`;
+  } else if(period === "quarter"){
+    const q0 = Math.floor(now.getMonth() / 3) + offset;
+    const y = now.getFullYear() + Math.floor(q0 / 4), q = ((q0 % 4) + 4) % 4;
+    from = toDateKey(new Date(y, q * 3, 1)); to = toDateKey(new Date(y, q * 3 + 3, 0));
+    label = `${q + 1}. Quartal ${y}`;
+  } else if(period === "year"){
+    const y = now.getFullYear() + offset;
+    from = `${y}-01-01`; to = `${y}-12-31`; label = String(y);
+  } else {
+    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    from = toDateKey(d); to = toDateKey(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+    label = d.toLocaleDateString("de-DE",{month:"long", year:"numeric"});
+  }
+  return {from, to, label, period, offset};
+}
+function finShiftYear(range){
+  const y = (k)=> `${Number(k.slice(0,4)) - 1}${k.slice(4)}`;
+  let to = y(range.to);
+  if(to.endsWith("-02-29")) to = to.slice(0,8) + "28";
+  return {from: y(range.from), to, label: ""};
+}
+function finEachDay(from, to, fn){
+  const d = localDateFromKey(from), end = localDateFromKey(to);
+  while(d <= end){ fn(toDateKey(d), new Date(d)); d.setDate(d.getDate() + 1); }
+}
+
+// Kern: alle Zahlen für einen Zeitraum
+function finAggregate(from, to){
+  const fs = finSettings();
+  const inR = (k)=> k >= from && k <= to;
+  const a = {
+    from, to, revGross:0, revNet:0, vat7:0, vat19:0, base7:0, base19:0,
+    channels:{}, dailyNet:{}, catNet:{}, catType:{}, inputTax:0,
+    ware:0, var:0, fix:0, personalOther:0, labor:0, laborBase:0, laborHours:0, commission:0, commissionTax:0, lieferandoGross:0
+  };
+  FIN_CHANNELS.forEach(([k])=> a.channels[k] = {gross:0, net:0});
+  finRevenueRows().forEach(r=>{
+    if(!inR(r.date)) return;
+    a.revGross += r.gross; a.revNet += r.net;
+    if(r.vat === 19){ a.vat19 += r.tax; a.base19 += r.net; } else { a.vat7 += r.tax; a.base7 += r.net; }
+    const ch = a.channels[r.channel] || (a.channels[r.channel] = {gross:0, net:0});
+    ch.gross += r.gross; ch.net += r.net;
+    a.dailyNet[r.date] = (a.dailyNet[r.date] || 0) + r.net;
+    if(r.channel === "lieferando") a.lieferandoGross += r.gross;
+  });
+  finExpenseRows().forEach(e=>{
+    if(!inR(e.date)) return;
+    a.catNet[e.cat] = (a.catNet[e.cat] || 0) + e.net;
+    a.catType[e.cat] = e.type;
+    a.inputTax += e.tax;
+    if(e.type === "ware") a.ware += e.net;
+    else if(e.type === "var") a.var += e.net;
+    else if(e.type === "personal") a.personalOther += e.net;
+    else a.fix += e.net;
+  });
+  // Lieferando-Provision: % vom Lieferando-Bruttoumsatz, darauf 19 % MwSt. (= Vorsteuer)
+  a.commission = a.lieferandoGross * fs.lieferandoPct / 100;
+  a.commissionTax = a.commission * 0.19;
+  a.inputTax += a.commissionTax;
+  // Personal aus den Arbeitszeiten + Lohnnebenkosten-Zuschlag
+  const pc = computePersonnelCostMaps().dailyMap;
+  Object.entries(pc).forEach(([k,v])=>{ if(inR(k)){ a.laborBase += v.cost; a.laborHours += v.hours; } });
+  a.labor = a.laborBase * (1 + fs.laborSurchargePct / 100);
+
+  a.variableCost = a.ware + a.var + a.commission;
+  a.fixedCost = a.fix + a.labor + a.personalOther;
+  a.totalCost = a.variableCost + a.fixedCost;
+  a.result = a.revNet - a.totalCost;
+  a.grossProfit = a.revNet - a.ware;
+  a.margin = a.revNet > 0 ? a.result / a.revNet * 100 : NaN;
+  a.foodPct = a.revNet > 0 ? a.ware / a.revNet * 100 : NaN;
+  a.laborPct = a.revNet > 0 ? (a.labor + a.personalOther) / a.revNet * 100 : NaN;
+  a.primePct = a.revNet > 0 ? (a.ware + a.labor + a.personalOther) / a.revNet * 100 : NaN;
+  a.varRatio = a.revNet > 0 ? a.variableCost / a.revNet : NaN;
+  a.outputTax = a.vat7 + a.vat19;
+  a.taxDue = a.outputTax - a.inputTax;
+  const days = Object.keys(a.dailyNet).filter(k=> a.dailyNet[k] > 0);
+  a.revDays = days.length;
+  a.avgPerDay = days.length ? a.revNet / days.length : 0;
+  a.perHour = a.laborHours > 0 ? a.revNet / a.laborHours : NaN;
+  return a;
+}
+
+// Fixkosten, die in einem Monat noch fällig werden, aber noch nicht gebucht sind
+function finRecurringDueInMonth(r, y, m){
+  if(!r || r.active === false || !r.startMonth) return null;
+  const [sy, sm] = r.startMonth.split("-").map(Number);
+  const diff = (y - sy) * 12 + (m + 1 - sm);
+  if(diff < 0) return null;
+  if(r.endMonth){ const [ey, em] = r.endMonth.split("-").map(Number); if((y - ey) * 12 + (m + 1 - em) > 0) return null; }
+  const step = r.interval === "yearly" ? 12 : (r.interval === "quarterly" ? 3 : 1);
+  if(diff % step !== 0) return null;
+  const day = Math.min(Math.max(1, Number(r.day) || 1), finDaysInMonth(y, m));
+  return toDateKey(new Date(y, m, day));
+}
+function finRecurringMonthlyNet(r){
+  if(!r || r.active === false) return 0;
+  const net = fNum(r.amount) / (1 + (Number(r.vat) || 0) / 100);
+  return net / (r.interval === "yearly" ? 12 : (r.interval === "quarterly" ? 3 : 1));
+}
+// Fällige Fixkosten automatisch als Ausgabe buchen (nur einmal je Termin)
+const finBookingInFlight = new Set();
+const finDeletedKeys = new Set(); // in dieser Sitzung gelöschte Buchungen nie neu anlegen
+function finBookRecurring(){
+  const today = toDateKey(new Date());
+  const updates = {};
+  Object.entries(state.financeRecurring || {}).forEach(([id,r])=>{
+    if(!r || r.active === false || !r.startMonth) return;
+    const [sy, sm] = r.startMonth.split("-").map(Number);
+    const d = new Date(sy, sm - 1, 1), now = new Date();
+    while(d.getFullYear() < now.getFullYear() || (d.getFullYear() === now.getFullYear() && d.getMonth() <= now.getMonth())){
+      const due = finRecurringDueInMonth(r, d.getFullYear(), d.getMonth());
+      const mk = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2,"0")}`;
+      const key = `rec_${id}_${mk}`;
+      if(due && due <= today && !(state.expenses || {})[key] && !(r.skip && r.skip[mk]) && !finBookingInFlight.has(key) && !finDeletedKeys.has(key)){
+        finBookingInFlight.add(key);
+        updates[`expenses/${key}`] = {date:due, amount:fRound(fNum(r.amount)), vat:Number(r.vat) || 0, category:r.category || "Sonstiges", supplier:r.name || "", method:r.method || "bank", note:"Fixkosten (automatisch)", recurringId:id};
+      }
+      d.setMonth(d.getMonth() + 1);
+    }
+  });
+  if(Object.keys(updates).length) update(ref(db), updates).finally(()=> Object.keys(updates).forEach(k=> finBookingInFlight.delete(k.slice(9))));
+}
+
+// Hochrechnung & Break-even für einen Monat
+function finMonthOutlook(range){
+  const a = finAggregate(range.from, range.to);
+  const today = toDateKey(new Date());
+  const start = localDateFromKey(range.from);
+  const y = start.getFullYear(), m = start.getMonth();
+  const dim = finDaysInMonth(y, m);
+  const isCurrent = today >= range.from && today <= range.to;
+  const elapsed = isCurrent ? new Date().getDate() : dim;
+  const factor = isCurrent ? dim / Math.max(1, elapsed) : 1;
+  // noch offene Fixkosten in diesem Monat
+  let pendingFix = 0;
+  if(isCurrent){
+    Object.entries(state.financeRecurring || {}).forEach(([id,r])=>{
+      const due = finRecurringDueInMonth(r, y, m);
+      const mk = `${y}${String(m + 1).padStart(2,"0")}`;
+      if(due && due > today && !(r.skip && r.skip[mk])) pendingFix += fNum(r.amount) / (1 + (Number(r.vat) || 0) / 100);
+    });
+  }
+  const projRev = a.revNet * factor;
+  const varRatio = isFinite(a.varRatio) ? a.varRatio : 0;
+  const projLabor = (a.labor + a.personalOther) * factor;
+  const projFix = a.fix + pendingFix;
+  const projResult = projRev - projRev * varRatio - projLabor - projFix;
+  const monthFixed = projFix + projLabor;
+  const beRevenue = varRatio < 1 ? monthFixed / (1 - varRatio) : NaN;
+  // Tag, an dem der Deckungsbeitrag die Fixkosten des Monats deckt
+  let cum = 0, beDay = null;
+  finEachDay(range.from, range.to, (k)=>{
+    if(beDay) return;
+    cum += (a.dailyNet[k] || 0) * (1 - varRatio);
+    if(monthFixed > 0 && cum >= monthFixed) beDay = k;
+  });
+  return {a, isCurrent, elapsed, dim, projRev, projResult, monthFixed, beRevenue, beDay, varRatio, missing: Math.max(0, beRevenue - a.revNet)};
+}
+
+// ---------- Finanzen: Ansichten ----------
+function finUi(){
+  if(!state.fin) state.fin = {tab:"overview", period:"month", offset:0, dcDate:toDateKey(new Date()), dc:null, expMonth:0, expDraft:null, recDraft:null, ledgerMonth:0, ledgerType:"all", ledgerQ:"", taxYear:0, extraRev:null};
+  return state.fin;
+}
+function finEl(tag, attrs, kids){ return el(tag, attrs, kids); }
+function finMoney(v){ return fmtMoney(fRound(v || 0)); }
+function finDelta(cur, prev, invert){
+  if(!isFinite(cur) || !isFinite(prev) || Math.abs(prev) < 0.005) return null;
+  const pct = (cur - prev) / Math.abs(prev) * 100;
+  const good = invert ? pct <= 0 : pct >= 0;
+  return el("span",{class:`fin-delta ${good ? "up" : "down"}`}, icl(pct >= 0 ? "trendUp" : "trendDown", fPct(Math.abs(pct), 0)));
+}
+function finLevel(value, target){
+  if(!isFinite(value)) return "";
+  return value <= target ? "good" : (value <= target + 5 ? "warn" : "bad");
+}
+function finPeriodBar(ui, periods){
+  const row = el("div",{class:"fin-period"});
+  const tabs = el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"});
+  (periods || [["week","Woche"],["month","Monat"],["quarter","Quartal"],["year","Jahr"]]).forEach(([k,l])=>
+    tabs.appendChild(el("button",{class:`tab ${ui.period===k?"active":""}`, onclick:()=>{ ui.period = k; ui.offset = 0; render(); }}, l)));
+  row.appendChild(tabs);
+  const r = finRange(ui.period, ui.offset);
+  row.appendChild(el("div",{class:"week-nav", style:"margin:0;"},[
+    el("button",{onclick:()=>{ ui.offset--; render(); }},"‹"),
+    el("span",{class:"week-label", style:"min-width:210px;"}, r.label),
+    el("button",{onclick:()=>{ ui.offset++; render(); }},"›")
+  ]));
+  return row;
+}
+
 function renderFinance(){
-  const section = el("div",{});
+  const ui = finUi();
+  finBookRecurring();
+  const section = el("div",{class:"fin"});
   section.appendChild(el("div",{class:"section-head"},[
     el("div",{},[
       el("h2",{class:"section-title"}, "Finanzen"),
-      null
-    ])
+      el("p",{class:"section-sub"}, "Netto-Zahlen, Kennzahlen und Steuer – alle Beträge netto, wenn nicht anders angegeben.")
+    ]),
+    el("button",{class:"btn btn-primary", style:"width:auto;padding:11px 20px;", onclick:()=>{ ui.tab = "dayclose"; ui.dcDate = toDateKey(new Date()); ui.dc = null; render(); }}, icl("plus","Tagesabschluss"))
   ]));
-
-  const revMaps = buildAmountMaps(state.revenue);
-  const expMaps = buildAmountMaps(state.expenses);
-  const pc = computePersonnelCostMaps();
-  const mapsByView = {
-    day: {rev: revMaps.dailyMap, exp: expMaps.dailyMap, cost: pc.dailyMap},
-    week: {rev: revMaps.weeklyMap, exp: expMaps.weeklyMap, cost: pc.weeklyMap},
-    month: {rev: revMaps.monthlyMap, exp: expMaps.monthlyMap, cost: pc.monthlyMap},
-    year: {rev: revMaps.yearlyMap, exp: expMaps.yearlyMap, cost: pc.yearlyMap},
-  }[state.financeView];
-
-  const offsetKey = state.financeView+"Offset";
-  const currentOffset = {day: state.financeDayOffset, week: state.financeWeekOffset, month: state.financeMonthOffset, year: state.financeYearOffset}[state.financeView];
-
-  function profitAt(offset){
-    const k = periodKeysForView(state.financeView, offset, 1)[0].key;
-    const rev = mapsByView.rev[k] || 0;
-    const exp = mapsByView.exp[k] || 0;
-    const cost = (mapsByView.cost[k] && mapsByView.cost[k].cost) || 0;
-    return {key:k, rev, exp, cost, profit: rev-exp-cost};
-  }
-
-  // period toggle
-  const toggleRow = el("div",{style:"display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;"});
-  [{key:"day",label:"Tag"},{key:"week",label:"Woche"},{key:"month",label:"Monat"},{key:"year",label:"Jahr"}].forEach(v=>{
-    toggleRow.appendChild(el("button",{
-      class:`tab ${state.financeView===v.key?"active":""}`,
-      onclick:()=>{ state.financeView=v.key; render(); }
-    }, v.label));
-  });
-  section.appendChild(toggleRow);
-
-  // period navigation label
-  let periodLabel;
-  if(state.financeView==="day"){
-    const d = new Date(); d.setDate(d.getDate()+currentOffset);
-    periodLabel = d.toLocaleDateString("de-DE",{weekday:"long", day:"2-digit", month:"long", year:"numeric"});
-  } else if(state.financeView==="week"){
-    periodLabel = `Woche ${weekIdFor(currentOffset)} · ${weekRangeLabel(currentOffset)}`;
-  } else if(state.financeView==="month"){
-    const d = new Date(); d.setMonth(d.getMonth()+currentOffset,1);
-    periodLabel = monthLabel(toMonthKey(d));
-  } else {
-    periodLabel = String(new Date().getFullYear()+currentOffset);
-  }
-  const navRow = el("div",{class:"week-nav", style:"margin-bottom:16px;justify-content:center;"},[
-    el("button",{onclick:()=>{ state[offsetKey]--; render(); }},"‹"),
-    el("span",{class:"week-label", style:"min-width:220px;"}, periodLabel),
-    el("button",{onclick:()=>{ state[offsetKey]++; render(); }},"›"),
-  ]);
-  section.appendChild(navRow);
-
-  const current = profitAt(currentOffset);
-  const previous = profitAt(currentOffset-1);
-  const trendPct = previous.profit !== 0 ? ((current.profit-previous.profit)/Math.abs(previous.profit))*100 : (current.profit!==0 ? 100 : 0);
-  const trendUp = current.profit >= previous.profit;
-
-  // hero card
-  const heroCard = el("div",{class:"card"});
-  heroCard.appendChild(el("div",{style:"text-align:center;"},[
-    el("div",{style:"font-size:13px;color:var(--text-muted);margin-bottom:8px;"}, "Gewinn"),
-    el("div",{class:"mono", style:`font-size:40px;font-weight:700;color:${current.profit>=0?"var(--avocado)":"var(--chili)"};line-height:1.1;`}, fmtMoney(current.profit)),
-    el("div",{style:"display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;font-size:14px;"},[
-      el("span",{style:`color:${trendUp?"var(--avocado)":"var(--chili)"};font-weight:700;`}, icl(trendUp?"trendUp":"trendDown", `${Math.abs(trendPct).toLocaleString("de-DE",{maximumFractionDigits:0})}%`)),
-      el("span",{style:"color:var(--text-muted);"}, "ggü. vorherigem Zeitraum")
-    ])
-  ]));
-  section.appendChild(heroCard);
-
-  // comparison bars: Umsatz vs Personalkosten vs Ausgaben nach Kategorie
-  function expensesByCategoryForKey(view, key){
-    const map = {};
-    Object.values(state.expenses||{}).forEach(e=>{
-      let k;
-      if(view==="day") k = e.date;
-      else if(view==="week") k = isoWeekKeyFromDate(e.date);
-      else if(view==="month") k = e.date.slice(0,7);
-      else k = e.date.slice(0,4);
-      if(k === key) map[e.category||"Sonstiges"] = (map[e.category||"Sonstiges"]||0) + e.amount;
-    });
-    return map;
-  }
-  const expByCategory = Object.entries(expensesByCategoryForKey(state.financeView, current.key)).sort((a,b)=> b[1]-a[1]);
-
-  const compareCard = el("div",{class:"card"});
-  compareCard.appendChild(el("h3",{style:"margin:0 0 14px;font-size:14px;color:var(--text-muted);"}, "Verhältnis"));
-  const maxVal = Math.max(current.rev, current.cost, ...expByCategory.map(([c,v])=>v), 1);
-  function compareBar(label, value, color){
-    const pct = value>0 ? Math.max(3, Math.round((value/maxVal)*100)) : 0;
-    return el("div",{class:"bar-row"},[
-      el("span",{class:"bar-label", style:"min-width:130px;"}, label),
-      el("div",{class:"bar-track"},[
-        value>0 ? el("div",{class:"bar-fill", style:`width:${pct}%;background:${color};`},[
-          el("span",{style:"color:var(--bg);"}, fmtMoney(value))
-        ]) : null
-      ])
-    ]);
-  }
-  compareCard.appendChild(compareBar("Umsatz", current.rev, "var(--avocado)"));
-  compareCard.appendChild(compareBar("Personalkosten", current.cost, "var(--mango)"));
-  if(expByCategory.length === 0){
-    compareCard.appendChild(compareBar("Ausgaben", 0, "var(--chili)"));
-  } else {
-    expByCategory.forEach(([cat, val])=>{
-      compareCard.appendChild(compareBar(cat, val, "var(--chili)"));
-    });
-  }
-  if(current.rev > 0){
-    compareCard.appendChild(el("div",{style:"font-size:13px;color:var(--text-muted);margin-top:6px;text-align:right;"}, `Personalkosten-Quote: ${(current.cost/current.rev*100).toLocaleString("de-DE",{maximumFractionDigits:1})} %`));
-  }
-  section.appendChild(compareCard);
-
-  // trend chart — last 6 periods
-  const trendCard = el("div",{class:"card"});
-  trendCard.appendChild(el("h3",{style:"margin:0 0 14px;font-size:14px;color:var(--text-muted);"}, "Verlauf (letzte 6)"));
-  const periods = periodKeysForView(state.financeView, currentOffset, 6).map(p=>{
-    const rev = mapsByView.rev[p.key] || 0;
-    const exp = mapsByView.exp[p.key] || 0;
-    const cost = (mapsByView.cost[p.key] && mapsByView.cost[p.key].cost) || 0;
-    return {...p, profit: rev-exp-cost};
-  });
-  const maxAbsProfit = Math.max(1, ...periods.map(p=> Math.abs(p.profit)));
-  const trendRow = el("div",{style:"display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:10px;"});
-  periods.forEach(p=>{
-    const isCurrent = p.key === current.key;
-    const barHeightPct = Math.max(4, Math.round((Math.abs(p.profit)/maxAbsProfit)*100));
-    const col = el("div",{style:"flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;"});
-    col.appendChild(el("div",{class:"mono trend-val", style:"font-size:10.5px;color:var(--text-muted);white-space:nowrap;"}, fmtMoney(p.profit)));
-    col.appendChild(el("div",{style:`width:100%;height:${barHeightPct}%;border-radius:5px 5px 0 0;background:${p.profit>=0?"var(--avocado)":"var(--chili)"};opacity:${isCurrent?1:.5};`}));
-    col.appendChild(el("div",{style:`font-size:11.5px;color:${isCurrent?"var(--mango)":"var(--text-muted)"};font-weight:${isCurrent?700:400};`}, p.label));
-    trendRow.appendChild(col);
-  });
-  trendCard.appendChild(trendRow);
-  section.appendChild(trendCard);
-
-  // add entry (collapsed by default)
-  const addCard = el("div",{class:"card"});
-  const addToggle = el("button",{class:"btn btn-primary", style:"width:auto;padding:10px 20px;"}, "+ Eintrag hinzufügen");
-  const addBody = el("div",{style:"display:none;margin-top:16px;"});
-  let addOpen = false;
-  addToggle.addEventListener("click", ()=>{ addOpen=!addOpen; addBody.style.display = addOpen?"block":"none"; });
-  addCard.appendChild(addToggle);
-  addCard.appendChild(addBody);
-
-  const typeSelect = el("select",{class:"select-emp", style:"width:100%;margin-bottom:10px;"},[
-    el("option",{value:"revenue"}, "Umsatz"),
-    el("option",{value:"expense"}, "Ausgabe"),
-  ]);
-  const entryDate = el("input",{type:"date", class:"select-emp", style:"width:100%;"});
-  entryDate.value = toDateKey(new Date());
-  const entryAmount = el("input",{type:"number", step:"0.01", min:"0", placeholder:"Betrag in €", class:"select-emp", style:"width:100%;"});
-  const baseExpCategories = ["Tanken","Wareneinkauf","Miete","Sonstiges"];
-  const existingExpCategories = [...new Set([...baseExpCategories, ...Object.values(state.expenses||{}).map(e=> e.category).filter(Boolean)])];
-  const catWrap = el("div",{style:"display:none;"});
-  const catSelect = el("select",{class:"select-emp", style:"width:100%;"});
-  existingExpCategories.forEach(c=> catSelect.appendChild(el("option",{value:c}, c)));
-  catSelect.appendChild(el("option",{value:"__new__"}, "+ Neue Kategorie…"));
-  const newCatInput = el("input",{type:"text", placeholder:"z. B. Reinigung, Versicherung", class:"select-emp", style:"width:100%;margin-top:8px;display:none;"});
-  catSelect.addEventListener("change", ()=>{ newCatInput.style.display = catSelect.value==="__new__" ? "block" : "none"; });
-  catWrap.appendChild(catSelect);
-  catWrap.appendChild(newCatInput);
-  typeSelect.addEventListener("change", ()=>{ catWrap.style.display = typeSelect.value==="expense" ? "block" : "none"; });
-
-  const saveEntryBtn = el("button",{class:"btn btn-primary", style:"margin-top:12px;"}, "Speichern");
-  saveEntryBtn.addEventListener("click", async ()=>{
-    const amount = parseFloat(entryAmount.value);
-    if(!entryDate.value || isNaN(amount)) return;
-    if(typeSelect.value === "revenue"){
-      await set(push(ref(db, "revenue")), {date: entryDate.value, amount});
-    } else {
-      let category = catSelect.value === "__new__" ? newCatInput.value.trim() : catSelect.value;
-      if(!category) category = "Sonstiges";
-      await set(push(ref(db, "expenses")), {date: entryDate.value, amount, category});
-    }
-    entryAmount.value = ""; newCatInput.value = "";
-    addOpen = false; addBody.style.display = "none";
-  });
-
-  addBody.appendChild(el("div",{class:"field"},[el("label",{},"Art"), typeSelect]));
-  addBody.appendChild(el("div",{class:"field"},[el("label",{},"Datum"), entryDate]));
-  addBody.appendChild(el("div",{class:"field"},[el("label",{},"Betrag (€)"), entryAmount]));
-  addBody.appendChild(el("div",{class:"field"},[el("label",{},"Kategorie"), catWrap]));
-  addBody.appendChild(saveEntryBtn);
-  section.appendChild(addCard);
-
-  // combined ledger
-  const ledgerEntries = [
-    ...Object.entries(state.revenue||{}).map(([id,r])=> ({id, type:"revenue", date:r.date, amount:r.amount})),
-    ...Object.entries(state.expenses||{}).map(([id,r])=> ({id, type:"expense", date:r.date, amount:r.amount, category:r.category})),
-  ].sort((a,b)=> b.date.localeCompare(a.date)).slice(0,20);
-
-  if(ledgerEntries.length > 0){
-    const ledgerCard = el("div",{class:"card"});
-    ledgerCard.appendChild(el("h3",{style:"margin:0 0 12px;font-size:15px;"}, "Kontobuch"));
-    ledgerEntries.forEach(e=>{
-      const dt = new Date(e.date);
-      const isRev = e.type === "revenue";
-      ledgerCard.appendChild(el("div",{class:"time-row"},[
-        el("span",{}, `${dt.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit", year:"numeric"})}${isRev?"":" · "+(e.category||"Sonstiges")}`),
-        el("div",{style:"display:flex;align-items:center;gap:10px;"},[
-          el("span",{class:"mono", style:`font-weight:700;color:${isRev?"var(--avocado)":"var(--chili)"};`}, `${isRev?"+":"−"}${fmtMoney(e.amount)}`),
-          el("button",{class:"del-btn", onclick:()=> remove(ref(db, `${isRev?"revenue":"expenses"}/${e.id}`))},[ic("x")])
-        ])
-      ]));
-    });
-    section.appendChild(ledgerCard);
-  }
-
+  const tabs = el("div",{class:"fin-tabs"});
+  [["overview","chart","Übersicht"],["dayclose","calendar","Tagesabschluss"],["expenses","wallet","Ausgaben"],["fixed","clock","Fixkosten"],["pnl","clipboard","Auswertung"],["tax","coins","Steuer"],["ledger","package","Kontobuch"],["settings","sliders","Einstellungen"]]
+    .forEach(([k,icn,l])=> tabs.appendChild(el("button",{class:`tab ${ui.tab===k?"active":""}`, onclick:()=>{ ui.tab = k; render(); }}, icl(icn, l))));
+  section.appendChild(tabs);
+  const view = {overview:renderFinOverview, dayclose:renderFinDayClose, expenses:renderFinExpenses, fixed:renderFinFixed, pnl:renderFinPnl, tax:renderFinTax, ledger:renderFinLedger, settings:renderFinSettings}[ui.tab] || renderFinOverview;
+  section.appendChild(view());
   return section;
+}
+
+// ===== Übersicht =====
+function renderFinOverview(){
+  const ui = finUi(); const fs = finSettings();
+  const wrap = el("div",{});
+  wrap.appendChild(finPeriodBar(ui));
+  const r = finRange(ui.period, ui.offset);
+  const prev = finRange(ui.period, ui.offset - 1);
+  const a = finAggregate(r.from, r.to);
+  const p = finAggregate(prev.from, prev.to);
+  const today = toDateKey(new Date());
+
+  // Hinweis: heute noch kein Tagesabschluss
+  if(today >= r.from && today <= r.to){
+    const has = Object.keys(state.revenue || {}).some(k=> k.startsWith(`dc_${today}_`));
+    const y = new Date(); y.setDate(y.getDate() - 1); const yk = toDateKey(y);
+    const hasY = Object.keys(state.revenue || {}).some(k=> k.startsWith(`dc_${yk}_`));
+    if(!hasY && yk >= r.from) wrap.appendChild(el("button",{class:"fin-hint", onclick:()=>{ ui.tab = "dayclose"; ui.dcDate = yk; ui.dc = null; render(); }},[ic("alert"), el("span",{}, "Für gestern fehlt der Tagesabschluss. Jetzt eintragen →")]));
+    else if(!has && new Date().getHours() >= 21) wrap.appendChild(el("button",{class:"fin-hint", onclick:()=>{ ui.tab = "dayclose"; ui.dcDate = today; ui.dc = null; render(); }},[ic("alert"), el("span",{}, "Heute noch kein Tagesabschluss eingetragen →")]));
+  }
+
+  // Kennzahlen-Kacheln
+  const tiles = el("div",{class:"fin-kpis"});
+  const tile = (label, value, sub, cls, delta)=> el("div",{class:`fin-kpi ${cls || ""}`},[
+    el("div",{class:"l"}, label), el("div",{class:"v"}, value), el("div",{class:"s"},[ delta || null, sub ? el("span",{}, sub) : null ])
+  ]);
+  tiles.appendChild(tile("Nettoumsatz", finMoney(a.revNet), `brutto ${finMoney(a.revGross)}`, "", finDelta(a.revNet, p.revNet)));
+  tiles.appendChild(tile("Betriebsergebnis", finMoney(a.result), isFinite(a.margin) ? `Marge ${fPct(a.margin)}` : "", a.result >= 0 ? "pos" : "neg", finDelta(a.result, p.result)));
+  tiles.appendChild(tile("Ø Nettoumsatz / Tag", finMoney(a.avgPerDay), `${a.revDays} Umsatztage`, "", finDelta(a.avgPerDay, p.avgPerDay)));
+  tiles.appendChild(tile("Umsatz / Arbeitsstunde", isFinite(a.perHour) ? finMoney(a.perHour) : "–", `${a.laborHours.toLocaleString("de-DE",{maximumFractionDigits:1})} Std. gearbeitet`, "", finDelta(a.perHour, p.perHour)));
+  wrap.appendChild(tiles);
+
+  // Quoten (Ampel)
+  const quotes = el("div",{class:"card"});
+  quotes.appendChild(el("h3",{class:"fin-h"}, "Kostenquoten (vom Nettoumsatz)"));
+  const qrow = (label, value, target, amount, hint)=>{
+    const lvl = finLevel(value, target);
+    const w = isFinite(value) ? Math.min(100, value) : 0;
+    return el("div",{class:"fin-quote"},[
+      el("div",{class:"fin-quote-head"},[ el("span",{class:"n"}, label), el("span",{class:`fin-q-val ${lvl}`}, isFinite(value) ? fPct(value) : "–") ]),
+      el("div",{class:"fin-q-track"},[ el("div",{class:`fin-q-fill ${lvl}`, style:`width:${w}%;`}), el("div",{class:"fin-q-target", style:`left:${Math.min(100,target)}%;`, title:`Ziel ${target} %`}) ]),
+      el("div",{class:"fin-quote-sub"}, `${finMoney(amount)} · Ziel ≤ ${fPct(target,0)} · ${hint}`)
+    ]);
+  };
+  quotes.appendChild(qrow("Wareneinsatz", a.foodPct, fs.targetFood, a.ware, "Lebensmittel & Getränke-Einkauf"));
+  quotes.appendChild(qrow("Personal", a.laborPct, fs.targetLabor, a.labor + a.personalOther, fs.laborSurchargePct ? `inkl. ${fPct(fs.laborSurchargePct,0)} Lohnnebenkosten` : "ohne Lohnnebenkosten (in Einstellungen ergänzen)"));
+  quotes.appendChild(qrow("Prime Cost", a.primePct, fs.targetPrime, a.ware + a.labor + a.personalOther, "Ware + Personal – wichtigste Gastro-Kennzahl"));
+  if(!a.revNet) quotes.appendChild(el("div",{class:"fin-muted"}, "Noch kein Umsatz in diesem Zeitraum – trag einen Tagesabschluss ein."));
+  wrap.appendChild(quotes);
+
+  // Monat: Ziel, Hochrechnung, Break-even
+  if(ui.period === "month"){
+    const o = finMonthOutlook(r);
+    const grid = el("div",{class:"fin-two"});
+    const goal = el("div",{class:"card"});
+    goal.appendChild(el("h3",{class:"fin-h"}, o.isCurrent ? "Monatsziel & Hochrechnung" : "Monatsziel"));
+    const gbar = (label, value, target, proj)=>{
+      if(!target) return el("div",{class:"fin-goal"},[ el("div",{class:"fin-goal-head"},[ el("span",{}, label), el("b",{}, finMoney(value)) ]), el("div",{class:"fin-muted"}, "Kein Ziel gesetzt (Einstellungen)") ]);
+      const pct = Math.max(0, value / target * 100);
+      return el("div",{class:"fin-goal"},[
+        el("div",{class:"fin-goal-head"},[ el("span",{}, label), el("b",{}, `${finMoney(value)} von ${finMoney(target)}`) ]),
+        el("div",{class:"fin-q-track"},[ el("div",{class:`fin-q-fill ${pct >= 100 ? "good" : ""}`, style:`width:${Math.min(100,pct)}%;background:${pct>=100?"":"var(--brand)"};`}),
+          proj != null && target ? el("div",{class:"fin-q-proj", style:`left:${Math.min(100, Math.max(0, proj / target * 100))}%;`, title:"Hochrechnung"}) : null ]),
+        el("div",{class:"fin-quote-sub"}, `${fPct(pct,0)} erreicht${proj != null ? ` · Hochrechnung ${finMoney(proj)} (${fPct(Math.max(0, proj / target * 100),0)})` : ""}`)
+      ]);
+    };
+    goal.appendChild(gbar("Nettoumsatz", a.revNet, fs.goalRevenue, o.isCurrent ? o.projRev : null));
+    goal.appendChild(gbar("Betriebsergebnis", a.result, fs.goalProfit, o.isCurrent ? o.projResult : null));
+    if(o.isCurrent) goal.appendChild(el("div",{class:"fin-muted", style:"margin-top:8px;"}, `Hochrechnung auf ${o.dim} Tage aus den ersten ${o.elapsed} Tagen, inkl. noch fälliger Fixkosten.`));
+    grid.appendChild(goal);
+
+    const be = el("div",{class:"card"});
+    be.appendChild(el("h3",{class:"fin-h"}, "Break-even"));
+    if(!isFinite(o.beRevenue) || !a.revNet){
+      be.appendChild(el("div",{class:"fin-muted"}, "Sobald Umsatz und Kosten eingetragen sind, siehst du hier, ab welchem Umsatz du im Plus bist."));
+    } else {
+      be.appendChild(el("div",{class:"fin-big"}, finMoney(o.beRevenue)));
+      be.appendChild(el("div",{class:"fin-muted"}, `Nettoumsatz, den du diesen Monat brauchst, um alle Kosten (${finMoney(o.monthFixed)} fix + ${fPct(o.varRatio*100)} variabel) zu decken.`));
+      be.appendChild(el("div",{class:`fin-be ${o.beDay ? "good" : "warn"}`},
+        o.beDay ? [ic("check"), el("span",{}, `Gewinnzone erreicht am ${fmtDateKey(o.beDay)}`)]
+                : [ic("clock"), el("span",{}, `Noch ${finMoney(o.missing)} Nettoumsatz bis zur Gewinnzone`)]));
+    }
+    grid.appendChild(be);
+    wrap.appendChild(grid);
+  }
+
+  // Kanal-Mix + Kostenstruktur
+  const grid2 = el("div",{class:"fin-two"});
+  const mix = el("div",{class:"card"});
+  mix.appendChild(el("h3",{class:"fin-h"}, "Umsatz nach Kanal (netto)"));
+  const chs = FIN_CHANNELS.map(([k,l])=> [k, l, a.channels[k] ? a.channels[k].net : 0]).filter(x=> x[2] > 0);
+  if(!chs.length) mix.appendChild(el("div",{class:"fin-muted"}, "Noch kein Umsatz."));
+  else {
+    const bar = el("div",{class:"fin-stack"});
+    chs.forEach(([k,l,v])=> bar.appendChild(el("div",{style:`width:${v / a.revNet * 100}%;background:${FIN_CHANNEL_COLOR[k]};`, title:`${l}: ${finMoney(v)}`})));
+    mix.appendChild(bar);
+    chs.forEach(([k,l,v])=> mix.appendChild(el("div",{class:"fin-legend"},[ el("span",{class:"dot", style:`background:${FIN_CHANNEL_COLOR[k]};`}), el("span",{class:"n"}, l), el("span",{class:"p"}, fPct(v / a.revNet * 100)), el("b",{}, finMoney(v)) ])));
+    if(a.commission > 0) mix.appendChild(el("div",{class:"fin-muted", style:"margin-top:8px;"}, `Lieferando-Provision: ${finMoney(a.commission)} (${fPct(finSettings().lieferandoPct,1)} vom Lieferando-Bruttoumsatz)`));
+  }
+  grid2.appendChild(mix);
+
+  const cs = el("div",{class:"card"});
+  cs.appendChild(el("h3",{class:"fin-h"}, `Kosten gesamt: ${finMoney(a.totalCost)}`));
+  const costRows = [
+    ["Wareneinsatz", a.ware, "#2F8A57"],
+    ["Personal", a.labor + a.personalOther, "#D98A2B"],
+    ["Lieferando-Provision", a.commission, "#E8862E"],
+    ...Object.entries(a.catNet).filter(([c])=> !["ware","personal"].includes(a.catType[c])).map(([c,v])=> [c, v, a.catType[c] === "var" ? "#C26A2E" : "#6B7F75"])
+  ].filter(x=> x[1] > 0.004).sort((x,y)=> y[1] - x[1]);
+  if(!costRows.length) cs.appendChild(el("div",{class:"fin-muted"}, "Noch keine Kosten in diesem Zeitraum."));
+  const maxC = Math.max(1, ...costRows.map(x=> x[1]));
+  costRows.forEach(([l,v,c])=> cs.appendChild(el("div",{class:"fin-hbar"},[
+    el("span",{class:"n"}, l),
+    el("div",{class:"t"},[ el("div",{style:`width:${Math.max(2, v / maxC * 100)}%;background:${c};`}) ]),
+    el("b",{}, finMoney(v)),
+    el("span",{class:"p"}, a.revNet > 0 ? fPct(v / a.revNet * 100, 0) : "")
+  ])));
+  grid2.appendChild(cs);
+  wrap.appendChild(grid2);
+
+  // 12-Monats-Verlauf + Wochentage
+  const grid3 = el("div",{class:"fin-two"});
+  const trend = el("div",{class:"card"});
+  trend.appendChild(el("h3",{class:"fin-h"}, "Letzte 12 Monate"));
+  const endMonth = ui.period === "month" ? ui.offset : 0;
+  const months = [];
+  for(let i = 11; i >= 0; i--){
+    const mr = finRange("month", endMonth - i);
+    const ma = finAggregate(mr.from, mr.to);
+    months.push({label: localDateFromKey(mr.from).toLocaleDateString("de-DE",{month:"short"}).replace(".",""), rev: ma.revNet, res: ma.result, cur: i === 0});
+  }
+  const maxM = Math.max(1, ...months.map(m=> Math.max(m.rev, Math.abs(m.res))));
+  const chart = el("div",{class:"fin-cols"});
+  months.forEach(m=> chart.appendChild(el("div",{class:`fin-col ${m.cur ? "cur" : ""}`, title:`${m.label}: Umsatz ${finMoney(m.rev)}, Ergebnis ${finMoney(m.res)}`},[
+    el("div",{class:"bars"},[
+      el("div",{class:"rev", style:`height:${m.rev / maxM * 100}%;`}),
+      el("div",{class:`res ${m.res < 0 ? "neg" : ""}`, style:`height:${Math.abs(m.res) / maxM * 100}%;`})
+    ]),
+    el("div",{class:"lbl"}, m.label)
+  ])));
+  trend.appendChild(chart);
+  trend.appendChild(el("div",{class:"fin-legend-row"},[ el("span",{},[el("span",{class:"dot", style:"background:var(--brand);"}), "Nettoumsatz"]), el("span",{},[el("span",{class:"dot", style:"background:var(--avocado);"}), "Ergebnis"]), el("span",{},[el("span",{class:"dot", style:"background:var(--chili);"}), "Verlust"]) ]));
+  grid3.appendChild(trend);
+
+  const wd = el("div",{class:"card"});
+  wd.appendChild(el("h3",{class:"fin-h"}, "Stärkste Wochentage (Ø netto, letzte 12 Wochen)"));
+  const end = new Date(); const start = new Date(); start.setDate(start.getDate() - 83);
+  const wa = finAggregate(toDateKey(start), toDateKey(end));
+  const sums = [0,0,0,0,0,0,0], cnt = [0,0,0,0,0,0,0];
+  Object.entries(wa.dailyNet).forEach(([k,v])=>{ if(v > 0){ const i = (localDateFromKey(k).getDay() + 6) % 7; sums[i] += v; cnt[i]++; } });
+  const avgs = sums.map((s,i)=> cnt[i] ? s / cnt[i] : 0);
+  const maxA = Math.max(1, ...avgs);
+  const best = avgs.indexOf(Math.max(...avgs));
+  if(!avgs.some(x=> x > 0)) wd.appendChild(el("div",{class:"fin-muted"}, "Noch zu wenig Daten."));
+  else DAYS.forEach((d,i)=> wd.appendChild(el("div",{class:"fin-hbar"},[
+    el("span",{class:"n", style:"min-width:36px;"}, d.label.slice(0,2)),
+    el("div",{class:"t"},[ el("div",{style:`width:${Math.max(2, avgs[i] / maxA * 100)}%;background:${i === best ? "var(--avocado)" : "var(--brand)"};opacity:${i === best ? 1 : .55};`}) ]),
+    el("b",{}, avgs[i] ? finMoney(avgs[i]) : "–")
+  ])));
+  grid3.appendChild(wd);
+  wrap.appendChild(grid3);
+  return wrap;
+}
+
+// ===== Tagesabschluss =====
+const FIN_DC_FIELDS = [["kasse",7,"Kasse – Speisen 7 %"],["kasse",19,"Kasse – Getränke 19 %"],["lieferando",7,"Lieferando – Speisen 7 %"],["lieferando",19,"Lieferando – Getränke 19 %"]];
+function finDcKey(date, ch, vat){ return `dc_${date}_${ch}_${vat}`; }
+function renderFinDayClose(){
+  const ui = finUi(); const fs = finSettings();
+  const wrap = el("div",{});
+  const date = ui.dcDate || toDateKey(new Date());
+  if(!ui.dc || ui.dc.date !== date){
+    const v = {};
+    FIN_DC_FIELDS.forEach(([ch,vat])=>{ const e = (state.revenue || {})[finDcKey(date, ch, vat)]; v[`${ch}${vat}`] = e ? kNumStr(e.amount) : ""; });
+    ui.dc = {date, v};
+  }
+  const x = ui.dc.v;
+  const card = el("div",{class:"card"});
+  card.appendChild(el("h3",{class:"fin-h"}, "Tagesabschluss eintragen"));
+  card.appendChild(el("p",{class:"fin-muted", style:"margin:-6px 0 14px;"}, "Bruttobeträge vom Z-Bon (ready2order) und aus der Lieferando-Abrechnung, getrennt nach Steuersatz. Catering wird automatisch über die Zahlungen gebucht."));
+  const di = el("input",{type:"date", class:"select-emp", id:"fin-dc-date", value:date, style:"max-width:220px;"});
+  di.addEventListener("change", ()=>{ if(di.value){ ui.dcDate = di.value; ui.dc = null; render(); } });
+  card.appendChild(el("div",{class:"field"},[ el("label",{}, "Datum"), di ]));
+  const grid = el("div",{class:"fin-dc-grid"});
+  const sum = el("div",{class:"fin-dc-sum"});
+  const upd = ()=>{
+    let g = 0, n = 0, t = 0, lg = 0;
+    FIN_DC_FIELDS.forEach(([ch,vat])=>{ const b = fNum(x[`${ch}${vat}`]); g += b; const nn = b / (1 + vat / 100); n += nn; t += b - nn; if(ch === "lieferando") lg += b; });
+    const comm = lg * fs.lieferandoPct / 100;
+    sum.innerHTML = "";
+    [["Brutto", finMoney(g)], ["darin MwSt.", finMoney(t)], ["Netto", finMoney(n)], ["Lieferando-Provision", fs.lieferandoPct ? `– ${finMoney(comm)}` : "nicht eingestellt"], ["Netto nach Provision", finMoney(n - comm)]]
+      .forEach(([l,v],i)=> sum.appendChild(el("div",{class:`fin-sum-line ${i === 4 ? "total" : ""}`},[ el("span",{}, l), el("span",{}, v) ])));
+  };
+  [["kasse","Kasse (Z-Bon)"],["lieferando","Lieferando"]].forEach(([ch,title])=>{
+    const box = el("div",{class:"fin-dc-box"},[ el("div",{class:"fin-dc-title"},[ el("span",{class:"dot", style:`background:${FIN_CHANNEL_COLOR[ch]};`}), title ]) ]);
+    [7,19].forEach(vat=>{
+      const inp = el("input",{type:"text", inputmode:"decimal", class:"select-emp", id:`fin-dc-${ch}${vat}`, placeholder:"0,00", value:x[`${ch}${vat}`] || ""});
+      inp.addEventListener("input", ()=>{ x[`${ch}${vat}`] = inp.value; upd(); });
+      box.appendChild(el("div",{class:"field", style:"margin-bottom:10px;"},[ el("label",{}, vat === 7 ? "Speisen (7 %) brutto €" : "Getränke (19 %) brutto €"), inp ]));
+    });
+    grid.appendChild(box);
+  });
+  card.appendChild(grid);
+  upd();
+  card.appendChild(sum);
+  const caterDay = finRevenueRows().filter(r=> r.date === date && r.channel === "catering");
+  if(caterDay.length) card.appendChild(el("div",{class:"fin-muted", style:"margin-top:8px;"}, `Zusätzlich an diesem Tag: Catering-Zahlungen ${finMoney(caterDay.reduce((s,r)=> s + r.gross, 0))} brutto (automatisch).`));
+  card.appendChild(el("div",{class:"cat-actions"},[
+    el("button",{class:"btn btn-primary", style:"width:auto;padding:12px 26px;", onclick: async ()=>{
+      const updates = {};
+      for(const [ch,vat] of FIN_DC_FIELDS){
+        const raw = String(x[`${ch}${vat}`] || "").trim();
+        const v = fRound(fNum(raw));
+        if(raw && !(fNum(raw) >= 0)){ alert("Bitte nur positive Beträge eingeben."); return; }
+        updates[`revenue/${finDcKey(date, ch, vat)}`] = v > 0 ? {date, amount:v, vat, channel:ch, source:"dayclose"} : null;
+      }
+      await update(ref(db), updates);
+      ui.dc = null; render();
+      alert(`Tagesabschluss für ${fmtDateKey(date)} gespeichert.`);
+    }}, "Speichern"),
+    el("button",{class:"btn-cancel", style:"padding:11px 18px;", onclick:()=>{ const d = localDateFromKey(date); d.setDate(d.getDate() - 1); ui.dcDate = toDateKey(d); ui.dc = null; render(); }}, "‹ Vortag"),
+    el("button",{class:"btn-cancel", style:"padding:11px 18px;", onclick:()=>{ const d = localDateFromKey(date); d.setDate(d.getDate() + 1); ui.dcDate = toDateKey(d); ui.dc = null; render(); }}, "Folgetag ›")
+  ]));
+  wrap.appendChild(card);
+
+  // Letzte 14 Tage
+  const list = el("div",{class:"card"});
+  list.appendChild(el("h3",{class:"fin-h"}, "Letzte 14 Tage"));
+  const rows = finRevenueRows();
+  const head = el("div",{class:"fin-table-wrap"});
+  const tbl = el("table",{class:"fin-table"});
+  tbl.appendChild(el("tr",{},[ el("th",{}, "Tag"), el("th",{}, "Kasse"), el("th",{}, "Lieferando"), el("th",{}, "Catering"), el("th",{}, "Netto gesamt"), el("th",{}, "") ]));
+  for(let i = 0; i < 14; i++){
+    const d = new Date(); d.setDate(d.getDate() - i); const k = toDateKey(d);
+    const day = rows.filter(r=> r.date === k);
+    const by = (ch)=> day.filter(r=> r.channel === ch).reduce((s,r)=> s + r.gross, 0);
+    const net = day.reduce((s,r)=> s + r.net, 0);
+    const hasDc = day.some(r=> r.source === "dayclose");
+    tbl.appendChild(el("tr",{class:`clickable ${k === date ? "sel" : ""}`, onclick:()=>{ ui.dcDate = k; ui.dc = null; render(); window.scrollTo({top:0, behavior:"smooth"}); }},[
+      el("td",{}, d.toLocaleDateString("de-DE",{weekday:"short", day:"2-digit", month:"2-digit"})),
+      el("td",{class:"num"}, by("kasse") ? finMoney(by("kasse")) : "–"),
+      el("td",{class:"num"}, by("lieferando") ? finMoney(by("lieferando")) : "–"),
+      el("td",{class:"num"}, by("catering") ? finMoney(by("catering")) : "–"),
+      el("td",{class:"num b"}, net ? finMoney(net) : "–"),
+      el("td",{}, hasDc ? el("span",{class:"cat-pill pay-paid"}, "erfasst") : (i === 0 ? el("span",{class:"cat-pill"}, "offen") : el("span",{class:"cat-pill pay-open"}, "fehlt / Ruhetag")))
+    ]));
+  }
+  head.appendChild(tbl);
+  list.appendChild(head);
+  list.appendChild(el("div",{class:"fin-muted", style:"margin-top:8px;"}, "Brutto-Beträge pro Kanal, Netto nach Abzug der MwSt. Antippen zum Bearbeiten."));
+  wrap.appendChild(list);
+
+  // Sonstiger Umsatz
+  if(!ui.extraRev) ui.extraRev = {date, amount:"", vat:"7", note:""};
+  const ex = ui.extraRev;
+  const ec = el("div",{class:"card"});
+  ec.appendChild(el("h3",{class:"fin-h"}, "Sonstiger Umsatz (z. B. Gutscheinverkauf, Event)"));
+  const f = el("div",{class:"k-form"});
+  f.appendChild(kField("Datum", kIn(ex,"date",{type:"date"})));
+  f.appendChild(kField("Betrag brutto €", kIn(ex,"amount",{type:"text", inputmode:"decimal", placeholder:"0,00"})));
+  f.appendChild(kField("MwSt.", kSel(ex,"vat",[["7","7 %"],["19","19 %"]])));
+  f.appendChild(kField("Notiz", kIn(ex,"note",{type:"text", placeholder:"z. B. Stand Stadtfest"})));
+  ec.appendChild(f);
+  ec.appendChild(el("div",{class:"cat-actions"},[ el("button",{class:"btn-cancel", style:"padding:10px 18px;", onclick: async ()=>{
+    const v = fRound(fNum(ex.amount));
+    if(!ex.date || !(v > 0)){ alert("Bitte Datum und Betrag eingeben."); return; }
+    await set(push(ref(db, "revenue")), {date:ex.date, amount:v, vat:Number(ex.vat), channel:"sonstiges", source:"manual", note:String(ex.note || "").trim()});
+    ui.extraRev = null; render();
+  }}, icl("plus","Umsatz buchen")) ]));
+  wrap.appendChild(ec);
+  return wrap;
+}
+
+// ===== Ausgaben =====
+const FIN_EXP_DEFAULTS = {date:"", category:"Wareneinsatz", newCategory:"", supplier:"", amount:"", vat:"7", method:"bank", note:""};
+function finExpenseCategories(){
+  const custom = [...new Set(Object.values(state.expenses || {}).map(e=> e && finCat(e.category)).filter(c=> c && c.custom).map(c=> c.key))];
+  return [...FIN_CATS.map(c=> c.key), ...custom];
+}
+function finOpenExpense(id){
+  const ui = finUi();
+  const e = id ? (state.expenses || {})[id] : null;
+  ui.expDraft = {id: id || null, data: e ? Object.assign(kClone(FIN_EXP_DEFAULTS), {date:e.date, category:finCat(e.category).key, supplier:e.supplier || "", amount:kNumStr(e.amount), vat:String([0,7,19].includes(Number(e.vat)) ? Number(e.vat) : 0), method:e.method || "bank", note:e.note || ""})
+                                    : Object.assign(kClone(FIN_EXP_DEFAULTS), {date:toDateKey(new Date())})};
+  ui.tab = "expenses";
+  render();
+  window.scrollTo({top:0});
+}
+function renderFinExpenses(){
+  const ui = finUi();
+  const wrap = el("div",{});
+  if(!ui.expDraft) ui.expDraft = {id:null, data:Object.assign(kClone(FIN_EXP_DEFAULTS), {date:toDateKey(new Date())})};
+  const d = ui.expDraft; const x = d.data;
+  const fc = el("div",{class:"card"});
+  fc.appendChild(el("h3",{class:"fin-h"}, d.id ? "Ausgabe bearbeiten" : "Neue Ausgabe"));
+  const f = el("div",{class:"k-form"});
+  f.appendChild(kField("Datum", kIn(x,"date",{type:"date"})));
+  const cs = el("select",{class:"select-emp", style:"width:100%;"});
+  const groups = {};
+  finExpenseCategories().forEach(c=>{ const t = finCat(c).type; (groups[t] = groups[t] || []).push(c); });
+  ["ware","var","personal","fix"].forEach(t=>{
+    if(!groups[t]) return;
+    const og = el("optgroup",{label:FIN_TYPE_LABEL[t]});
+    groups[t].forEach(c=> og.appendChild(el("option",{value:c}, c)));
+    cs.appendChild(og);
+  });
+  cs.appendChild(el("option",{value:"__new"}, "+ Eigene Kategorie …"));
+  cs.value = x.category;
+  cs.addEventListener("change", ()=>{ x.category = cs.value; if(cs.value !== "__new") x.vat = String(finCat(cs.value).vat); render(); });
+  f.appendChild(kField("Kategorie", cs));
+  if(x.category === "__new") f.appendChild(kField("Name der Kategorie (zählt als Fixkosten)", kIn(x,"newCategory",{type:"text", placeholder:"z. B. Reinigungsfirma"})));
+  const sup = kIn(x,"supplier",{type:"text", placeholder:"z. B. Metro, Edeka", list:"fin-suppliers"});
+  const dl = el("datalist",{id:"fin-suppliers"});
+  [...new Set(Object.values(state.expenses || {}).map(e=> e && e.supplier).filter(Boolean))].sort().forEach(s=> dl.appendChild(el("option",{value:s})));
+  f.appendChild(kField("Lieferant / Empfänger", el("div",{},[sup, dl])));
+  const amt = kIn(x,"amount",{type:"text", inputmode:"decimal", placeholder:"0,00"});
+  f.appendChild(kField("Betrag brutto €", amt));
+  f.appendChild(kField("MwSt. auf der Rechnung", kSel(x,"vat",[["7","7 %"],["19","19 %"],["0","keine (0 %)"]], true)));
+  f.appendChild(kField("Zahlungsart", kSel(x,"method", FIN_PAY_METHODS)));
+  f.appendChild(kField("Notiz / Rechnungsnr.", kIn(x,"note",{type:"text", placeholder:"optional"})));
+  fc.appendChild(f);
+  const calc = el("div",{class:"fin-muted", style:"margin-top:10px;"});
+  const updCalc = ()=>{ const g = fNum(x.amount), v = Number(x.vat) || 0, n = g / (1 + v / 100); calc.textContent = g ? `Netto ${finMoney(n)} · Vorsteuer ${finMoney(g - n)}` : ""; };
+  amt.addEventListener("input", updCalc); updCalc();
+  fc.appendChild(calc);
+  fc.appendChild(el("div",{class:"cat-actions"},[
+    el("button",{class:"btn btn-primary", style:"width:auto;padding:12px 26px;", onclick: async ()=>{
+      const g = fRound(fNum(x.amount));
+      let cat = x.category === "__new" ? String(x.newCategory || "").trim() : x.category;
+      if(!x.date || !(g > 0)){ alert("Bitte Datum und Betrag eingeben."); return; }
+      if(!cat){ alert("Bitte eine Kategorie wählen oder eingeben."); return; }
+      const old = d.id ? (state.expenses || {})[d.id] : null;
+      const rec = {date:x.date, amount:g, vat:Number(x.vat) || 0, category:cat, supplier:String(x.supplier || "").trim(), method:x.method, note:String(x.note || "").trim(), recurringId: old && old.recurringId ? old.recurringId : null};
+      if(d.id) await set(ref(db, `expenses/${d.id}`), rec);
+      else await set(push(ref(db, "expenses")), rec);
+      ui.expDraft = null; render();
+    }}, d.id ? "Änderungen speichern" : "Ausgabe speichern"),
+    d.id ? el("button",{class:"btn-cancel", style:"padding:11px 18px;", onclick:()=>{ ui.expDraft = null; render(); }}, "Abbrechen") : null
+  ]));
+  wrap.appendChild(fc);
+
+  // Monatsliste
+  const r = finRange("month", ui.expMonth);
+  const lc = el("div",{class:"card"});
+  lc.appendChild(el("div",{style:"display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;"},[
+    el("h3",{class:"fin-h", style:"margin:0;"}, "Ausgaben"),
+    el("div",{class:"week-nav", style:"margin:0;"},[ el("button",{onclick:()=>{ ui.expMonth--; render(); }},"‹"), el("span",{class:"week-label", style:"min-width:160px;"}, r.label), el("button",{onclick:()=>{ ui.expMonth++; render(); }},"›") ])
+  ]));
+  const rows = finExpenseRows().filter(e=> e.date >= r.from && e.date <= r.to).sort((a,b)=> b.date.localeCompare(a.date));
+  const a = finAggregate(r.from, r.to);
+  const totNet = rows.reduce((s,e)=> s + e.net, 0), totGross = rows.reduce((s,e)=> s + e.gross, 0);
+  lc.appendChild(el("div",{class:"fin-chips"},[
+    el("span",{class:"fin-chip"}, `Netto ${finMoney(totNet)}`), el("span",{class:"fin-chip"}, `Brutto ${finMoney(totGross)}`),
+    el("span",{class:"fin-chip"}, `Vorsteuer ${finMoney(totGross - totNet)}`),
+    a.commission > 0 ? el("span",{class:"fin-chip"}, `+ Lieferando-Provision ${finMoney(a.commission)} (automatisch)`) : null
+  ]));
+  if(!rows.length) lc.appendChild(el("div",{class:"fin-muted"}, "Keine Ausgaben in diesem Monat."));
+  rows.forEach(e=> lc.appendChild(el("div",{class:"fin-row"},[
+    el("div",{class:"fin-row-date"}, localDateFromKey(e.date).toLocaleDateString("de-DE",{day:"2-digit", month:"2-digit"})),
+    el("div",{style:"flex:1;min-width:0;"},[
+      el("div",{class:"t"}, e.supplier || e.cat),
+      el("div",{class:"s"}, [e.cat, e.vat ? `${e.vat} % MwSt.` : "ohne MwSt.", FIN_PAY_METHODS.find(m=> m[0] === e.method) ? FIN_PAY_METHODS.find(m=> m[0] === e.method)[1] : null, e.recurringId ? "Fixkosten" : null, e.note || null].filter(Boolean).join(" · "))
+    ]),
+    el("div",{class:"fin-row-amt"},[ el("b",{}, `− ${finMoney(e.gross)}`), el("span",{}, `netto ${finMoney(e.net)}`) ]),
+    el("button",{class:"icon-btn", title:"Bearbeiten", "aria-label":"Bearbeiten", onclick:()=> finOpenExpense(e.id)},[ic("pencil")]),
+    el("button",{class:"del-btn", title:"Löschen", "aria-label":"Löschen", onclick:()=> finDeleteExpense(e.id)},[ic("trash")])
+  ])));
+  wrap.appendChild(lc);
+  return wrap;
+}
+async function finDeleteExpense(id){
+  const e = (state.expenses || {})[id];
+  if(!e || !confirm(`Ausgabe über ${finMoney(fNum(e.amount))} vom ${fmtDateKey(e.date)} löschen?`)) return;
+  const updates = {[`expenses/${id}`]: null};
+  // automatisch gebuchte Fixkosten nicht erneut buchen
+  const m = id.match(/^rec_(.+)_(\d{6})$/);
+  if(m) finDeletedKeys.add(id);
+  if(m) updates[`financeRecurring/${m[1]}/skip/${m[2]}`] = true;
+  await update(ref(db), updates);
+}
+
+// ===== Fixkosten =====
+const FIN_REC_DEFAULTS = {name:"", category:"Miete & Nebenkosten", amount:"", vat:"19", interval:"monthly", day:"1", startMonth:"", endMonth:"", method:"bank"};
+function renderFinFixed(){
+  const ui = finUi();
+  const wrap = el("div",{});
+  const all = Object.entries(state.financeRecurring || {}).filter(([id,r])=> r).sort((a,b)=> (a[1].name || "").localeCompare(b[1].name || ""));
+  const monthly = all.reduce((s,[id,r])=> s + finRecurringMonthlyNet(r), 0);
+  wrap.appendChild(el("div",{class:"fin-kpis"},[
+    el("div",{class:"fin-kpi"},[ el("div",{class:"l"}, "Fixkosten pro Monat (netto)"), el("div",{class:"v"}, finMoney(monthly)), el("div",{class:"s"}, el("span",{}, "Jahres- und Quartalskosten anteilig")) ]),
+    el("div",{class:"fin-kpi"},[ el("div",{class:"l"}, "Pro Tag"), el("div",{class:"v"}, finMoney(monthly * 12 / 365)), el("div",{class:"s"}, el("span",{}, "so viel kostet jeder Tag, auch wenn zu ist")) ])
+  ]));
+  if(!ui.recDraft) ui.recDraft = {id:null, data:Object.assign(kClone(FIN_REC_DEFAULTS), {startMonth:toMonthKey(new Date())})};
+  const d = ui.recDraft; const x = d.data;
+  const fc = el("div",{class:"card"});
+  fc.appendChild(el("h3",{class:"fin-h"}, d.id ? "Fixkosten bearbeiten" : "Neue wiederkehrende Kosten"));
+  fc.appendChild(el("p",{class:"fin-muted", style:"margin:-6px 0 12px;"}, "Wird am Fälligkeitstag automatisch als Ausgabe gebucht. Änderungen gelten für künftige Buchungen."));
+  const f = el("div",{class:"k-form"});
+  f.appendChild(kField("Bezeichnung", kIn(x,"name",{type:"text", placeholder:"z. B. Miete Ladenlokal"})));
+  const cs = el("select",{class:"select-emp", style:"width:100%;"});
+  finExpenseCategories().forEach(c=> cs.appendChild(el("option",{value:c}, c)));
+  cs.value = x.category;
+  cs.addEventListener("change", ()=>{ x.category = cs.value; x.vat = String(finCat(cs.value).vat); render(); });
+  f.appendChild(kField("Kategorie", cs));
+  f.appendChild(kField("Betrag brutto €", kIn(x,"amount",{type:"text", inputmode:"decimal", placeholder:"0,00"})));
+  f.appendChild(kField("MwSt.", kSel(x,"vat",[["19","19 %"],["7","7 %"],["0","keine (0 %)"]])));
+  f.appendChild(kField("Rhythmus", kSel(x,"interval",[["monthly","Monatlich"],["quarterly","Vierteljährlich"],["yearly","Jährlich"]])));
+  f.appendChild(kField("Fällig am … Tag", kSel(x,"day", Array.from({length:28}, (_,i)=> [String(i+1), `${i+1}.`]))));
+  f.appendChild(kField("Ab Monat", kIn(x,"startMonth",{type:"month"})));
+  f.appendChild(kField("Bis Monat (optional)", kIn(x,"endMonth",{type:"month"})));
+  fc.appendChild(f);
+  fc.appendChild(el("div",{class:"cat-actions"},[
+    el("button",{class:"btn btn-primary", style:"width:auto;padding:12px 26px;", onclick: async ()=>{
+      const g = fRound(fNum(x.amount));
+      if(!String(x.name || "").trim() || !(g > 0) || !x.startMonth){ alert("Bitte Bezeichnung, Betrag und Startmonat eingeben."); return; }
+      if(x.endMonth && x.endMonth < x.startMonth){ alert("„Bis Monat“ liegt vor „Ab Monat“."); return; }
+      const rec = {name:String(x.name).trim(), category:x.category, amount:g, vat:Number(x.vat) || 0, interval:x.interval, day:Number(x.day) || 1, startMonth:x.startMonth, endMonth:x.endMonth || null, method:x.method || "bank"};
+      if(d.id) await update(ref(db, `financeRecurring/${d.id}`), rec);
+      else await set(push(ref(db, "financeRecurring")), {...rec, active:true, createdAt:Date.now()});
+      ui.recDraft = null; render();
+    }}, d.id ? "Änderungen speichern" : "Speichern"),
+    d.id ? el("button",{class:"btn-cancel", style:"padding:11px 18px;", onclick:()=>{ ui.recDraft = null; render(); }}, "Abbrechen") : null
+  ]));
+  wrap.appendChild(fc);
+
+  const lc = el("div",{class:"card"});
+  lc.appendChild(el("h3",{class:"fin-h"}, `Alle Fixkosten (${all.length})`));
+  if(!all.length) lc.appendChild(el("div",{class:"fin-muted"}, "Noch keine angelegt – z. B. Miete, Strom, Versicherung, Kassen-Abo, Steuerberater."));
+  const iv = {monthly:"monatlich", quarterly:"vierteljährlich", yearly:"jährlich"};
+  all.forEach(([id,r])=> lc.appendChild(kListRow({
+    title: `${r.name} · ${finMoney(fNum(r.amount))}`,
+    sub: `${r.category} · ${iv[r.interval] || "monatlich"} am ${r.day}. · ab ${monthLabel(r.startMonth)}${r.endMonth ? ` bis ${monthLabel(r.endMonth)}` : ""} · ≈ ${finMoney(finRecurringMonthlyNet(Object.assign({}, r, {active:true})))} netto/Monat${r.active === false ? " · pausiert" : ""}`,
+    paused: r.active === false,
+    onToggle: ()=> update(ref(db, `financeRecurring/${id}`), {active: r.active === false}),
+    onEdit: ()=>{ ui.recDraft = {id, data:Object.assign(kClone(FIN_REC_DEFAULTS), {name:r.name, category:r.category, amount:kNumStr(r.amount), vat:String(r.vat || 0), interval:r.interval || "monthly", day:String(r.day || 1), startMonth:r.startMonth || "", endMonth:r.endMonth || "", method:r.method || "bank"})}; render(); window.scrollTo({top:0}); },
+    onDelete: ()=>{ if(confirm(`„${r.name}“ löschen? Bereits gebuchte Ausgaben bleiben erhalten.`)) remove(ref(db, `financeRecurring/${id}`)); }
+  })));
+  wrap.appendChild(lc);
+  return wrap;
+}
+
+// ===== Auswertung (GuV) =====
+function renderFinPnl(){
+  const ui = finUi();
+  const wrap = el("div",{});
+  wrap.appendChild(finPeriodBar(ui));
+  const r = finRange(ui.period, ui.offset);
+  const p = finRange(ui.period, ui.offset - 1);
+  const ly = finShiftYear(r);
+  const A = finAggregate(r.from, r.to), P = finAggregate(p.from, p.to), Y = finAggregate(ly.from, ly.to);
+  const card = el("div",{class:"card"});
+  card.appendChild(el("h3",{class:"fin-h"}, `Gewinn- und Verlustrechnung · ${r.label}`));
+  const tw = el("div",{class:"fin-table-wrap"});
+  const t = el("table",{class:"fin-table pnl"});
+  const prevLabel = {week:"Vorwoche", month:"Vormonat", quarter:"Vorquartal", year:"Vorjahr"}[ui.period];
+  t.appendChild(el("tr",{},[ el("th",{}, ""), el("th",{}, r.label), el("th",{}, "% Umsatz"), el("th",{}, prevLabel), el("th",{}, "Δ"), ui.period !== "year" ? el("th",{}, "Vorjahr") : null ]));
+  const row = (label, f, opts)=>{
+    opts = opts || {};
+    const v = f(A), pv = f(P), yv = f(Y);
+    if(opts.hideEmpty && Math.abs(v) < 0.005 && Math.abs(pv) < 0.005 && Math.abs(yv) < 0.005) return;
+    const sign = opts.cost ? "− " : "";
+    t.appendChild(el("tr",{class:opts.cls || ""},[
+      el("td",{}, label),
+      el("td",{class:"num"}, sign + finMoney(v)),
+      el("td",{class:"num muted"}, A.revNet > 0 && !opts.noPct ? fPct(v / A.revNet * 100) : ""),
+      el("td",{class:"num muted"}, sign + finMoney(pv)),
+      el("td",{class:"num"}, finDelta(v, pv, opts.cost) || ""),
+      ui.period !== "year" ? el("td",{class:"num muted"}, sign + finMoney(yv)) : null
+    ]));
+  };
+  const section = (label)=> t.appendChild(el("tr",{class:"sec"},[ el("td",{colspan:"6"}, label) ]));
+  section("Umsatz (netto)");
+  FIN_CHANNELS.forEach(([k,l])=> row(`Umsatz ${l}`, (x)=> (x.channels[k] || {net:0}).net, {hideEmpty:true}));
+  row("Nettoumsatz", (x)=> x.revNet, {cls:"sum"});
+  section("Wareneinsatz");
+  row("Wareneinsatz", (x)=> x.ware, {cost:true});
+  row("Rohertrag", (x)=> x.grossProfit, {cls:"sum"});
+  section("Betriebskosten");
+  row(`Personal (Stunden${finSettings().laborSurchargePct ? ` + ${fPct(finSettings().laborSurchargePct,0)} Nebenkosten` : ""})`, (x)=> x.labor, {cost:true});
+  row("Personal (sonstiges)", (x)=> x.personalOther, {cost:true, hideEmpty:true});
+  row("Lieferando-Provision", (x)=> x.commission, {cost:true, hideEmpty:true});
+  const cats = [...new Set([...Object.keys(A.catNet), ...Object.keys(P.catNet), ...Object.keys(Y.catNet)])]
+    .filter(c=> !["ware","personal"].includes(finCat(c).type)).sort((a,b)=> (finCat(a).type === "var" ? 0 : 1) - (finCat(b).type === "var" ? 0 : 1) || a.localeCompare(b));
+  cats.forEach(c=> row(c, (x)=> x.catNet[c] || 0, {cost:true, hideEmpty:true}));
+  row("Summe Betriebskosten", (x)=> x.totalCost - x.ware, {cost:true, cls:"sum"});
+  row("Betriebsergebnis", (x)=> x.result, {cls:"result"});
+  section("Kennzahlen");
+  const kRow = (label, f, target)=>{
+    const v = f(A), pv = f(P);
+    t.appendChild(el("tr",{},[ el("td",{}, label), el("td",{class:`num fin-q-val ${target != null ? finLevel(v, target) : ""}`}, fPct(v)), el("td",{class:"num muted"}, target != null ? `Ziel ≤ ${fPct(target,0)}` : ""), el("td",{class:"num muted"}, fPct(pv)), el("td",{}), ui.period !== "year" ? el("td",{class:"num muted"}, fPct(f(Y))) : null ]));
+  };
+  const fs = finSettings();
+  kRow("Wareneinsatzquote", (x)=> x.foodPct, fs.targetFood);
+  kRow("Personalquote", (x)=> x.laborPct, fs.targetLabor);
+  kRow("Prime Cost", (x)=> x.primePct, fs.targetPrime);
+  kRow("Umsatzrendite (Marge)", (x)=> x.margin, null);
+  tw.appendChild(t);
+  card.appendChild(tw);
+  card.appendChild(el("div",{class:"fin-muted", style:"margin-top:10px;"}, "Vereinfachte Auswertung ohne Abschreibungen, Zinsen und Steuern vom Einkommen. Für Steuererklärung und Bilanz gilt die Auswertung deines Steuerberaters."));
+  wrap.appendChild(card);
+  return wrap;
+}
+
+// ===== Steuer =====
+function renderFinTax(){
+  const ui = finUi();
+  const wrap = el("div",{});
+  const y = new Date().getFullYear() + ui.taxYear;
+  wrap.appendChild(el("div",{class:"week-nav", style:"margin-bottom:16px;justify-content:flex-start;"},[
+    el("button",{onclick:()=>{ ui.taxYear--; render(); }},"‹"), el("span",{class:"week-label", style:"min-width:120px;"}, String(y)), el("button",{onclick:()=>{ ui.taxYear++; render(); }},"›")
+  ]));
+  const nowKey = toMonthKey(new Date());
+  const cur = finAggregate(`${nowKey}-01`, toDateKey(new Date(Number(nowKey.slice(0,4)), Number(nowKey.slice(5)) , 0)));
+  if(ui.taxYear === 0) wrap.appendChild(el("div",{class:"fin-kpis"},[
+    el("div",{class:`fin-kpi ${cur.taxDue > 0 ? "neg" : "pos"}`},[ el("div",{class:"l"}, `Voraussichtliche Zahllast ${monthLabel(nowKey)}`), el("div",{class:"v"}, finMoney(cur.taxDue)), el("div",{class:"s"}, el("span",{}, cur.taxDue > 0 ? "zurücklegen" : "voraussichtlich Erstattung")) ]),
+    el("div",{class:"fin-kpi"},[ el("div",{class:"l"}, "Umsatzsteuer"), el("div",{class:"v"}, finMoney(cur.outputTax)), el("div",{class:"s"}, el("span",{}, `7 %: ${finMoney(cur.vat7)} · 19 %: ${finMoney(cur.vat19)}`)) ]),
+    el("div",{class:"fin-kpi"},[ el("div",{class:"l"}, "Vorsteuer"), el("div",{class:"v"}, finMoney(cur.inputTax)), el("div",{class:"s"}, el("span",{}, "aus Ausgaben + Provision")) ])
+  ]));
+  const card = el("div",{class:"card"});
+  card.appendChild(el("h3",{class:"fin-h"}, `Umsatzsteuer ${y}`));
+  const tw = el("div",{class:"fin-table-wrap"});
+  const t = el("table",{class:"fin-table"});
+  t.appendChild(el("tr",{},[ el("th",{}, "Monat"), el("th",{}, "Umsatz 7 % (netto)"), el("th",{}, "USt 7 %"), el("th",{}, "Umsatz 19 % (netto)"), el("th",{}, "USt 19 %"), el("th",{}, "Vorsteuer"), el("th",{}, "Zahllast") ]));
+  const tot = {b7:0, v7:0, b19:0, v19:0, inp:0, due:0};
+  for(let q = 0; q < 4; q++){
+    const qs = {b7:0, v7:0, b19:0, v19:0, inp:0, due:0};
+    for(let m = q * 3; m < q * 3 + 3; m++){
+      const from = toDateKey(new Date(y, m, 1)), to = toDateKey(new Date(y, m + 1, 0));
+      const a = finAggregate(from, to);
+      const vals = {b7:a.base7, v7:a.vat7, b19:a.base19, v19:a.vat19, inp:a.inputTax, due:a.taxDue};
+      Object.keys(qs).forEach(k=>{ qs[k] += vals[k]; tot[k] += vals[k]; });
+      t.appendChild(el("tr",{},[ el("td",{}, new Date(y, m, 1).toLocaleDateString("de-DE",{month:"long"})), ...["b7","v7","b19","v19","inp"].map(k=> el("td",{class:"num"}, vals[k] ? finMoney(vals[k]) : "–")), el("td",{class:`num b ${vals.due > 0 ? "neg" : ""}`}, vals.due ? finMoney(vals.due) : "–") ]));
+    }
+    t.appendChild(el("tr",{class:"sum"},[ el("td",{}, `${q + 1}. Quartal`), ...["b7","v7","b19","v19","inp"].map(k=> el("td",{class:"num"}, finMoney(qs[k]))), el("td",{class:"num b"}, finMoney(qs.due)) ]));
+  }
+  t.appendChild(el("tr",{class:"result"},[ el("td",{}, `Jahr ${y}`), ...["b7","v7","b19","v19","inp"].map(k=> el("td",{class:"num"}, finMoney(tot[k]))), el("td",{class:"num b"}, finMoney(tot.due)) ]));
+  tw.appendChild(t);
+  card.appendChild(tw);
+  card.appendChild(el("div",{class:"fin-note"},[ ic("alert"), el("span",{}, "Nur zur Orientierung, damit du das Geld rechtzeitig zurücklegst. Speisen 7 %, Getränke 19 % (seit 1.1.2026). Alte Ausgaben ohne MwSt.-Angabe zählen ohne Vorsteuer. Verbindlich ist die Voranmeldung deines Steuerberaters – keine Steuerberatung.") ]));
+  wrap.appendChild(card);
+  return wrap;
+}
+
+// ===== Kontobuch =====
+function finLedgerRows(){
+  const rev = finRevenueRows().map(r=> ({...r, label: r.source === "dayclose" ? `Tagesabschluss ${FIN_CHANNEL_LABEL[r.channel]} ${r.vat} %` : (r.source === "catering" ? (r.note || "Catering") : (r.note || `Umsatz ${FIN_CHANNEL_LABEL[r.channel] || ""}`)), cat: FIN_CHANNEL_LABEL[r.channel] || "Umsatz"}));
+  const exp = finExpenseRows().map(e=> ({...e, label: e.supplier || e.cat}));
+  return [...rev, ...exp].sort((a,b)=> b.date.localeCompare(a.date) || (a.kind === b.kind ? 0 : (a.kind === "revenue" ? -1 : 1)));
+}
+function renderFinLedger(){
+  const ui = finUi();
+  const wrap = el("div",{});
+  const r = ui.ledgerMonth === "all" ? null : finRange("month", ui.ledgerMonth);
+  const bar = el("div",{class:"fin-period"});
+  bar.appendChild(el("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"}, [["all","Alles"],["revenue","Umsätze"],["expense","Ausgaben"]].map(([k,l])=>
+    el("button",{class:`tab ${ui.ledgerType===k?"active":""}`, onclick:()=>{ ui.ledgerType = k; render(); }}, l))));
+  bar.appendChild(el("div",{class:"week-nav", style:"margin:0;"},[
+    el("button",{onclick:()=>{ ui.ledgerMonth = (ui.ledgerMonth === "all" ? 0 : ui.ledgerMonth - 1); render(); }},"‹"),
+    el("span",{class:"week-label", style:"min-width:160px;"}, r ? r.label : "Alle Monate"),
+    el("button",{onclick:()=>{ ui.ledgerMonth = (ui.ledgerMonth === "all" ? 0 : ui.ledgerMonth + 1); render(); }},"›"),
+    el("button",{class:`tab ${ui.ledgerMonth === "all" ? "active" : ""}`, style:"margin-left:6px;", onclick:()=>{ ui.ledgerMonth = ui.ledgerMonth === "all" ? 0 : "all"; render(); }}, "Alle")
+  ]));
+  wrap.appendChild(bar);
+  const search = el("input",{type:"search", id:"fin-ledger-q", class:"select-emp", style:"width:100%;margin-bottom:12px;", placeholder:"Suchen: Lieferant, Kategorie, Notiz …"});
+  search.value = ui.ledgerQ || "";
+  search.addEventListener("input", ()=>{ ui.ledgerQ = search.value; render(); });
+  wrap.appendChild(search);
+  const q = (ui.ledgerQ || "").trim().toLowerCase();
+  const rows = finLedgerRows().filter(x=> (!r || (x.date >= r.from && x.date <= r.to)) && (ui.ledgerType === "all" || x.kind === ui.ledgerType)
+    && (!q || [x.label, x.cat, x.note, x.supplier].join(" ").toLowerCase().includes(q)));
+  const inc = rows.filter(x=> x.kind === "revenue"), out = rows.filter(x=> x.kind === "expense");
+  const card = el("div",{class:"card"});
+  card.appendChild(el("div",{style:"display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;"},[
+    el("div",{class:"fin-chips", style:"margin:0;"},[
+      el("span",{class:"fin-chip pos"}, `Einnahmen ${finMoney(inc.reduce((s,x)=> s + x.gross, 0))}`),
+      el("span",{class:"fin-chip neg"}, `Ausgaben ${finMoney(out.reduce((s,x)=> s + x.gross, 0))}`),
+      el("span",{class:"fin-chip"}, `${rows.length} Buchungen`)
+    ]),
+    el("button",{class:"btn-cancel", style:"padding:9px 16px;", onclick:()=> finExportCsv(rows, r ? r.label : "alle")}, icl("download","CSV für Steuerberater"))
+  ]));
+  if(!rows.length) card.appendChild(el("div",{class:"fin-muted"}, "Keine Buchungen gefunden."));
+  rows.slice(0, 400).forEach(x=>{
+    const isRev = x.kind === "revenue";
+    const acts = [];
+    if(isRev && x.source === "dayclose") acts.push(el("button",{class:"icon-btn", title:"Tagesabschluss öffnen", "aria-label":"Bearbeiten", onclick:()=>{ ui.tab = "dayclose"; ui.dcDate = x.date; ui.dc = null; render(); window.scrollTo({top:0}); }},[ic("pencil")]));
+    if(!isRev) acts.push(el("button",{class:"icon-btn", title:"Bearbeiten", "aria-label":"Bearbeiten", onclick:()=> finOpenExpense(x.id)},[ic("pencil")]));
+    if(!isRev) acts.push(el("button",{class:"del-btn", title:"Löschen", "aria-label":"Löschen", onclick:()=> finDeleteExpense(x.id)},[ic("trash")]));
+    else if(x.source !== "catering") acts.push(el("button",{class:"del-btn", title:"Löschen", "aria-label":"Löschen", onclick:()=>{ if(confirm(`Umsatz ${finMoney(x.gross)} vom ${fmtDateKey(x.date)} löschen?`)) remove(ref(db, `revenue/${x.id}`)); }},[ic("trash")]));
+    card.appendChild(el("div",{class:"fin-row"},[
+      el("div",{class:"fin-row-date"}, localDateFromKey(x.date).toLocaleDateString("de-DE",{day:"2-digit", month:"2-digit", year:"2-digit"})),
+      el("div",{style:"flex:1;min-width:0;"},[ el("div",{class:"t"}, x.label), el("div",{class:"s"}, [x.cat, `${x.vat} % MwSt.`, isRev && x.source === "catering" ? "über Catering verwaltet" : null, !isRev && x.note ? x.note : null].filter(Boolean).join(" · ")) ]),
+      el("div",{class:"fin-row-amt"},[ el("b",{class: isRev ? "pos" : ""}, `${isRev ? "+" : "−"} ${finMoney(x.gross)}`), el("span",{}, `netto ${finMoney(x.net)}`) ]),
+      ...acts
+    ]));
+  });
+  if(rows.length > 400) card.appendChild(el("div",{class:"fin-muted"}, `Es werden die neuesten 400 von ${rows.length} Buchungen angezeigt. Der CSV-Export enthält alle.`));
+  wrap.appendChild(card);
+  return wrap;
+}
+function finExportCsv(rows, label){
+  const n = (v)=> fRound(v).toFixed(2).replace(".", ",");
+  const esc = (s)=> `"${String(s == null ? "" : s).replace(/"/g,'""')}"`;
+  const lines = [["Datum","Art","Kategorie/Kanal","Beschreibung","Netto","MwSt-Satz","MwSt","Brutto","Zahlungsart","Notiz"].join(";")];
+  rows.slice().sort((a,b)=> a.date.localeCompare(b.date)).forEach(x=>{
+    const pm = FIN_PAY_METHODS.find(m=> m[0] === x.method);
+    lines.push([fmtDateKey(x.date), x.kind === "revenue" ? "Einnahme" : "Ausgabe", esc(x.cat), esc(x.label), n(x.net), `${x.vat}%`, n(x.tax), n(x.gross), esc(pm ? pm[1] : ""), esc(x.note || "")].join(";"));
+  });
+  const blob = new Blob(["﻿" + lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `TastyDay_Kontobuch_${String(label).replace(/\s+/g,"_")}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(a.href), 2000);
+}
+
+// ===== Einstellungen =====
+function renderFinSettings(){
+  const ui = finUi();
+  const s = (state.settings && state.settings.finance) || {};
+  if(!ui.setDraft){
+    ui.setDraft = {};
+    ["lieferandoPct","laborSurchargePct","targetFood","targetLabor","targetPrime","goalRevenue","goalProfit"].forEach(k=> ui.setDraft[k] = s[k] != null ? kNumStr(s[k]) : "");
+    ui.setDraft.legacyVat = String(s.legacyVat || 7);
+  }
+  const x = ui.setDraft;
+  const wrap = el("div",{});
+  const block = (title, sub, fields)=>{
+    const c = el("div",{class:"card"});
+    c.appendChild(el("h3",{class:"fin-h"}, title));
+    if(sub) c.appendChild(el("p",{class:"fin-muted", style:"margin:-6px 0 12px;"}, sub));
+    const f = el("div",{class:"k-form"});
+    fields.forEach(fl=> f.appendChild(fl));
+    c.appendChild(f);
+    return c;
+  };
+  const num = (k, ph)=> kIn(x, k, {type:"text", inputmode:"decimal", placeholder:ph});
+  wrap.appendChild(block("Lieferando", "Steht auf deiner Lieferando-Abrechnung. Mit eigenen Fahrern meist ca. 13–14 %, mit Lieferando-Fahrern ca. 30 %. Wird automatisch als Kosten (inkl. 19 % Vorsteuer) gerechnet.", [
+    kField("Provision in % vom Bruttoumsatz", num("lieferandoPct","z. B. 13"))
+  ]));
+  wrap.appendChild(block("Personal", "Aufschlag auf die Stundenlöhne für Arbeitgeberanteile (Sozialversicherung, Minijob-Pauschalen, Umlagen). Als grobe Hausnummer oft 20–30 % – frag deinen Steuerberater nach deinem Wert.", [
+    kField("Lohnnebenkosten in %", num("laborSurchargePct","z. B. 25"))
+  ]));
+  wrap.appendChild(block("Zielwerte", "Bis zu diesem Wert ist eine Kennzahl grün, bis +5 Prozentpunkte gelb, darüber rot.", [
+    kField("Wareneinsatzquote ≤ %", num("targetFood","30")),
+    kField("Personalquote ≤ %", num("targetLabor","30")),
+    kField("Prime Cost ≤ %", num("targetPrime","60"))
+  ]));
+  wrap.appendChild(block("Monatsziele (netto)", null, [
+    kField("Nettoumsatz pro Monat €", num("goalRevenue","z. B. 40000")),
+    kField("Betriebsergebnis pro Monat €", num("goalProfit","z. B. 6000"))
+  ]));
+  wrap.appendChild(block("Alte Einträge", "Umsätze, die vor dieser Version ohne Steuersatz eingetragen wurden, werden so gerechnet.", [
+    kField("MwSt. alter Umsätze", kSel(x,"legacyVat",[["7","7 % (Speisen)"],["19","19 %"]]))
+  ]));
+  wrap.appendChild(el("div",{class:"cat-actions"},[ el("button",{class:"btn btn-primary", style:"width:auto;padding:12px 26px;", onclick: async ()=>{
+    const out = {};
+    for(const k of ["lieferandoPct","laborSurchargePct","targetFood","targetLabor","targetPrime","goalRevenue","goalProfit"]){
+      const raw = String(x[k] || "").trim();
+      if(!raw){ out[k] = null; continue; }
+      const v = fNum(raw);
+      if(!(v >= 0) || (k.endsWith("Pct") && v > 100) || (k.startsWith("target") && v > 100)){ alert("Bitte gültige Werte eingeben (Prozent zwischen 0 und 100)."); return; }
+      out[k] = fRound(v);
+    }
+    out.legacyVat = Number(x.legacyVat) === 19 ? 19 : 7;
+    await update(ref(db, "settings/finance"), out);
+    ui.setDraft = null; render();
+    alert("Gespeichert.");
+  }}, "Einstellungen speichern") ]));
+  return wrap;
 }
 
 function costResultBox(label, data){
